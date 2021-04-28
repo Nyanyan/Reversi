@@ -26,7 +26,7 @@ For each actions, you type a coordinate. For example,
 30●○○●●○○○
 40●○●○○●○○
 50●●○○●○○○
-60●●●●○* . .
+60●●●●○*..
 70○○●●●●●*
 Black: 77
 ```
