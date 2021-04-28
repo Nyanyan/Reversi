@@ -84,14 +84,13 @@ def calc_score(ty, tx, player, grid, depth):
         for x in range(hw):
             if grid_copy[y][x] == 2:
                 grid_copy[y][x] = -1
-                if player == ai_player:
-                    for dr in range(8):
-                        ny = y + dy[dr]
-                        nx = x + dx[dr]
-                        if not inside(ny, nx):
-                            res += depth + 1
-                        elif not empty(grid_copy, ny, nx):
-                            res += (depth + 1) * weight[ny][nx]
+                for dr in range(8):
+                    ny = y + dy[dr]
+                    nx = x + dx[dr]
+                    if not inside(ny, nx):
+                        res += depth + 1
+                    elif not empty(grid_copy, ny, nx):
+                        res += (depth + 1) * weight[ny][nx]
     for y in range(hw):
         for x in range(hw):
             if not empty(grid_copy, y, x):
