@@ -72,8 +72,6 @@ def check(grid, player, y, x):
     return res, res_grid
 
 def calc_score(player, grid, depth, flag):
-    if depth == 0:
-        return 0
     res = 0
     for y in range(hw):
         for x in range(hw):
@@ -87,6 +85,8 @@ def calc_score(player, grid, depth, flag):
                 elif not empty(grid, ny, nx):
                     res += (depth + 1) * weight[ny][nx]
             res += (depth + 1) * weight[y][x] * 100
+            if depth == 0:
+                continue
             grid[y][x] = player
             lst = []
             for ny in range(hw):
@@ -119,9 +119,15 @@ def calc_score(player, grid, depth, flag):
             grid[y][x] = -1
     return res
 
-max_depth = 2
 ai_player = int(input())
 grid = [[int(i) for i in input().split()] for _ in range(hw)]
+cnt = 0
+for y in range(hw):
+    for x in range(hw):
+        cnt += grid[y][x] == 2
+max_depth = 2 if cnt >= 5 else 7 - cnt
+debug('max depth', max_depth)
+
 max_score = -100000000000000
 final_y = -1
 final_x = -1
