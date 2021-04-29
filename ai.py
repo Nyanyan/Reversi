@@ -93,9 +93,9 @@ def calc_score(player, grid, depth, flag):
                 for nx in range(hw):
                     num, plus_grid = check(grid, 1 - player, ny, nx)
                     if num:
-                        lst.append([ny, nx])
-            shuffle(lst)
-            for ny, nx in lst[:min(len(lst), 3)]:
+                        lst.append([weight[ny][nx], ny, nx])
+            lst.sort(reverse=True)
+            for _, ny, nx in lst[:min(len(lst), 2)]:
                 grid_copy = [[i for i in j] for j in grid]
                 for nny in range(hw):
                     for nnx in range(hw):
@@ -111,9 +111,9 @@ def calc_score(player, grid, depth, flag):
                                 continue
                             cnts[grid[nny][nnx]] += 1
                     if cnts[player] > cnts[1 - player]:
-                        res += 100000000
+                        res += 1000000000000
                     else:
-                        res -= 100000000
+                        res -= 1000000000000
                 else:
                     res += calc_score(player, grid, depth - 1, True)
             grid[y][x] = -1
@@ -125,10 +125,16 @@ cnt = 0
 for y in range(hw):
     for x in range(hw):
         cnt += grid[y][x] == 2
-max_depth = 2 if cnt >= 5 else 7 - cnt
+max_depth = 3 if cnt >= 5 else 8 - cnt
+cnt = 0
+for y in range(hw):
+    for x in range(hw):
+        cnt += empty(grid, y, x)
+if cnt < 16:
+    max_depth = cnt
 debug('max depth', max_depth)
 
-max_score = -100000000000000
+max_score = -10000000000000000000
 final_y = -1
 final_x = -1
 for y in range(hw):
