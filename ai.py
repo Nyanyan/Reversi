@@ -37,7 +37,6 @@ def check(grid, player, y, x):
             continue
         if grid[ny][nx] == player:
             continue
-        #print(y, x, dr, ny, nx)
         plus = 0
         flag = False
         for d in range(hw):
@@ -50,7 +49,6 @@ def check(grid, player, y, x):
             if grid[nny][nnx] == player:
                 flag = True
                 break
-            #print(y, x, dr, nny, nnx)
             plus += 1
         if flag:
             res += plus
@@ -66,14 +64,16 @@ def evaluate(player, grid):
         for x in range(hw):
             if empty(grid, y, x):
                 continue
+            '''
             for dr in range(8):
                 ny = y + dy[dr]
                 nx = x + dx[dr]
                 if not inside(ny, nx):
-                    res += (grid[y][x] == player)
-                elif empty(grid, ny, nx):
-                    res += (grid[y][x] == player)
-            res += weight[y][x] * (grid[y][x] == player)
+                    res += (grid[y][x] == player) * 2 - 1
+                elif not empty(grid, ny, nx):
+                    res += (grid[y][x] == player) * 2 - 1
+            '''
+            res += weight[y][x] * ((grid[y][x] == player) * 2 - 1)
     return res
 
 def end_game(player, grid):
@@ -81,7 +81,7 @@ def end_game(player, grid):
     for y in range(hw):
         for x in range(hw):
             if not empty(grid, y, x):
-                res += (grid[y][x] == player)
+                res += (grid[y][x] == player) * 2 - 1
     if res > 0:
         return 10000
     elif res < 0:
@@ -89,50 +89,106 @@ def end_game(player, grid):
     else:
         return 5000
 
-def isend(grid):
+def isskip(grid):
     for y in range(hw):
         for x in range(hw):
             if grid[y][x] == 2:
                 return False
     return True
 
-def alpha_beta(player, grid, depth, alpha, beta):
-    if isend(grid):
-        return end_game(player, grid)
-    elif depth == 0:
-        return evaluate(player, grid)
-    break_flag = False
+def check_pass(player, grid):
     for y in range(hw):
         for x in range(hw):
-            if grid[y][x] != 2:
+            if grid[y][x] == 2:
+                grid[y][x] = -1
+    res = True
+    for y in range(hw):
+        for x in range(hw):
+            if not empty(grid, y, x):
                 continue
-            n_grid = [[i for i in j] for j in grid]
-            _, plus_grid = check(grid, player, y, x)
-            n_grid[y][x] = player
-            for ny in range(hw):
-                for nx in range(hw):
-                    if plus_grid[ny][nx]:
-                        n_grid[ny][nx] = player
-            if player == ai_player:
-                alpha = max(alpha, alpha_beta(1 - player, n_grid, depth - 1, alpha, beta))
-            else:
-                beta = min(beta, alpha_beta(1 - player, n_grid, depth - 1, alpha, beta))
-            if alpha >= beta:
-                break_flag = True
-                break
-        if break_flag:
+            plus, _ = check(grid, player, y, x)
+            if plus:
+                res = False
+    return grid
+
+def open_eval(grid, ty, tx, plus_grid):
+    grid[ty][tx] = 3
+    res = 0
+    for dr in range(8):
+        ny = ty + dy[dr]
+        nx = tx + dx[dr]
+        if not inside(ny, nx):
+            continue
+        if empty(grid, ny, nx):
+            res += 1
+    for y in range(hw):
+        for x in range(hw):
+            if not plus_grid[y][x]:
+                continue
+            for dr in range(8):
+                ny = y + dy[dr]
+                nx = x + dx[dr]
+                if not inside(ny, nx):
+                    continue
+                if empty(grid, ny, nx):
+                    res += 1
+    grid[ty][tx] = -1
+    return res
+
+def output(grid, func):
+    func('  ', end='')
+    for i in range(hw):
+        func(i, end=' ')
+    func('')
+    for y in range(hw):
+        func(str(y) + '0', end='')
+        for x in range(hw):
+            func('○' if grid[y][x] == 0 else '●' if grid[y][x] == 1 else '* ' if grid[y][x] == 2 else '. ', end='')
+        func('')
+
+def nega_max(player, grid, depth, alpha, beta, skip_cnt):
+    global ansy, ansx
+    if skip_cnt == 2:
+        return end_game(ai_player, grid)
+    elif depth == 0:
+        return evaluate(ai_player, grid)
+    lst = []
+    for y in range(hw):
+        for x in range(hw):
+            if grid[y][x] != -1:
+                continue
+            num, plus_grid = check(grid, player, y, x)
+            if not num:
+                continue
+            lst.append([open_eval(grid, y, x, plus_grid), plus_grid, y, x])
+    if not lst:
+        return max(alpha, -nega_max(1 - player, grid, depth, -beta, -alpha, skip_cnt + 1))
+    lst.sort()
+    #debug([i[0] for i in lst])
+    for _, plus_grid, y, x in lst:
+        n_grid = [[i for i in j] for j in grid]
+        n_grid[y][x] = player
+        for ny in range(hw):
+            for nx in range(hw):
+                if plus_grid[ny][nx]:
+                    n_grid[ny][nx] = player
+        val = -nega_max(1 - player, n_grid, depth - 1, -beta, -alpha, 0)
+        if val > alpha:
+            alpha = val
+            if depth == max_depth:
+                ansy = y
+                ansx = x
+        if alpha >= beta:
             break
-    if player == ai_player:
-        return alpha
-    else:
-        return beta
+    return alpha
 
 ai_player = int(input())
 grid = [[int(i) for i in input().split()] for _ in range(hw)]
 cnt = 0
 for y in range(hw):
     for x in range(hw):
-        cnt += grid[y][x] == 2
+        if grid[y][x] == 2:
+            grid[y][x] = -1
 #max_depth = 2 if cnt >= 5 else 7 - cnt
 max_depth = 5
 '''
@@ -145,6 +201,14 @@ if cnt < 15:
 '''
 debug('max depth', max_depth)
 
+ansy = -1
+ansx = -1
+
+score = nega_max(ai_player, grid, max_depth, -100000000, 100000000, 0)
+debug('score', score)
+print(ansy, ansx)
+
+'''
 max_score = -10000000000000000000
 final_y = -1
 final_x = -1
@@ -152,16 +216,18 @@ for y in range(hw):
     for x in range(hw):
         if grid[y][x] != 2:
             continue
-        n_grid = [[i for i in j] for j in grid]
-        num, plus_grid = check(grid, ai_player, y, x)
+        n_grid = [[-1 if i == 2 else i for i in j] for j in grid]
+        n_grid[y][x] = ai_player
+        _, plus_grid = check(grid, ai_player, y, x)
         for ny in range(hw):
             for nx in range(hw):
                 if plus_grid[ny][nx]:
                     n_grid[ny][nx] = ai_player
-        score = alpha_beta(1 - ai_player, n_grid, max_depth, -100000, 100000)
+        score = nega_max(1 - ai_player, n_grid, max_depth, -100000000, 100000000, 0)
         debug('ai debug', y, x, score)
         if max_score < score:
             max_score = score
             final_y = y
             final_x = x
 print(final_y, final_x)
+'''
