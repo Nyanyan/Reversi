@@ -87,8 +87,8 @@ def evaluate(player, grid):
     for y in range(hw):
         for x in range(hw):
             if empty(grid, y, x):
-                res += check_canput(grid, player, y, x) * 3
-                res -= check_canput(grid, 1 - player, y, x) * 3
+                res += check_canput(grid, player, y, x) * vacant_cnt / hw / hw * 10
+                res -= check_canput(grid, 1 - player, y, x) * vacant_cnt / hw / hw * 10
             else:
                 res += weight[y][x] * ((grid[y][x] == player) * 2 - 1)
     return res
@@ -207,20 +207,14 @@ def nega_max(player, grid, depth, alpha, beta, skip_cnt):
     return alpha
 
 ai_player = int(input())
-grid = [[int(i) for i in input().split()] for _ in range(hw)]
-cnt = 0
+grid = [[-1 if int(i) == 2 else int(i) for i in input().split()] for _ in range(hw)]
+vacant_cnt = 0
 for y in range(hw):
     for x in range(hw):
-        if grid[y][x] == 2:
-            grid[y][x] = -1
-#max_depth = 2 if cnt >= 5 else 7 - cnt
+        vacant_cnt += (grid[y][x] == -1)
 max_depth = 4
-
-debug('max depth', max_depth)
-
 ansy = -1
 ansx = -1
-
 score = nega_max(ai_player, grid, max_depth, -100000000, 100000000, 0)
 debug('score', score)
 print(ansy, ansx)
