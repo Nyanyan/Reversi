@@ -87,8 +87,8 @@ def evaluate(player, grid):
     for y in range(hw):
         for x in range(hw):
             if empty(grid, y, x):
-                res += check_canput(grid, player, y, x)
-                res -= check_canput(grid, 1 - player, y, x)
+                res += check_canput(grid, player, y, x) * 3
+                res -= check_canput(grid, 1 - player, y, x) * 3
             else:
                 res += weight[y][x] * ((grid[y][x] == player) * 2 - 1)
     return res
