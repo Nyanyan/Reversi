@@ -14,26 +14,15 @@ def empty(grid, y, x):
 def inside(y, x):
     return 0 <= y < hw and 0 <= x < hw
 
-def corner(y, x):
-    return (y == 0 or y == hw - 1) and (x == 0 or x == hw - 1)
-
-def near_corner(y, x):
-    if (y == 1 or y == hw - 2) and (x == 0 or x == hw - 1):
-        return True
-    if (x == 1 or x == hw - 2) and (y == 0 or y == hw - 1):
-        return True
-    if (y == 1 or y == hw - 2) and (x == 1 or x == hw - 2):
-        return True
-
 weight = [
-    [1000, -300,   50,   10,   10,   50, -300, 1000],
-    [-300, -300,   50,    1,    1,   50, -300, -300],
-    [  50,   50,   50,    5,    5,   50,   50,   50],
-    [  10,    1,    5,    5,    5,    5,    1,   10],
-    [  10,    1,    5,    5,    5,    5,    1,   10],
-    [  50,   50,   50,    5,    5,   50,   50,   50],
-    [-300, -300,   50,    1,    1,   50, -300, -300],
-    [1000, -300,   50,   10,   10,   50, -300, 1000]
+    [100, -40, 20,  5,  5, 20, -40, 100],
+    [-40, -80, -1, -1, -1, -1, -80, -40],
+    [ 20,  -1,  5,  1,  1,  5,  -1,  20],
+    [  5,  -1,  1,  0,  0,  1,  -1,   5],
+    [  5,  -1,  1,  0,  0,  1,  -1,   5],
+    [ 20,  -1,  5,  1,  1,  5,  -1,  20],
+    [-40, -80, -1, -1, -1, -1, -80, -40],
+    [100, -40, 20,  5,  5, 20, -40, 100]
 ]
 
 def check(grid, player, y, x):
@@ -71,53 +60,72 @@ def check(grid, player, y, x):
                 res_grid[nny][nnx] = True
     return res, res_grid
 
-def calc_score(player, grid, depth, flag):
+def evaluate(player, grid):
     res = 0
     for y in range(hw):
         for x in range(hw):
-            if grid[y][x] != 2:
+            if empty(grid, y, x):
                 continue
             for dr in range(8):
                 ny = y + dy[dr]
                 nx = x + dx[dr]
                 if not inside(ny, nx):
-                    res += depth + 1
-                elif not empty(grid, ny, nx):
-                    res += (depth + 1) * weight[ny][nx]
-            res += (depth + 1) * weight[y][x] * 100
-            if depth == 0:
+                    res += (grid[y][x] == player)
+                elif empty(grid, ny, nx):
+                    res += (grid[y][x] == player)
+            res += weight[y][x] * (grid[y][x] == player)
+    return res
+
+def end_game(player, grid):
+    res = 0
+    for y in range(hw):
+        for x in range(hw):
+            if not empty(grid, y, x):
+                res += (grid[y][x] == player)
+    if res > 0:
+        return 10000
+    elif res < 0:
+        return -10000
+    else:
+        return 5000
+
+def isend(grid):
+    for y in range(hw):
+        for x in range(hw):
+            if grid[y][x] == 2:
+                return False
+    return True
+
+def alpha_beta(player, grid, depth, alpha, beta):
+    if isend(grid):
+        return end_game(player, grid)
+    elif depth == 0:
+        return evaluate(player, grid)
+    break_flag = False
+    for y in range(hw):
+        for x in range(hw):
+            if grid[y][x] != 2:
                 continue
-            grid[y][x] = player
-            lst = []
+            n_grid = [[i for i in j] for j in grid]
+            _, plus_grid = check(grid, player, y, x)
+            n_grid[y][x] = player
             for ny in range(hw):
                 for nx in range(hw):
-                    num, plus_grid = check(grid, 1 - player, ny, nx)
-                    if num:
-                        lst.append([weight[ny][nx], ny, nx])
-            lst.sort(reverse=True)
-            for _, ny, nx in lst[:min(len(lst), 2)]:
-                grid_copy = [[i for i in j] for j in grid]
-                for nny in range(hw):
-                    for nnx in range(hw):
-                        if plus_grid[nny][nnx]:
-                            grid_copy[nny][nnx] = 1 - player
-                res -= calc_score(1 - player, grid_copy, depth - 1, False)
-            if not lst:
-                if flag:
-                    cnts = [0, 0]
-                    for nny in range(hw):
-                        for nnx in range(hw):
-                            if empty(grid, nny, nnx):
-                                continue
-                            cnts[grid[nny][nnx]] += 1
-                    if cnts[player] > cnts[1 - player]:
-                        res += 1000000000000
-                    else:
-                        res -= 1000000000000
-                else:
-                    res += calc_score(player, grid, depth - 1, True)
-            grid[y][x] = -1
-    return res
+                    if plus_grid[ny][nx]:
+                        n_grid[ny][nx] = player
+            if player == ai_player:
+                alpha = max(alpha, alpha_beta(1 - player, n_grid, depth - 1, alpha, beta))
+            else:
+                beta = min(beta, alpha_beta(1 - player, n_grid, depth - 1, alpha, beta))
+            if alpha >= beta:
+                break_flag = True
+                break
+        if break_flag:
+            break
+    if player == ai_player:
+        return alpha
+    else:
+        return beta
 
 ai_player = int(input())
 grid = [[int(i) for i in input().split()] for _ in range(hw)]
@@ -125,13 +133,16 @@ cnt = 0
 for y in range(hw):
     for x in range(hw):
         cnt += grid[y][x] == 2
-max_depth = 3 if cnt >= 5 else 8 - cnt
+#max_depth = 2 if cnt >= 5 else 7 - cnt
+max_depth = 5
+'''
 cnt = 0
 for y in range(hw):
     for x in range(hw):
         cnt += empty(grid, y, x)
-if cnt < 16:
+if cnt < 15:
     max_depth = cnt
+'''
 debug('max depth', max_depth)
 
 max_score = -10000000000000000000
@@ -141,13 +152,13 @@ for y in range(hw):
     for x in range(hw):
         if grid[y][x] != 2:
             continue
-        grid_copy = [[i for i in j] for j in grid]
+        n_grid = [[i for i in j] for j in grid]
         num, plus_grid = check(grid, ai_player, y, x)
         for ny in range(hw):
             for nx in range(hw):
                 if plus_grid[ny][nx]:
-                    grid_copy[ny][nx] = ai_player
-        score = calc_score(ai_player, grid_copy, max_depth, False) + weight[y][x] * (max_depth + 1)
+                    n_grid[ny][nx] = ai_player
+        score = alpha_beta(1 - ai_player, n_grid, max_depth, -100000, 100000)
         debug('ai debug', y, x, score)
         if max_score < score:
             max_score = score

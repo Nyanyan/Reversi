@@ -110,7 +110,7 @@ class reversi:
                     res = False
         return res
     
-    def end_game(self):
+    def judge(self):
         if self.nums[0] > self.nums[1]:
             print('Black won!')
         elif self.nums[1] > self.nums[0]:
@@ -135,6 +135,8 @@ while True:
         #print(stdin)
         ai = subprocess.Popen('python ai.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         y, x = [int(i) for i in ai.communicate(stdin.encode('utf-8'))[0].decode('utf-8').split()]
+        s = 'Black' if rv.player == 0 else 'White'
+        print(s + ': ' + str(y) + str(x))
     else:
         s = 'Black' if rv.player == 0 else 'White'
         ss = input(s + ': ')
@@ -150,4 +152,4 @@ while True:
         break
 rv.check_pass()
 rv.output()
-rv.end_game()
+rv.judge()
