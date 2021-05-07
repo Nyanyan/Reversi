@@ -112,11 +112,11 @@ class reversi:
     
     def judge(self):
         if self.nums[0] > self.nums[1]:
-            print('Black won!')
+            print('Black won!', self.nums[0], '-', self.nums[1])
         elif self.nums[1] > self.nums[0]:
-            print('White won!')
+            print('White won!', self.nums[0], '-', self.nums[1])
         else:
-            print('Draw!')
+            print('Draw!', self.nums[0], '-', self.nums[1])
 
 ai_mode = True
 ai_player = 1
