@@ -10,6 +10,7 @@ def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
 DEF max_depth = 8
 DEF hw = 8
+DEF hw2 = hw * hw
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
@@ -97,8 +98,8 @@ cdef double evaluate(int player, grid):
     for y in range(hw):
         for x in range(hw):
             if empty(grid, y, x):
-                res += check_canput(grid, player, y, x) * 10
-                res -= check_canput(grid, 1 - player, y, x) * 10
+                res += <double>check_canput(grid, player, y, x) * 10 * (hw2 - vacant_cnt) / hw2
+                res -= <double>check_canput(grid, 1 - player, y, x) * 10 * (hw2 - vacant_cnt) / hw2
             else:
                 res += weight[y][x] * ((grid[y][x] == player) * 2 - 1)
     return res
