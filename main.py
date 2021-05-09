@@ -92,10 +92,10 @@ class reversi:
     def output(self):
         print('  ', end='')
         for i in range(hw):
-            print(i, end=' ')
+            print(chr(ord('a') + i), end=' ')
         print('')
         for y in range(hw):
-            print(str(y) + '0', end='')
+            print(str(y + 1) + ' ', end='')
             for x in range(hw):
                 print('○' if self.grid[y][x] == 0 else '●' if self.grid[y][x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
             print('')
@@ -133,7 +133,7 @@ while True:
                 stdin += str(rv.grid[y][x]) + ' '
             stdin += '\n'
         #print(stdin)
-        ai = subprocess.Popen('python ai.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         y, x = [int(i) for i in ai.communicate(stdin.encode('utf-8'))[0].decode('utf-8').split()]
         s = 'Black' if rv.player == 0 else 'White'
         print(s + ': ' + str(y) + str(x))
@@ -143,9 +143,13 @@ while True:
         if ss == 'exit':
             break
         try:
-            y, x = [int(i) for i in ss]
+            x = int(ord(ss[0]) - ord('a'))
+            y = int(ss[1]) - 1
         except:
-            print('Please input numbers')
+            print('Please input correct')
+            continue
+        if not inside(y, x):
+            print('Please input correct')
             continue
     rv.move(y, x)
     if rv.end():
