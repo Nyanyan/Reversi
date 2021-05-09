@@ -7,15 +7,13 @@ import sys
 from random import random, shuffle
 def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
-DEF max_depth = 8
+DEF max_depth = 6
 DEF hw = 8
 DEF hw2 = hw * hw
 DEF put_weight = 10.0
+DEF confirm_weight = 10.0
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
-
-cdef bint empty(grid, int y, int x):
-    return grid[y][x] == -1 or grid[y][x] == 2
 
 cdef bint inside(int y, int x):
     return 0 <= y < hw and 0 <= x < hw
@@ -31,6 +29,23 @@ cdef int[hw][hw] weight = [
     [100, -40, 20,  5,  5, 20, -40, 100]
 ]
 
+cdef int[8][3] confirm_lst = [
+    [0, 0, 0],
+    [0, 0, 1],
+    [0, hw - 1, 1],
+    [0, hw - 1, 2],
+    [hw - 1, hw - 1, 2],
+    [hw - 1, hw - 1, 3],
+    [hw - 1, 0, 3],
+    [hw - 1, 0, 0]
+]
+cdef int[4][3] confirm_lst2 = [
+    [0, 0, 0],
+    [0, hw - 1, 1],
+    [hw - 1, hw - 1, 2],
+    [hw - 1, 0, 3]
+]
+
 cdef check(grid, int player, int y, int x):
     cdef bint[hw][hw] res_grid = [[False for _ in range(hw)] for _ in range(hw)]
     cdef int res, dr, ny, nx, plus, d, nny, nnx
@@ -41,7 +56,7 @@ cdef check(grid, int player, int y, int x):
         nx = x + dx[dr]
         if not inside(ny, nx):
             continue
-        if empty(grid, ny, nx):
+        if grid[ny][nx] == -1:
             continue
         if grid[ny][nx] == player:
             continue
@@ -52,7 +67,7 @@ cdef check(grid, int player, int y, int x):
             nnx = nx + d * dx[dr]
             if not inside(nny, nnx):
                 break
-            if empty(grid, nny, nnx):
+            if grid[nny][nnx] == -1:
                 break
             if grid[nny][nnx] == player:
                 flag = True
@@ -74,7 +89,7 @@ cdef bint check_canput(grid, int player, int y, int x):
         nx = x + dx[dr]
         if not inside(ny, nx):
             continue
-        if empty(grid, ny, nx):
+        if grid[ny][nx] == -1:
             continue
         if grid[ny][nx] == player:
             continue
@@ -85,7 +100,7 @@ cdef bint check_canput(grid, int player, int y, int x):
             nnx = nx + d * dx[dr]
             if not inside(nny, nnx):
                 break
-            if empty(grid, nny, nnx):
+            if grid[nny][nnx] == -1:
                 break
             if grid[nny][nnx] == player:
                 return True
@@ -94,14 +109,48 @@ cdef bint check_canput(grid, int player, int y, int x):
 
 cdef double evaluate(int player, grid):
     cdef double res = 0
-    cdef int y, x
+    cdef int y, x, confirm, ny, nx, dr, d, p, idx
+    cdef bint flag
+    cdef bint[hw][hw] marked = [[False for _ in range(hw)] for _ in range(hw)]
     for y in range(hw):
         for x in range(hw):
-            if empty(grid, y, x):
+            if grid[y][x] == -1:
                 res += <double>check_canput(grid, player, y, x) * (hw2 - vacant_cnt) / hw2 * put_weight
                 res -= <double>check_canput(grid, 1 - player, y, x) * (hw2 - vacant_cnt) / hw2 * put_weight
             else:
                 res += weight[y][x] * ((grid[y][x] == player) * 2 - 1)
+    confirm = 0
+    for p in range(2):
+        for idx in range(8):
+            y = confirm_lst[idx][0]
+            x = confirm_lst[idx][1]
+            dr = confirm_lst[idx][2]
+            for d in range(hw):
+                ny = y + dy[dr] * d
+                nx = x + dx[dr] * d
+                if grid[ny][nx] != p:
+                    break
+                if marked[ny][nx]:
+                    break
+                marked[ny][nx] = True
+                confirm += (p == player) * 2 - 1
+        for idx in range(4):
+            y = confirm_lst2[idx][0]
+            x = confirm_lst2[idx][1]
+            dr = confirm_lst2[idx][2]
+            for d in range(hw):
+                ny = y + dy[dr] * d
+                nx = x + dx[dr] * d
+                if grid[ny][nx] == -1:
+                    break
+            else:
+                for d in range(hw):
+                    ny = y + dy[dr] * d
+                    nx = x + dx[dr] * d
+                    if grid[ny][nx] == p and not marked[ny][nx]:
+                        marked[ny][nx] = True
+                        confirm += (p == player) * 2 - 1
+    res += <double>confirm * confirm_weight
     return res
 
 cdef double end_game(int player, grid):
@@ -109,7 +158,7 @@ cdef double end_game(int player, grid):
     cnt = 0
     for y in range(hw):
         for x in range(hw):
-            if not empty(grid, y, x):
+            if not grid[y][x] == -1:
                 cnt += (grid[y][x] != player) * 2 - 1
     if cnt > 0:
         return 10000
@@ -136,7 +185,7 @@ cdef check_pass(int player, grid):
     res = True
     for y in range(hw):
         for x in range(hw):
-            if not empty(grid, y, x):
+            if not grid[y][x] == -1:
                 continue
             plus, _ = check_canput(grid, player, y, x)
             if plus:
@@ -155,7 +204,7 @@ cdef int open_eval(grid, int ty, int tx, plus_grid):
             continue
         if seen[ny][nx]:
             continue
-        if empty(grid, ny, nx):
+        if grid[ny][nx] == -1:
             seen[ny][nx] = True
             res += 1
     for y in range(hw):
@@ -169,7 +218,7 @@ cdef int open_eval(grid, int ty, int tx, plus_grid):
                     continue
                 if seen[ny][nx]:
                     continue
-                if empty(grid, ny, nx):
+                if grid[ny][nx] == -1:
                     seen[ny][nx] = True
                     res += 1
     grid[ty][tx] = -1
@@ -215,15 +264,7 @@ cdef double nega_max(int player, grid, int depth, double alpha, double beta, int
             for nx in range(hw):
                 if plus_grid[ny][nx]:
                     n_grid[ny][nx] = player
-        grid_val = ''.join([str(grid[y][x]) for y in range(hw) for x in range(hw)])
-        if player == ai_player and grid_val in memo_me:
-            val = memo_me[grid_val]
-            memo_cnt += 1
-        elif player != ai_player and grid_val in memo_op:
-            val = memo_op[grid_val]
-            memo_cnt += 1
-        else:
-            val = -nega_max(1 - player, n_grid, depth - 1, -beta, -alpha, 0)
+        val = -nega_max(1 - player, n_grid, depth - 1, -beta, -alpha, 0)
         if val > alpha:
             alpha = val
             if depth == max_depth:
@@ -231,21 +272,14 @@ cdef double nega_max(int player, grid, int depth, double alpha, double beta, int
                 ansx = x
         if alpha >= beta:
             break
-    if player == ai_player:
-        memo_me[grid_val] = alpha
-    else:
-        memo_op[grid_val] = alpha
     return alpha
 
 cdef int ai_player, vacant_cnt, y, x, ansy, ansx, memo_cnt
-cdef dict memo_me, memo_op
 cdef double score
 
 ai_player = int(input())
 debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
 while True:
-    memo_me = {}
-    memo_op = {}
     ansy = -1
     ansx = -1
     vacant_cnt = 0
