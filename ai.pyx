@@ -1,5 +1,6 @@
-# Reversi AI
+# Reversi AI Cython version
 
+from __future__ import print_function
 import sys
 from random import random, shuffle
 def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
