@@ -1,5 +1,6 @@
 # reversi software
 import subprocess
+from time import sleep
 
 hw = 8
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
@@ -97,7 +98,7 @@ class reversi:
         for y in range(hw):
             print(str(y + 1) + ' ', end='')
             for x in range(hw):
-                print('○' if self.grid[y][x] == 0 else '●' if self.grid[y][x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
+                print(chr(0X25CB) if self.grid[y][x] == 0 else chr(0X25CF) if self.grid[y][x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
             print('')
     
     def end(self):
@@ -121,24 +122,30 @@ class reversi:
 ai_mode = True
 ai_player = 1
 
+ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+stdin = str(ai_player) + '\n'
+ai.stdin.write(stdin.encode('utf-8'))
+ai.stdin.flush()
+sleep(0.5)
+
 rv = reversi()
 while True:
     if rv.check_pass() and rv.check_pass():
         break
     rv.output()
+    s = 'Black' if rv.player == 0 else 'White'
     if ai_mode and rv.player == ai_player:
-        stdin = str(ai_player) + '\n'
+        stdin = ''
         for y in range(hw):
             for x in range(hw):
                 stdin += str(rv.grid[y][x]) + ' '
             stdin += '\n'
         #print(stdin)
-        ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        y, x = [int(i) for i in ai.communicate(stdin.encode('utf-8'))[0].decode('utf-8').split()]
-        s = 'Black' if rv.player == 0 else 'White'
+        ai.stdin.write(stdin.encode('utf-8'))
+        ai.stdin.flush()
+        y, x = [int(i) for i in ai.stdout.readline().decode().strip().split()]
         print(s + ': ' + chr(x + ord('a')) + str(y + 1))
     else:
-        s = 'Black' if rv.player == 0 else 'White'
         ss = input(s + ': ')
         if ss == 'exit':
             break
@@ -157,3 +164,4 @@ while True:
 rv.check_pass()
 rv.output()
 rv.judge()
+ai.kill()

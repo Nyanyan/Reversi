@@ -7,10 +7,10 @@ import sys
 from random import random, shuffle
 def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
-
 DEF max_depth = 8
 DEF hw = 8
 DEF hw2 = hw * hw
+DEF put_weight = 10.0
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
@@ -98,8 +98,8 @@ cdef double evaluate(int player, grid):
     for y in range(hw):
         for x in range(hw):
             if empty(grid, y, x):
-                res += <double>check_canput(grid, player, y, x) * 10 * (hw2 - vacant_cnt) / hw2
-                res -= <double>check_canput(grid, 1 - player, y, x) * 10 * (hw2 - vacant_cnt) / hw2
+                res += <double>check_canput(grid, player, y, x) * (hw2 - vacant_cnt) / hw2 * put_weight
+                res -= <double>check_canput(grid, 1 - player, y, x) * (hw2 - vacant_cnt) / hw2 * put_weight
             else:
                 res += weight[y][x] * ((grid[y][x] == player) * 2 - 1)
     return res
@@ -187,9 +187,10 @@ def output(grid, func):
         func('')
 
 cdef double nega_max(int player, grid, int depth, double alpha, double beta, int skip_cnt):
-    global ansy, ansx
+    global ansy, ansx, memo_cnt
     cdef int y, x
     cdef double val
+    cdef str grid_val
     if skip_cnt == 2:
         return end_game(ai_player, grid)
     elif depth == 0:
@@ -214,7 +215,15 @@ cdef double nega_max(int player, grid, int depth, double alpha, double beta, int
             for nx in range(hw):
                 if plus_grid[ny][nx]:
                     n_grid[ny][nx] = player
-        val = -nega_max(1 - player, n_grid, depth - 1, -beta, -alpha, 0)
+        grid_val = ''.join([str(grid[y][x]) for y in range(hw) for x in range(hw)])
+        if player == ai_player and grid_val in memo_me:
+            val = memo_me[grid_val]
+            memo_cnt += 1
+        elif player != ai_player and grid_val in memo_op:
+            val = memo_op[grid_val]
+            memo_cnt += 1
+        else:
+            val = -nega_max(1 - player, n_grid, depth - 1, -beta, -alpha, 0)
         if val > alpha:
             alpha = val
             if depth == max_depth:
@@ -222,18 +231,30 @@ cdef double nega_max(int player, grid, int depth, double alpha, double beta, int
                 ansx = x
         if alpha >= beta:
             break
+    if player == ai_player:
+        memo_me[grid_val] = alpha
+    else:
+        memo_op[grid_val] = alpha
     return alpha
 
-cdef int ai_player = int(input())
-grid = [[-1 if int(i) == 2 else int(i) for i in input().split()] for _ in range(hw)]
-cdef int vacant_cnt = 0
-cdef int y, x, ansy, ansx
-for y in range(hw):
-    for x in range(hw):
-        vacant_cnt += (grid[y][x] == -1)
+cdef int ai_player, vacant_cnt, y, x, ansy, ansx, memo_cnt
+cdef dict memo_me, memo_op
+cdef double score
 
-ansy = -1
-ansx = -1
-cdef double score = nega_max(ai_player, grid, max_depth, -100000000, 100000000, 0)
-debug('score', score)
-print(ansy, ansx)
+ai_player = int(input())
+debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
+while True:
+    memo_me = {}
+    memo_op = {}
+    ansy = -1
+    ansx = -1
+    vacant_cnt = 0
+    memo_cnt = 0
+    grid = [[-1 if int(i) == 2 else int(i) for i in input().split()] for _ in range(hw)]
+    for y in range(hw):
+        for x in range(hw):
+            vacant_cnt += (grid[y][x] == -1)
+    score = nega_max(ai_player, grid, max_depth, -100000000, 100000000, 0)
+    debug('score', score, 'memo hit', memo_cnt)
+    print(ansy, ansx)
+    sys.stdout.flush()
