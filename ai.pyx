@@ -7,11 +7,12 @@ import sys
 from random import random, shuffle
 def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
-DEF max_depth = 6
+DEF max_depth = 1
 DEF hw = 8
 DEF hw2 = hw * hw
-DEF put_weight = 10.0
-DEF confirm_weight = 10.0
+#DEF put_weight = 10.0
+#DEF confirm_weight = 10.0
+#DEF open_weight = 5.0
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
@@ -107,7 +108,7 @@ cdef bint check_canput(grid, int player, int y, int x):
             plus += 1
     return False
 
-cdef double evaluate(int player, grid):
+cdef double evaluate(int player, grid, int open_val):
     cdef double res = 0
     cdef int y, x, confirm, ny, nx, dr, d, p, idx
     cdef bint flag
@@ -151,6 +152,7 @@ cdef double evaluate(int player, grid):
                         marked[ny][nx] = True
                         confirm += (p == player) * 2 - 1
     res += <double>confirm * confirm_weight
+    res += <double>open_val * open_weight
     return res
 
 cdef double end_game(int player, grid):
@@ -235,15 +237,15 @@ def output(grid, func):
             func('○' if grid[y][x] == 0 else '●' if grid[y][x] == 1 else '* ' if grid[y][x] == 2 else '. ', end='')
         func('')
 
-cdef double nega_max(int player, grid, int depth, double alpha, double beta, int skip_cnt):
+cdef double nega_max(int player, grid, int depth, double alpha, double beta, int skip_cnt, int open_val):
     global ansy, ansx, memo_cnt
-    cdef int y, x
+    cdef int y, x, n_open_val
     cdef double val
     cdef str grid_val
     if skip_cnt == 2:
         return end_game(ai_player, grid)
     elif depth == 0:
-        return evaluate(ai_player, grid)
+        return evaluate(ai_player, grid, open_val)
     cdef list lst = []
     for y in range(hw):
         for x in range(hw):
@@ -254,17 +256,17 @@ cdef double nega_max(int player, grid, int depth, double alpha, double beta, int
                 continue
             lst.append([open_eval(grid, y, x, plus_grid), plus_grid, y, x])
     if not lst:
-        return max(alpha, -nega_max(1 - player, grid, depth, -beta, -alpha, skip_cnt + 1))
+        return max(alpha, -nega_max(1 - player, grid, depth, -beta, -alpha, skip_cnt + 1, open_val))
     lst.sort()
     #debug([i[0] for i in lst])
-    for _, plus_grid, y, x in lst:
+    for n_open_val, plus_grid, y, x in lst:
         n_grid = [[i for i in j] for j in grid]
         n_grid[y][x] = player
         for ny in range(hw):
             for nx in range(hw):
                 if plus_grid[ny][nx]:
                     n_grid[ny][nx] = player
-        val = -nega_max(1 - player, n_grid, depth - 1, -beta, -alpha, 0)
+        val = -nega_max(1 - player, n_grid, depth - 1, -beta, -alpha, 0, open_val + n_open_val * ((player != ai_player) * 2 - 1))
         if val > alpha:
             alpha = val
             if depth == max_depth:
@@ -278,7 +280,10 @@ cdef int ai_player, vacant_cnt, y, x, ansy, ansx, memo_cnt
 cdef double score
 
 ai_player = int(input())
-debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
+#debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
+cdef double put_weight = float(input())
+cdef double confirm_weight = float(input())
+cdef double open_weight = float(input())
 while True:
     ansy = -1
     ansx = -1
@@ -288,7 +293,7 @@ while True:
     for y in range(hw):
         for x in range(hw):
             vacant_cnt += (grid[y][x] == -1)
-    score = nega_max(ai_player, grid, max_depth, -100000000, 100000000, 0)
-    debug('score', score, 'memo hit', memo_cnt)
+    score = nega_max(ai_player, grid, max_depth, -100000000, 100000000, 0, 0)
+    #debug('score', score, 'memo hit', memo_cnt)
     print(ansy, ansx)
     sys.stdout.flush()
