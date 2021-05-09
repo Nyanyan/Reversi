@@ -209,11 +209,12 @@ while True:
     for i in range(2):
         for j in range(3):
             param[parents[i]][j] = individual[i][1][j]
+        win_rate[parents[i]] = individual[i][0]
     cnt += 1
     t += 1
-    if t & (1 << 1):
-        t = 0
-        mx = max(win_rate)
-        mx_idx = win_rate.index(mx)
-        print(cnt, mx, param[mx_idx])
+    #if t & (1 << 1):
+    t = 0
+    mx = max(win_rate)
+    mx_idx = win_rate.index(mx)
+    print(cnt, mx, param[mx_idx])
 
