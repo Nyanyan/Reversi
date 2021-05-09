@@ -124,54 +124,41 @@ class reversi:
             return -1
 
 def match(use_param):
-    rate = 0
-    for _ in range(match_num):
-        op = randint(0, population - 1)
-        for i in range(3):
-            use_param[1][i] = param[op][i]
-        ai = [subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for _ in range(2)]
-        for i in range(2):
-            stdin = str(i) + '\n'
+    ai = [subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for _ in range(2)]
+    for i in range(2):
+        stdin = str(i) + '\n'
+        ai[i].stdin.write(stdin.encode('utf-8'))
+        ai[i].stdin.flush()
+        for j in range(3):
+            stdin = str(use_param[i][j]) + '\n'
             ai[i].stdin.write(stdin.encode('utf-8'))
             ai[i].stdin.flush()
-            for j in range(3):
-                stdin = str(use_param[i][j]) + '\n'
-                ai[i].stdin.write(stdin.encode('utf-8'))
-                ai[i].stdin.flush()
-        rv = reversi()
-        while True:
-            if rv.check_pass() and rv.check_pass():
-                break
-            #rv.output()
-            s = 'Black' if rv.player == 0 else 'White'
-            stdin = ''
-            for y in range(hw):
-                for x in range(hw):
-                    stdin += str(rv.grid[y][x]) + ' '
-                stdin += '\n'
-            #print(stdin)
-            ai[rv.player].stdin.write(stdin.encode('utf-8'))
-            ai[rv.player].stdin.flush()
-            y, x = [int(i) for i in ai[rv.player].stdout.readline().decode().strip().split()]
-            #print(s + ': ' + chr(x + ord('a')) + str(y + 1))
-            rv.move(y, x)
-            if rv.end():
-                break
-        rv.check_pass()
-        #rv.output()
-        winner = rv.judge()
-        for i in range(2):
-            ai[i].kill()
-        #if winner == 0:
-        #    rate += 100
-        rate += rv.nums[0] - rv.nums[1]
-    rate /= match_num
-    return rate
+    rv = reversi()
+    while True:
+        if rv.check_pass() and rv.check_pass():
+            break
+        s = 'Black' if rv.player == 0 else 'White'
+        stdin = ''
+        for y in range(hw):
+            for x in range(hw):
+                stdin += str(rv.grid[y][x]) + ' '
+            stdin += '\n'
+        ai[rv.player].stdin.write(stdin.encode('utf-8'))
+        ai[rv.player].stdin.flush()
+        y, x = [int(i) for i in ai[rv.player].stdout.readline().decode().strip().split()]
+        rv.move(y, x)
+        if rv.end():
+            break
+    rv.check_pass()
+    winner = rv.judge()
+    for i in range(2):
+        ai[i].kill()
+    return rv.nums[0] - rv.nums[1] if rv.nums[1] > 0 else hw * hw
 
 population = 100
-match_num = 20
+match_num = 10
 
-param = [[random() * 100 for _ in range(3)] for _ in range(population)]
+param = [[random() * 500 for _ in range(3)] for _ in range(population)]
 win_rate = [0 for _ in range(population)]
 parents = [-1, -1]
 children = [[-1 for _ in range(3)] for _ in range(3)]
@@ -180,7 +167,12 @@ use_param = [[0 for _ in range(3)] for _ in range(2)]
 for i in range(population):
     for j in range(3):
         use_param[0][j] = param[i][j]
-    win_rate[i] = match(use_param)
+    for _ in range(match_num):
+        op = randint(0, population - 1)
+        for j in range(3):
+            use_param[1][j] = param[op][j]
+        win_rate[i] += match(use_param)
+    win_rate[i] /= match_num
     print(win_rate[i])
 
 print('initialized')
@@ -197,19 +189,33 @@ while True:
         children[0][i] = param[parents[tmp]][i]
         children[1][i] = param[1 - parents[tmp]][i]
     if random() < 0.05:
-        children[randint(0, 1)][randint(0, 2)] = random() * 100
+        children[randint(0, 1)][randint(0, 2)] = random() * 500
     individual = [[0, [param[parents[i]][j] for j in range(3)]] for i in range(2)]
     for child in range(2):
         individual.append([0, [children[child][i] for i in range(3)]])
-    for child in range(4):
+    for child1 in range(4):
         for i in range(3):
-            use_param[0][i] = individual[child][1][i]
-        individual[child][0] = match(use_param)
+            use_param[0][i] = individual[child1][1][i]
+        for child2 in range(child1 + 1, 4):
+            for i in range(3):
+                use_param[1][i] = individual[child2][1][i]
+            val = match(use_param)
+            individual[child1][0] += val
+            individual[child2][0] -= val
     individual.sort(reverse=True)
+    #print([i[0] for i in individual])
     for i in range(2):
         for j in range(3):
             param[parents[i]][j] = individual[i][1][j]
-        win_rate[parents[i]] = individual[i][0]
+        win_rate[parents[i]] = 0
+        for j in range(3):
+            use_param[0][j] = param[parents[i]][j]
+        for _ in range(match_num):
+            op = randint(0, population - 1)
+            for j in range(3):
+                use_param[1][j] = param[op][j]
+            win_rate[parents[i]] += match(use_param)
+        win_rate[parents[i]] /= match_num
     cnt += 1
     t += 1
     #if t & (1 << 1):
