@@ -213,7 +213,7 @@ vacant_cnt = 0
 for y in range(hw):
     for x in range(hw):
         vacant_cnt += (grid[y][x] == -1)
-max_depth = 4
+max_depth = 5
 ansy = -1
 ansx = -1
 score = nega_max(ai_player, grid, max_depth, -100000000, 100000000, 0)
