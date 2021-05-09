@@ -136,7 +136,7 @@ while True:
         ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         y, x = [int(i) for i in ai.communicate(stdin.encode('utf-8'))[0].decode('utf-8').split()]
         s = 'Black' if rv.player == 0 else 'White'
-        print(s + ': ' + str(y) + str(x))
+        print(s + ': ' + chr(x + ord('a')) + str(y + 1))
     else:
         s = 'Black' if rv.player == 0 else 'White'
         ss = input(s + ': ')
