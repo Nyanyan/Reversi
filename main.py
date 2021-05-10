@@ -99,7 +99,7 @@ class reversi:
         for y in range(hw):
             print(str(y + 1) + ' ', end='')
             for x in range(hw):
-                print('# ' if self.grid[y][x] == 0 else 'O ' if self.grid[y][x] == 1 else '+ ' if self.grid[y][x] == 2 else '. ', end='')
+                print('○' if self.grid[y][x] == 0 else '●' if self.grid[y][x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
             print('')
     
     def end(self):
