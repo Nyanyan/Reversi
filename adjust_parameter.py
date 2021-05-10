@@ -129,7 +129,7 @@ def match(use_param):
         stdin = str(i) + '\n'
         ai[i].stdin.write(stdin.encode('utf-8'))
         ai[i].stdin.flush()
-        for j in range(3):
+        for j in range(param_num):
             stdin = str(use_param[i][j]) + '\n'
             ai[i].stdin.write(stdin.encode('utf-8'))
             ai[i].stdin.flush()
@@ -157,19 +157,20 @@ def match(use_param):
 
 population = 100
 match_num = 10
+param_num = 5
 
-param = [[random() * 500 for _ in range(3)] for _ in range(population)]
+param = [[random() * 200 - 100 for _ in range(param_num)] for _ in range(population)]
 win_rate = [0 for _ in range(population)]
 parents = [-1, -1]
-children = [[-1 for _ in range(3)] for _ in range(3)]
-use_param = [[0 for _ in range(3)] for _ in range(2)]
+children = [[-1 for _ in range(param_num)] for _ in range(2)]
+use_param = [[0 for _ in range(param_num)] for _ in range(2)]
 
 for i in range(population):
     for j in range(3):
         use_param[0][j] = param[i][j]
     for _ in range(match_num):
         op = randint(0, population - 1)
-        for j in range(3):
+        for j in range(param_num):
             use_param[1][j] = param[op][j]
         win_rate[i] += match(use_param)
     win_rate[i] /= match_num
@@ -184,20 +185,20 @@ while True:
     parents[1] = parents[0]
     while parents[1] == parents[0]:
         parents[1] = randint(0, population - 1)
-    for i in range(3):
+    for i in range(param_num):
         tmp = randint(0, 1)
         children[0][i] = param[parents[tmp]][i]
         children[1][i] = param[1 - parents[tmp]][i]
     if random() < 0.05:
-        children[randint(0, 1)][randint(0, 2)] = random() * 500
-    individual = [[0, [param[parents[i]][j] for j in range(3)]] for i in range(2)]
+        children[randint(0, 1)][randint(0, 2)] += random() * 50 - 25
+    individual = [[0, [param[parents[i]][j] for j in range(param_num)]] for i in range(2)]
     for child in range(2):
-        individual.append([0, [children[child][i] for i in range(3)]])
+        individual.append([0, [children[child][i] for i in range(param_num)]])
     for child1 in range(4):
-        for i in range(3):
+        for i in range(param_num):
             use_param[0][i] = individual[child1][1][i]
         for child2 in range(child1 + 1, 4):
-            for i in range(3):
+            for i in range(param_num):
                 use_param[1][i] = individual[child2][1][i]
             val = match(use_param)
             individual[child1][0] += val
@@ -205,14 +206,14 @@ while True:
     individual.sort(reverse=True)
     #print([i[0] for i in individual])
     for i in range(2):
-        for j in range(3):
+        for j in range(param_num):
             param[parents[i]][j] = individual[i][1][j]
         win_rate[parents[i]] = 0
-        for j in range(3):
+        for j in range(param_num):
             use_param[0][j] = param[parents[i]][j]
         for _ in range(match_num):
             op = randint(0, population - 1)
-            for j in range(3):
+            for j in range(param_num):
                 use_param[1][j] = param[op][j]
             win_rate[parents[i]] += match(use_param)
         win_rate[parents[i]] /= match_num

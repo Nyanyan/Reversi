@@ -7,7 +7,7 @@ import sys
 from random import random, shuffle
 def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
-DEF max_depth = 6
+DEF max_depth = 7
 DEF hw = 8
 DEF hw2 = hw * hw
 #DEF put_weight = 10.0
@@ -118,7 +118,7 @@ cdef double evaluate(int player, grid, int open_val, int canput):
     for y in range(hw):
         for x in range(hw):
             if grid[y][x] == -1:
-                res += <double>check_canput(grid, player, y, x) * ratio * put_weight * is_ai_player
+                res += <double>check_canput(grid, player, y, x) * (ratio * put_weight + put_seg) * is_ai_player
                 #res -= <double>check_canput(grid, 1 - player, y, x) * ratio * put_weight * is_ai_player
             else:
                 res += weight[y][x] * (<int>(grid[y][x] == ai_player) * 2 - 1)
@@ -154,7 +154,7 @@ cdef double evaluate(int player, grid, int open_val, int canput):
                         marked[ny][nx] = True
                         confirm += <int>(p == ai_player) * 2 - 1
     res += <double>confirm * confirm_weight
-    res += <double>open_val * open_weight
+    res += <double>open_val * (ratio * open_weight + open_seg)
     return res
 
 cdef double end_game(grid):
@@ -283,13 +283,16 @@ cdef double alpha_beta(int player, grid, int depth, double alpha, double beta, i
         return beta
 
 cdef int ai_player, vacant_cnt, y, x, ansy, ansx
-cdef double score
+cdef double score, put_weight, confirm_weight, open_weight, put_seg, open_seg
 
 ai_player = int(input())
 #debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
-cdef double put_weight = float(input())
-cdef double confirm_weight = float(input())
-cdef double open_weight = float(input())
+put_weight = float(input())
+confirm_weight = float(input())
+open_weight = float(input())
+put_seg = float(input())
+open_seg = float(input())
+#put_weight, confirm_weight, open_weight, put_seg, open_seg = 
 while True:
     ansy = -1
     ansx = -1
