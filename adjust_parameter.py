@@ -99,7 +99,7 @@ class reversi:
         for y in range(hw):
             print(str(y + 1) + ' ', end='')
             for x in range(hw):
-                print(chr(0X25CB) if self.grid[y][x] == 0 else chr(0X25CF) if self.grid[y][x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
+                print('# ' if self.grid[y][x] == 0 else 'O ' if self.grid[y][x] == 1 else '+ ' if self.grid[y][x] == 2 else '. ', end='')
             print('')
     
     def end(self):
@@ -155,7 +155,7 @@ def match(use_param):
         ai[i].kill()
     return rv.nums[0] - rv.nums[1] if rv.nums[1] > 0 else hw * hw
 
-population = 200
+population = 10
 match_num = 10
 param_num = 3
 

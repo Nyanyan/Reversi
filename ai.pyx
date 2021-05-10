@@ -7,7 +7,6 @@ import sys
 from random import random, shuffle
 def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
-DEF max_depth = 7
 DEF hw = 8
 DEF hw2 = hw * hw
 #DEF put_weight = 10.0
@@ -20,6 +19,18 @@ cdef bint inside(int y, int x):
     return 0 <= y < hw and 0 <= x < hw
 
 cdef double[hw][hw] weight = [
+    [2.262372348782404, 0.5027494108405341, 1.2568735271013354, 1.0683424980361351, 1.0683424980361351, 1.2568735271013354, 0.5027494108405341, 2.262372348782404],
+    [0.5027494108405341, 0.0, 0.992930086410055, 0.992930086410055, 0.992930086410055, 0.992930086410055, 0.0, 0.5027494108405341],
+    [1.2568735271013354, 0.992930086410055, 1.0683424980361351, 1.0180675569520816, 1.0180675569520816, 1.0683424980361351, 0.992930086410055, 1.2568735271013354],
+    [1.0683424980361351, 0.992930086410055, 1.0180675569520816, 1.0054988216810683, 1.0054988216810683, 1.0180675569520816, 0.992930086410055, 1.0683424980361351],
+    [1.0683424980361351, 0.992930086410055, 1.0180675569520816, 1.0054988216810683, 1.0054988216810683, 1.0180675569520816, 0.992930086410055, 1.0683424980361351],
+    [1.2568735271013354, 0.992930086410055, 1.0683424980361351, 1.0180675569520816, 1.0180675569520816, 1.0683424980361351, 0.992930086410055, 1.2568735271013354],
+    [0.5027494108405341, 0.0, 0.992930086410055, 0.992930086410055, 0.992930086410055, 0.992930086410055, 0.0, 0.5027494108405341],
+    [2.262372348782404, 0.5027494108405341, 1.2568735271013354, 1.0683424980361351, 1.0683424980361351, 1.2568735271013354, 0.5027494108405341, 2.262372348782404]
+]
+
+'''
+cdef double[hw][hw] weight = [
     [100, -40, 20,  5,  5, 20, -40, 100],
     [-40, -80, -1, -1, -1, -1, -80, -40],
     [ 20,  -1,  5,  1,  1,  5,  -1,  20],
@@ -29,7 +40,15 @@ cdef double[hw][hw] weight = [
     [-40, -80, -1, -1, -1, -1, -80, -40],
     [100, -40, 20,  5,  5, 20, -40, 100]
 ]
-
+weight_sm = 0.0
+for yy in range(hw):
+    for xx in range(hw):
+        weight_sm += weight[yy][xx] + 80.0
+print(weight_sm)
+weight = [[(weight[yy][xx] + 80.0) / weight_sm * 64.0 for xx in range(hw)] for yy in range(hw)]
+for i in weight:
+    print(i)
+'''
 cdef int[8][3] confirm_lst = [
     [0, 0, 0],
     [0, 0, 1],
@@ -114,15 +133,19 @@ cdef double evaluate(int player, grid, int open_val, int canput):
     cdef bint flag
     cdef bint[hw][hw] marked = [[False for _ in range(hw)] for _ in range(hw)]
     cdef int canput_all = canput
-    cdef double weight_all = 0.0, weight_sum = 0.0
-    cdef int confirm = 0, confirm_all = 0
+    cdef double weight_me = 0.0, weight_op = 0.0
+    cdef int me_cnt = 0, op_cnt = 0
+    cdef int confirm_me = 0, confirm_op = 0
     for y in range(hw):
         for x in range(hw):
             if grid[y][x] == -1:
                 canput_all += <int>check_canput(grid, player, y, x)
+            elif grid[y][x] == ai_player:
+                me_cnt += 1
+                weight_me += weight[y][x]
             else:
-                weight_sum += weight[y][x] * (<int>(grid[y][x] == ai_player) * 2 - 1)
-                weight_all += weight[y][x]
+                op_cnt += 1
+                weight_op += weight[y][x]
     for p in range(2):
         for idx in range(8):
             y = confirm_lst[idx][0]
@@ -136,8 +159,10 @@ cdef double evaluate(int player, grid, int open_val, int canput):
                 if marked[ny][nx]:
                     break
                 marked[ny][nx] = True
-                confirm += <int>(p == ai_player) * 2 - 1
-                confirm_all += 1
+                if p == ai_player:
+                    confirm_me += 1
+                else:
+                    confirm_op += 1
         for idx in range(4):
             y = confirm_lst2[idx][0]
             x = confirm_lst2[idx][1]
@@ -153,17 +178,18 @@ cdef double evaluate(int player, grid, int open_val, int canput):
                     nx = x + dx[dr] * d
                     if grid[ny][nx] == p and not marked[ny][nx]:
                         marked[ny][nx] = True
-                        confirm += <int>(p == ai_player) * 2 - 1
-                        confirm_all += 1
+                        if p == ai_player:
+                            confirm_me += 1
+                        else:
+                            confirm_op += 1
     cdef double weight_proc, canput_proc, confirm_proc
-    weight_proc = weight_sum / max(1.0, weight_all)
-    if player == ai_player:
-        canput_proc = <double>(canput_all - canput) / max(1, canput_all)
-    else:
-        canput_proc = <double>canput / max(1, canput_all)
-    confirm_proc = <double>confirm / max(1, confirm_all)
+    weight_proc = weight_me / me_cnt - weight_op / op_cnt
+    canput_proc = <double>(canput_all - canput) / max(1, canput_all) - <double>canput / max(1, canput_all)
+    if player != ai_player:
+        canput_proc *= -1
+    confirm_proc = <double>confirm_me / max(1, confirm_me + confirm_op) - <double>confirm_op / max(1, confirm_me + confirm_op)
     #debug(weight_proc, canput_proc, confirm_proc)
-    return weight_proc * weight_weight * ratio + canput_proc * canput_weight * (1.0 - ratio) + confirm_proc * confirm_weight
+    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight
 
 cdef double end_game(grid):
     cdef int y, x, res
@@ -240,7 +266,7 @@ def output(grid, func):
     for y in range(hw):
         func(str(y) + '0', end='')
         for x in range(hw):
-            func('○' if grid[y][x] == 0 else '●' if grid[y][x] == 1 else '* ' if grid[y][x] == 2 else '. ', end='')
+            func('# ' if grid[y][x] == 0 else 'O ' if grid[y][x] == 1 else '+ ' if grid[y][x] == 2 else '. ', end='')
         func('')
 
 cdef double alpha_beta(int player, grid, int depth, double alpha, double beta, int skip_cnt, int open_val, int canput):
@@ -292,13 +318,13 @@ cdef double alpha_beta(int player, grid, int depth, double alpha, double beta, i
 
 cdef int ai_player, vacant_cnt, y, x, ansy, ansx
 cdef double score, weight_weight, canput_weight, confirm_weight
+cdef int max_depth = 7
 
 ai_player = int(input())
 #debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
 weight_weight = float(input())
 canput_weight = float(input())
 confirm_weight = float(input())
-#put_weight, confirm_weight, open_weight, put_seg, open_seg = 
 while True:
     ansy = -1
     ansx = -1

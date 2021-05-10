@@ -99,7 +99,7 @@ class reversi:
         for y in range(hw):
             print(str(y + 1) + ' ', end='')
             for x in range(hw):
-                print(chr(0X25CB) if self.grid[y][x] == 0 else chr(0X25CF) if self.grid[y][x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
+                print('# ' if self.grid[y][x] == 0 else 'O ' if self.grid[y][x] == 1 else '+ ' if self.grid[y][x] == 2 else '. ', end='')
             print('')
     
     def output_file(self):
@@ -158,7 +158,7 @@ def match(use_param):
             with open('state.txt', 'w') as f:
                 f.write(rv.output_file())
             place = r'C:\Program Files\MasterReversiPro'
-            value = r'MRSolver.exe -m 4 -f C:\home\Reversi\state.txt'
+            value = r'MRSolver.exe -m 2 -f C:\home\Reversi\state.txt'
             all_data = subprocess.Popen(value.split(), cwd=place, stdout=subprocess.PIPE, shell=True).communicate()[0]
             for data in all_data.decode().strip().split():
                 if data[:2] == '->':
@@ -176,5 +176,5 @@ def match(use_param):
 param_num = 3
 param_num = 3
 #        weight  canput  confirm
-param = [0.05027546737938714, 0.6017320027297012, 0.3479925298909117]
+param = [0.3333, 0.3333, 0.3333]
 print('match end score', match(param))
