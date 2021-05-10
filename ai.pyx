@@ -116,7 +116,7 @@ cdef int check_confirm(unsigned long long grid, int idx):
     return res
 
 cdef double evaluate(int player, unsigned long long grid_me, unsigned long long grid_op, int canput):
-    #cdef double ratio = vacant_cnt / hw2
+    cdef double ratio = <double>(hw2 - vacant_cnt) / hw2
     cdef int canput_all = canput
     cdef double weight_me = 0.0, weight_op = 0.0
     cdef int me_cnt = 0, op_cnt = 0
@@ -162,7 +162,7 @@ cdef double evaluate(int player, unsigned long long grid_me, unsigned long long 
         canput_proc *= -1
         confirm_proc *= -1
     #debug(weight_proc, canput_proc, confirm_proc)
-    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight
+    return weight_proc * weight_weight * (1.0 - ratio) + canput_proc * canput_weight * (1.0 - ratio) + confirm_proc * confirm_weight
 
 cdef double end_game(int player, unsigned long long grid_me, unsigned long long grid_op):
     cdef int res = 0, i
@@ -210,8 +210,8 @@ cdef unsigned long long transfer(unsigned long long put, int k):
     return 0
 
 cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place):
-    cdef int i
     cdef unsigned long long put, rev1 = 0, rev2, mask
+    cdef int i
     put = <unsigned long long>1 << place
     for i in range(hw):
         rev2 = 0
@@ -226,7 +226,7 @@ cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid
 
 cdef double alpha_beta(int player, unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
     global ansy, ansx, memo_cnt
-    if time() - strt > tl and max_depth > min_max_depth:
+    if max_depth > min_max_depth and time() - strt > tl:
         return -100000000.0
     cdef int y, x, i
     cdef double val
@@ -240,22 +240,27 @@ cdef double alpha_beta(int player, unsigned long long grid_me, unsigned long lon
     for i in range(hw2):
         n_canput += 1 & (mobility >> i)
     if n_canput == 0:
-        return max(alpha, alpha_beta(1 - player, grid_op, grid_me, depth, alpha, beta, skip_cnt + 1, 0))
+        return max(alpha, alpha_beta(player ^ 1, grid_op, grid_me, depth, alpha, beta, skip_cnt + 1, 0))
     cdef unsigned long long n_grid_me, n_grid_op
     for i in range(hw2):
         if (1 & (mobility >> i)) == 0:
             continue
         n_grid_me = move(grid_me, grid_op, i)
-        n_grid_op = (grid_op ^ n_grid_me) & grid_op
+        n_grid_op = (n_grid_me ^ grid_op) & grid_op
         if player == ai_player:
-            val = alpha_beta(1 - player, n_grid_op, n_grid_me, depth - 1, alpha, beta, 0, n_canput)
+            val = alpha_beta(player ^ 1, n_grid_op, n_grid_me, depth - 1, alpha, beta, 0, n_canput)
+            if val == -100000000.0:
+                return -100000000.0
             if val > alpha:
                 alpha = val
                 if depth == max_depth:
                     ansy = (hw2 - i - 1) // hw
                     ansx = (hw2 - i - 1) % hw
         else:
-            beta = min(beta, alpha_beta(1 - player, n_grid_op, n_grid_me, depth - 1, alpha, beta, 0, n_canput))
+            val = alpha_beta(player ^ 1, n_grid_op, n_grid_me, depth - 1, alpha, beta, 0, n_canput)
+            if val == -100000000.0:
+                return -100000000.0
+            beta = min(beta, val)
         if alpha >= beta:
             break
     if player == ai_player:
@@ -268,7 +273,7 @@ cdef double score, weight_weight, canput_weight, confirm_weight
 cdef int max_depth
 cdef double strt
 cdef unsigned long long in_grid_me, in_grid_op
-cdef double tl = 3.0
+cdef double tl = 5.0
 
 ai_player = int(input())
 #debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
@@ -294,12 +299,17 @@ while True:
     while time() - strt < tl:
         score = alpha_beta(ai_player, in_grid_me, in_grid_op, max_depth, -100000000, 100000000, 0, 0)
         if score == -100000000.0:
+            debug('depth', max_depth, 'timeout')
             break
-        debug('depth', max_depth, 'score', score)
+        debug('depth', max_depth, 'score', score, time() - strt, 'sec')
         outy = ansy
         outx = ansx
         if abs(score) >= 1.0:
+            debug('game end')
             break
         max_depth += 1
+        if vacant_cnt < max_depth:
+            debug('game end')
+            break
     print(outy, outx)
     sys.stdout.flush()
