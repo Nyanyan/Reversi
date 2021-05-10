@@ -1,0 +1,396 @@
+C4c3                                     Diagonal Opening 
+C4c3D3c5B2                               X-square Opening (t3) 
+C4c3D3c5B3                               Snake, Peasant (t3) 
+C4c3D3c5B3f4B5b4C6d6F5                   Pyramid, Checkerboarding Peasant (t3) 
+C4c3D3c5B4                               Heath, Tobidashi "Jumping Out" (t3) 
+C4c3D3c5B4d2C2f4D6c6F5e6F7               Mimura variation II** (t3) 
+C4c3D3c5B4d2D6                           Heath-Bat (t3) 
+C4c3D3c5B4d2E2                           Iwasaki variation** (t3) 
+C4c3D3c5B4e3                             Heath-Chimney, "Mass-Turning" (t3) 
+C4c3D3c5B5                               Raccoon Dog (t3) 
+C4c3D3c5B6c6B5                           Hamilton (t3) 
+C4c3D3c5B6e3                             Lollipop (t3) 
+C4c3D3c5D6                               Cow (t3) 
+C4c3D3c5D6e3                             Chimney (t3) 
+C4c3D3c5D6f4B4                           Cow Bat, Bat, Cambridge (t3) 
+C4c3D3c5D6f4B4b6B5c6B3                   Bat (Piau Continuation 2)** (t3) 
+C4c3D3c5D6f4B4b6B5c6F5                   Melnikov**, Bat (Piau Continuation 1)** (t3) 
+C4c3D3c5D6f4B4c6B5b3B6e3C2a4A5a6D2       Bat (Kling Continuation)** (t3) 
+C4c3D3c5D6f4B4e3B3                       Bat (Kling Alternative)** (t3) 
+C4c3D3c5D6f4F5                           Rose-v-Toth** (t3) 
+C4c3D3c5D6f4F5d2                         Tanida (t3) 
+C4c3D3c5D6f4F5d2B5                       Aircraft, Feldborg (t3) 
+C4c3D3c5D6f4F5d2G4d7                     Sailboat (t3) 
+C4c3D3c5D6f4F5e6C6d7                     Maruoka (t3) 
+C4c3D3c5D6f4F5e6F6                       Landau (t3) 
+C4c3D3c5F6                               Buffalo, Kenichi Variation (t3) 
+C4c3D3c5F6e2C6                           Maruoka Buffalo** (t3) 
+C4c3D3c5F6e3C6f5F4g5                     Tanida Buffalo (t3) 
+C4c3D3c5F6f5                             Hokuriku Buffalo (t3) 
+C4c3D3e3B2                               X-square Opening (t3) 
+C4c3D3e3C2                               Snake, Peasant (t3) 
+C4c3D3e3C2d6E2d2F3f4E6                   Pyramid, Checkerboarding Peasant (t3) 
+C4c3D3e3D2                               Heath, Tobidashi "Jumping Out" (t3) 
+C4c3D3e3D2b4B3d6F4f3E6f5G6               Mimura variation II** (t3) 
+C4c3D3e3D2b4B5                           Iwasaki variation** (t3) 
+C4c3D3e3D2b4F4                           Heath-Bat (t3) 
+C4c3D3e3D2c5                             Heath-Chimney, "Mass-Turning" (t3) 
+C4c3D3e3E2                               Raccoon Dog (t3) 
+C4c3D3e3F2c5                             Lollipop (t3) 
+C4c3D3e3F2f3E2                           Hamilton (t3) 
+C4c3D3e3F4                               Cow (t3) 
+C4c3D3e3F4c5                             Chimney (t3) 
+C4c3D3e3F4d6D2                           Cow Bat, Bat, Cambridge (t3) 
+C4c3D3e3F4d6D2c5C2                       Bat (Kling Alternative)** (t3) 
+C4c3D3e3F4d6D2f2E2f3C2                   Bat (Piau Continuation 2)** (t3) 
+C4c3D3e3F4d6D2f2E2f3E6                   Melnikov**, Bat (Piau Continuation 1)** (t3) 
+C4c3D3e3F4d6D2f3E2c2F2c5B3d1E1f1B4       Bat (Kling Continuation)** (t3) 
+C4c3D3e3F4d6E6                           Rose-v-Toth** (t3) 
+C4c3D3e3F4d6E6b4                         Tanida (t3) 
+C4c3D3e3F4d6E6b4D7g4                     Sailboat (t3) 
+C4c3D3e3F4d6E6b4E2                       Aircraft, Feldborg (t3) 
+C4c3D3e3F4d6E6f5F3g4                     Maruoka (t3) 
+C4c3D3e3F4d6E6f5F6                       Landau (t3) 
+C4c3D3e3F6                               Buffalo, Kenichi Variation (t3) 
+C4c3D3e3F6b5F3                           Maruoka Buffalo** (t3) 
+C4c3D3e3F6c5F3e6D6e7                     Tanida Buffalo (t3) 
+C4c3D3e3F6e6                             Hokuriku Buffalo (t3) 
+C4c3E6c5                                 Wing Variation 
+C4c3F5c5                                 Semi-Wing Variation 
+C4c5                                     Parallel Opening 
+C4e3                                     Perpendicular Opening 
+C4e3F4c5D6e6                             Mimura 
+C4e3F4c5D6f3C6                           Shaman, Danish 
+C4e3F4c5D6f3D3                           Inoue 
+C4e3F4c5D6f3D3c3                         IAGO 
+C4e3F4c5D6f3E2                           Bhagat 
+C4e3F4c5D6f3E6c3D3e2                     Rose 
+C4e3F4c5D6f3E6c3D3e2B5                   Flat 
+C4e3F4c5D6f3E6c3D3e2B5f5                 Rotating Flat 
+C4e3F4c5D6f3E6c3D3e2B5f5B3               Murakami Variation** 
+C4e3F4c5D6f3E6c3D3e2B5f5B4f6C2e7D2c7     Rotating Flat** (Kling Continuation) 
+C4e3F4c5D6f3E6c3D3e2B6f5                 Rose-Birth** 
+C4e3F4c5D6f3E6c3D3e2B6f5B4f6G5d7         Brightstein 
+C4e3F4c5D6f3E6c3D3e2B6f5G5               Rose-birdie, Rose-Tamenori 
+C4e3F4c5D6f3E6c3D3e2B6f5G5f6             Rose-Tamenori-Kling** 
+C4e3F4c5D6f3E6c3D3e2D2                   Greenberg, Dawg 
+C4e3F4c5D6f3E6c6                         Ralle 
+C4e3F4c5E6                               Horse 
+C4e3F5b4                                 No-Cat** 
+C4e3F5b4F3                               Swallow 
+C4e3F5b4F3f4E2e6G5f6D6c6                 No-Cat** (Continuation) 
+C4e3F5e6D3                               Italian 
+C4e3F5e6F4                               Cat 
+C4e3F5e6F4c5D6c6F7f3                     Sakaguchi** 
+C4e3F5e6F4c5D6c6F7g5G6                   Berner** 
+C4e3F6b4                                 Ganglion 
+C4e3F6e6F5                               Tiger 
+C4e3F6e6F5c5C3                           Stephenson 
+C4e3F6e6F5c5C3b4                         No-Kung 
+C4e3F6e6F5c5C3b4D6c6B5a6B6c7             No-Kung** (Continuation) 
+C4e3F6e6F5c5C3c6                         COMP'OTH 
+C4e3F6e6F5c5C3g5                         Kung 
+C4e3F6e6F5c5D3                           Leader's Tiger 
+C4e3F6e6F5c5D6                           Brightwell 
+C4e3F6e6F5c5F4g5G4f3C6d3D6               Ishii** 
+C4e3F6e6F5c5F4g5G4f3C6d3D6b3C3b4E2b6     Mainline Tiger** 
+C4e3F6e6F5c5F4g6F7                       Rose-BILL 
+C4e3F6e6F5c5F4g6F7d3                     Tamenori** 
+C4e3F6e6F5g6                             Aubrey, Tanaka 
+D3c3                                     Diagonal Opening 
+D3c3C4c5B2                               X-square Opening (t3) 
+D3c3C4c5B3                               Snake, Peasant (t3) 
+D3c3C4c5B3f4B5b4C6d6F5                   Pyramid, Checkerboarding Peasant (t3) 
+D3c3C4c5B4                               Heath, Tobidashi "Jumping Out" (t3) 
+D3c3C4c5B4d2C2f4D6c6F5e6F7               Mimura variation II** (t3) 
+D3c3C4c5B4d2D6                           Heath-Bat (t3) 
+D3c3C4c5B4d2E2                           Iwasaki variation** (t3) 
+D3c3C4c5B4e3                             Heath-Chimney, "Mass-Turning" (t3) 
+D3c3C4c5B5                               Raccoon Dog (t3) 
+D3c3C4c5B6c6B5                           Hamilton (t3) 
+D3c3C4c5B6e3                             Lollipop (t3) 
+D3c3C4c5D6                               Cow (t3) 
+D3c3C4c5D6e3                             Chimney (t3) 
+D3c3C4c5D6f4B4                           Cow Bat, Bat, Cambridge (t3) 
+D3c3C4c5D6f4B4b6B5c6B3                   Bat (Piau Continuation 2)** (t3) 
+D3c3C4c5D6f4B4b6B5c6F5                   Melnikov**, Bat (Piau Continuation 1)** (t3) 
+D3c3C4c5D6f4B4c6B5b3B6e3C2a4A5a6D2       Bat (Kling Continuation)** (t3) 
+D3c3C4c5D6f4B4e3B3                       Bat (Kling Alternative)** (t3) 
+D3c3C4c5D6f4F5                           Rose-v-Toth** (t3) 
+D3c3C4c5D6f4F5d2                         Tanida (t3) 
+D3c3C4c5D6f4F5d2B5                       Aircraft, Feldborg (t3) 
+D3c3C4c5D6f4F5d2G4d7                     Sailboat (t3) 
+D3c3C4c5D6f4F5e6C6d7                     Maruoka (t3) 
+D3c3C4c5D6f4F5e6F6                       Landau (t3) 
+D3c3C4c5F6                               Buffalo, Kenichi Variation (t3) 
+D3c3C4c5F6e2C6                           Maruoka Buffalo** (t3) 
+D3c3C4c5F6e3C6f5F4g5                     Tanida Buffalo (t3) 
+D3c3C4c5F6f5                             Hokuriku Buffalo (t3) 
+D3c3C4e3B2                               X-square Opening (t3) 
+D3c3C4e3C2                               Snake, Peasant (t3) 
+D3c3C4e3C2d6E2d2F3f4E6                   Pyramid, Checkerboarding Peasant (t3) 
+D3c3C4e3D2                               Heath, Tobidashi "Jumping Out" (t3) 
+D3c3C4e3D2b4B3d6F4f3E6f5G6               Mimura variation II** (t3) 
+D3c3C4e3D2b4B5                           Iwasaki variation** (t3) 
+D3c3C4e3D2b4F4                           Heath-Bat (t3) 
+D3c3C4e3D2c5                             Heath-Chimney, "Mass-Turning" (t3) 
+D3c3C4e3E2                               Raccoon Dog (t3) 
+D3c3C4e3F2c5                             Lollipop (t3) 
+D3c3C4e3F2f3E2                           Hamilton (t3) 
+D3c3C4e3F4                               Cow (t3) 
+D3c3C4e3F4c5                             Chimney (t3) 
+D3c3C4e3F4d6D2                           Cow Bat, Bat, Cambridge (t3) 
+D3c3C4e3F4d6D2c5C2                       Bat (Kling Alternative)** (t3) 
+D3c3C4e3F4d6D2f2E2f3C2                   Bat (Piau Continuation 2)** (t3) 
+D3c3C4e3F4d6D2f2E2f3E6                   Melnikov**, Bat (Piau Continuation 1)** (t3) 
+D3c3C4e3F4d6D2f3E2c2F2c5B3d1E1f1B4       Bat (Kling Continuation)** (t3) 
+D3c3C4e3F4d6E6                           Rose-v-Toth** (t3) 
+D3c3C4e3F4d6E6b4                         Tanida (t3) 
+D3c3C4e3F4d6E6b4D7g4                     Sailboat (t3) 
+D3c3C4e3F4d6E6b4E2                       Aircraft, Feldborg (t3) 
+D3c3C4e3F4d6E6f5F3g4                     Maruoka (t3) 
+D3c3C4e3F4d6E6f5F6                       Landau (t3) 
+D3c3C4e3F6                               Buffalo, Kenichi Variation (t3) 
+D3c3C4e3F6b5F3                           Maruoka Buffalo** (t3) 
+D3c3C4e3F6c5F3e6D6e7                     Tanida Buffalo (t3) 
+D3c3C4e3F6e6                             Hokuriku Buffalo (t3) 
+D3c3E6e3                                 Semi-Wing Variation 
+D3c3F5e3                                 Wing Variation 
+D3c5                                     Perpendicular Opening 
+D3c5D6e3F4c6B5                           Bhagat 
+D3c5D6e3F4c6C4                           Inoue 
+D3c5D6e3F4c6C4c3                         IAGO 
+D3c5D6e3F4c6F3                           Shaman, Danish 
+D3c5D6e3F4c6F5c3C4b5                     Rose 
+D3c5D6e3F4c6F5c3C4b5B4                   Greenberg, Dawg 
+D3c5D6e3F4c6F5c3C4b5E2                   Flat 
+D3c5D6e3F4c6F5c3C4b5E2e6                 Rotating Flat 
+D3c5D6e3F4c6F5c3C4b5E2e6C2               Murakami Variation** 
+D3c5D6e3F4c6F5c3C4b5E2e6D2f6B3g5B4g3     Rotating Flat** (Kling Continuation) 
+D3c5D6e3F4c6F5c3C4b5F2e6                 Rose-Birth** 
+D3c5D6e3F4c6F5c3C4b5F2e6D2f6E7g4         Brightstein 
+D3c5D6e3F4c6F5c3C4b5F2e6E7               Rose-birdie, Rose-Tamenori 
+D3c5D6e3F4c6F5c3C4b5F2e6E7f6             Rose-Tamenori-Kling** 
+D3c5D6e3F4c6F5f3                         Ralle 
+D3c5D6e3F4f5                             Mimura 
+D3c5D6e3F5                               Horse 
+D3c5E6d2                                 No-Cat** 
+D3c5E6d2C6                               Swallow 
+D3c5E6d2C6d6B5f5E7f6F4f3                 No-Cat** (Continuation) 
+D3c5E6f5C4                               Italian 
+D3c5E6f5D6                               Cat 
+D3c5E6f5D6e3F4f3G6c6                     Sakaguchi** 
+D3c5E6f5D6e3F4f3G6e7F7                   Berner** 
+D3c5F6d2                                 Ganglion 
+D3c5F6f5E6                               Tiger 
+D3c5F6f5E6e3C3                           Stephenson 
+D3c5F6f5E6e3C3d2                         No-Kung 
+D3c5F6f5E6e3C3d2F4f3E2f1F2g3             No-Kung** (Continuation) 
+D3c5F6f5E6e3C3e7                         Kung 
+D3c5F6f5E6e3C3f3                         COMP'OTH 
+D3c5F6f5E6e3C4                           Leader's Tiger 
+D3c5F6f5E6e3D6e7D7c6F3c4F4               Ishii** 
+D3c5F6f5E6e3D6e7D7c6F3c4F4c2C3d2B5f2     Mainline Tiger** 
+D3c5F6f5E6e3D6f7G6                       Rose-BILL 
+D3c5F6f5E6e3D6f7G6c4                     Tamenori** 
+D3c5F6f5E6e3F4                           Brightwell 
+D3c5F6f5E6f7                             Aubrey, Tanaka 
+D3e3                                     Parallel Opening 
+E6d6                                     Parallel Opening 
+E6f4                                     Perpendicular Opening 
+E6f4C3c4D3                               Tiger 
+E6f4C3c4D3c2                             Aubrey, Tanaka 
+E6f4C3c4D3d6C5                           Brightwell 
+E6f4C3c4D3d6E3c2B3                       Rose-BILL 
+E6f4C3c4D3d6E3c2B3f5                     Tamenori** 
+E6f4C3c4D3d6E3d2E2f3C6f5C5               Ishii** 
+E6f4C3c4D3d6E3d2E2f3C6f5C5f7F6e7G4c7     Mainline Tiger** 
+E6f4C3c4D3d6F5                           Leader's Tiger 
+E6f4C3c4D3d6F6                           Stephenson 
+E6f4C3c4D3d6F6c6                         COMP'OTH 
+E6f4C3c4D3d6F6d2                         Kung 
+E6f4C3c4D3d6F6e7                         No-Kung 
+E6f4C3c4D3d6F6e7C5c6D7c8C7b6             No-Kung** (Continuation) 
+E6f4C3e7                                 Ganglion 
+E6f4D3c4E3                               Cat 
+E6f4D3c4E3d6C5c6B3d2C2                   Berner** 
+E6f4D3c4E3d6C5c6B3f3                     Sakaguchi** 
+E6f4D3c4F5                               Italian 
+E6f4D3e7                                 No-Cat** 
+E6f4D3e7F3                               Swallow 
+E6f4D3e7F3e3G4c4D2c3C5c6                 No-Cat** (Continuation) 
+E6f4E3d6C4                               Horse 
+E6f4E3d6C5c4                             Mimura 
+E6f4E3d6C5f3C4c6                         Ralle 
+E6f4E3d6C5f3C4f6F5g4                     Rose 
+E6f4E3d6C5f3C4f6F5g4C7d3                 Rose-Birth** 
+E6f4E3d6C5f3C4f6F5g4C7d3D2               Rose-birdie, Rose-Tamenori 
+E6f4E3d6C5f3C4f6F5g4C7d3D2c3             Rose-Tamenori-Kling** 
+E6f4E3d6C5f3C4f6F5g4C7d3E7c3D2b5         Brightstein 
+E6f4E3d6C5f3C4f6F5g4D7                   Flat 
+E6f4E3d6C5f3C4f6F5g4D7d3                 Rotating Flat 
+E6f4E3d6C5f3C4f6F5g4D7d3E7c3G6b4G5b6     Rotating Flat** (Kling Continuation) 
+E6f4E3d6C5f3C4f6F5g4D7d3F7               Murakami Variation** 
+E6f4E3d6C5f3C4f6F5g4G5                   Greenberg, Dawg 
+E6f4E3d6C5f3C6                           Shaman, Danish 
+E6f4E3d6C5f3F5                           Inoue 
+E6f4E3d6C5f3F5f6                         IAGO 
+E6f4E3d6C5f3G4                           Bhagat 
+E6f6                                     Diagonal Opening 
+E6f6C4d6                                 Wing Variation 
+E6f6D3d6                                 Semi-Wing Variation 
+E6f6F5d6C3                               Buffalo, Kenichi Variation (t3) 
+E6f6F5d6C3d3                             Hokuriku Buffalo (t3) 
+E6f6F5d6C3f4C6d3E3d2                     Tanida Buffalo (t3) 
+E6f6F5d6C3g4C6                           Maruoka Buffalo** (t3) 
+E6f6F5d6C5                               Cow (t3) 
+E6f6F5d6C5e3D3                           Rose-v-Toth** (t3) 
+E6f6F5d6C5e3D3c4C3                       Landau (t3) 
+E6f6F5d6C5e3D3c4C6b5                     Maruoka (t3) 
+E6f6F5d6C5e3D3g5                         Tanida (t3) 
+E6f6F5d6C5e3D3g5D7                       Aircraft, Feldborg (t3) 
+E6f6F5d6C5e3D3g5E2b5                     Sailboat (t3) 
+E6f6F5d6C5e3E7                           Cow Bat, Bat, Cambridge (t3) 
+E6f6F5d6C5e3E7c6D7f7C7f4G6e8D8c8G5       Bat (Kling Continuation)** (t3) 
+E6f6F5d6C5e3E7c7D7c6D3                   Melnikov**, Bat (Piau Continuation 1)** (t3) 
+E6f6F5d6C5e3E7c7D7c6F7                   Bat (Piau Continuation 2)** (t3) 
+E6f6F5d6C5e3E7f4F7                       Bat (Kling Alternative)** (t3) 
+E6f6F5d6C5f4                             Chimney (t3) 
+E6f6F5d6C7c6D7                           Hamilton (t3) 
+E6f6F5d6C7f4                             Lollipop (t3) 
+E6f6F5d6D7                               Raccoon Dog (t3) 
+E6f6F5d6E7                               Heath, Tobidashi "Jumping Out" (t3) 
+E6f6F5d6E7f4                             Heath-Chimney, "Mass-Turning" (t3) 
+E6f6F5d6E7g5C5                           Heath-Bat (t3) 
+E6f6F5d6E7g5G4                           Iwasaki variation** (t3) 
+E6f6F5d6E7g5G6e3C5c6D3c4B3               Mimura variation II** (t3) 
+E6f6F5d6F7                               Snake, Peasant (t3) 
+E6f6F5d6F7e3D7e7C6c5D3                   Pyramid, Checkerboarding Peasant (t3) 
+E6f6F5d6G7                               X-square Opening (t3) 
+E6f6F5f4C3                               Buffalo, Kenichi Variation (t3) 
+E6f6F5f4C3c4                             Hokuriku Buffalo (t3) 
+E6f6F5f4C3d6F3c4C5b4                     Tanida Buffalo (t3) 
+E6f6F5f4C3d7F3                           Maruoka Buffalo** (t3) 
+E6f6F5f4E3                               Cow (t3) 
+E6f6F5f4E3c5C4                           Rose-v-Toth** (t3) 
+E6f6F5f4E3c5C4d3C3                       Landau (t3) 
+E6f6F5f4E3c5C4d3F3e2                     Maruoka (t3) 
+E6f6F5f4E3c5C4e7                         Tanida (t3) 
+E6f6F5f4E3c5C4e7B5e2                     Sailboat (t3) 
+E6f6F5f4E3c5C4e7G4                       Aircraft, Feldborg (t3) 
+E6f6F5f4E3c5G5                           Cow Bat, Bat, Cambridge (t3) 
+E6f6F5f4E3c5G5d6G6                       Bat (Kling Alternative)** (t3) 
+E6f6F5f4E3c5G5f3G4g6G3d6F7h5H4h3E7       Bat (Kling Continuation)** (t3) 
+E6f6F5f4E3c5G5g3G4f3C4                   Melnikov**, Bat (Piau Continuation 1)** (t3) 
+E6f6F5f4E3c5G5g3G4f3G6                   Bat (Piau Continuation 2)** (t3) 
+E6f6F5f4E3d6                             Chimney (t3) 
+E6f6F5f4G3d6                             Lollipop (t3) 
+E6f6F5f4G3f3G4                           Hamilton (t3) 
+E6f6F5f4G4                               Raccoon Dog (t3) 
+E6f6F5f4G5                               Heath, Tobidashi "Jumping Out" (t3) 
+E6f6F5f4G5d6                             Heath-Chimney, "Mass-Turning" (t3) 
+E6f6F5f4G5e7D7                           Iwasaki variation** (t3) 
+E6f6F5f4G5e7E3                           Heath-Bat (t3) 
+E6f6F5f4G5e7F7c5E3f3C4d3C2               Mimura variation II** (t3) 
+E6f6F5f4G6                               Snake, Peasant (t3) 
+E6f6F5f4G6c5G4g5F3e3C4                   Pyramid, Checkerboarding Peasant (t3) 
+E6f6F5f4G7                               X-square Opening (t3) 
+F5d6                                     Perpendicular Opening 
+F5d6C3d3C4                               Tiger 
+F5d6C3d3C4b3                             Aubrey, Tanaka 
+F5d6C3d3C4f4C5b3C2                       Rose-BILL 
+F5d6C3d3C4f4C5b3C2e6                     Tamenori** 
+F5d6C3d3C4f4C5b4B5c6F3e6E3               Ishii** 
+F5d6C3d3C4f4C5b4B5c6F3e6E3g6F6g5D7g3     Mainline Tiger** 
+F5d6C3d3C4f4E3                           Brightwell 
+F5d6C3d3C4f4E6                           Leader's Tiger 
+F5d6C3d3C4f4F6                           Stephenson 
+F5d6C3d3C4f4F6b4                         Kung 
+F5d6C3d3C4f4F6f3                         COMP'OTH 
+F5d6C3d3C4f4F6g5                         No-Kung 
+F5d6C3d3C4f4F6g5E3f3G4h3G3f2             No-Kung** (Continuation) 
+F5d6C3g5                                 Ganglion 
+F5d6C4d3C5                               Cat 
+F5d6C4d3C5f4E3f3C2b4B3                   Berner** 
+F5d6C4d3C5f4E3f3C2c6                     Sakaguchi** 
+F5d6C4d3E6                               Italian 
+F5d6C4g5                                 No-Cat** 
+F5d6C4g5C6                               Swallow 
+F5d6C4g5C6c5D7d3B4c3E3f3                 No-Cat** (Continuation) 
+F5d6C5f4D3                               Horse 
+F5d6C5f4E3c6D3f3                         Ralle 
+F5d6C5f4E3c6D3f6E6d7                     Rose 
+F5d6C5f4E3c6D3f6E6d7E7                   Greenberg, Dawg 
+F5d6C5f4E3c6D3f6E6d7G3c4                 Rose-Birth** 
+F5d6C5f4E3c6D3f6E6d7G3c4B4               Rose-birdie, Rose-Tamenori 
+F5d6C5f4E3c6D3f6E6d7G3c4B4c3             Rose-Tamenori-Kling** 
+F5d6C5f4E3c6D3f6E6d7G3c4G5c3B4e2         Brightstein 
+F5d6C5f4E3c6D3f6E6d7G4                   Flat 
+F5d6C5f4E3c6D3f6E6d7G4c4                 Rotating Flat 
+F5d6C5f4E3c6D3f6E6d7G4c4G5c3F7d2E7f2     Rotating Flat** (Kling Continuation) 
+F5d6C5f4E3c6D3f6E6d7G4c4G6               Murakami Variation** 
+F5d6C5f4E3c6D7                           Bhagat 
+F5d6C5f4E3c6E6                           Inoue 
+F5d6C5f4E3c6E6f6                         IAGO 
+F5d6C5f4E3c6F3                           Shaman, Danish 
+F5d6C5f4E3d3                             Mimura 
+F5f4                                     Parallel Opening 
+F5f6                                     Diagonal Opening 
+F5f6C4f4                                 Semi-Wing Variation 
+F5f6D3f4                                 Wing Variation 
+F5f6E6d6C3                               Buffalo, Kenichi Variation (t3) 
+F5f6E6d6C3d3                             Hokuriku Buffalo (t3) 
+F5f6E6d6C3f4C6d3E3d2                     Tanida Buffalo (t3) 
+F5f6E6d6C3g4C6                           Maruoka Buffalo** (t3) 
+F5f6E6d6C5                               Cow (t3) 
+F5f6E6d6C5e3D3                           Rose-v-Toth** (t3) 
+F5f6E6d6C5e3D3c4C3                       Landau (t3) 
+F5f6E6d6C5e3D3c4C6b5                     Maruoka (t3) 
+F5f6E6d6C5e3D3g5                         Tanida (t3) 
+F5f6E6d6C5e3D3g5D7                       Aircraft, Feldborg (t3) 
+F5f6E6d6C5e3D3g5E2b5                     Sailboat (t3) 
+F5f6E6d6C5e3E7                           Cow Bat, Bat, Cambridge (t3) 
+F5f6E6d6C5e3E7c6D7f7C7f4G6e8D8c8G5       Bat (Kling Continuation)** (t3) 
+F5f6E6d6C5e3E7c7D7c6D3                   Melnikov**, Bat (Piau Continuation 1)** (t3) 
+F5f6E6d6C5e3E7c7D7c6F7                   Bat (Piau Continuation 2)** (t3) 
+F5f6E6d6C5e3E7f4F7                       Bat (Kling Alternative)** (t3) 
+F5f6E6d6C5f4                             Chimney (t3) 
+F5f6E6d6C7c6D7                           Hamilton (t3) 
+F5f6E6d6C7f4                             Lollipop (t3) 
+F5f6E6d6D7                               Raccoon Dog (t3) 
+F5f6E6d6E7                               Heath, Tobidashi "Jumping Out" (t3) 
+F5f6E6d6E7f4                             Heath-Chimney, "Mass-Turning" (t3) 
+F5f6E6d6E7g5C5                           Heath-Bat (t3) 
+F5f6E6d6E7g5G4                           Iwasaki variation** (t3) 
+F5f6E6d6E7g5G6e3C5c6D3c4B3               Mimura variation II** (t3) 
+F5f6E6d6F7                               Snake, Peasant (t3) 
+F5f6E6d6F7e3D7e7C6c5D3                   Pyramid, Checkerboarding Peasant (t3) 
+F5f6E6d6G7                               X-square Opening (t3) 
+F5f6E6f4C3                               Buffalo, Kenichi Variation (t3) 
+F5f6E6f4C3c4                             Hokuriku Buffalo (t3) 
+F5f6E6f4C3d6F3c4C5b4                     Tanida Buffalo (t3) 
+F5f6E6f4C3d7F3                           Maruoka Buffalo** (t3) 
+F5f6E6f4E3                               Cow (t3) 
+F5f6E6f4E3c5C4                           Rose-v-Toth** (t3) 
+F5f6E6f4E3c5C4d3C3                       Landau (t3) 
+F5f6E6f4E3c5C4d3F3e2                     Maruoka (t3) 
+F5f6E6f4E3c5C4e7                         Tanida (t3) 
+F5f6E6f4E3c5C4e7B5e2                     Sailboat (t3) 
+F5f6E6f4E3c5C4e7G4                       Aircraft, Feldborg (t3) 
+F5f6E6f4E3c5G5                           Cow Bat, Bat, Cambridge (t3) 
+F5f6E6f4E3c5G5d6G6                       Bat (Kling Alternative)** (t3) 
+F5f6E6f4E3c5G5f3G4g6G3d6F7h5H4h3E7       Bat (Kling Continuation)** (t3) 
+F5f6E6f4E3c5G5g3G4f3C4                   Melnikov**, Bat (Piau Continuation 1)** (t3) 
+F5f6E6f4E3c5G5g3G4f3G6                   Bat (Piau Continuation 2)** (t3) 
+F5f6E6f4E3d6                             Chimney (t3) 
+F5f6E6f4G3d6                             Lollipop (t3) 
+F5f6E6f4G3f3G4                           Hamilton (t3) 
+F5f6E6f4G4                               Raccoon Dog (t3) 
+F5f6E6f4G5                               Heath, Tobidashi "Jumping Out" (t3) 
+F5f6E6f4G5d6                             Heath-Chimney, "Mass-Turning" (t3) 
+F5f6E6f4G5e7D7                           Iwasaki variation** (t3) 
+F5f6E6f4G5e7E3                           Heath-Bat (t3) 
+F5f6E6f4G5e7F7c5E3f3C4d3C2               Mimura variation II** (t3) 
+F5f6E6f4G6                               Snake, Peasant (t3) 
+F5f6E6f4G6c5G4g5F3e3C4                   Pyramid, Checkerboarding Peasant (t3) 
+F5f6E6f4G7                               X-square Opening (t3) 

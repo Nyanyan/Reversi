@@ -1,6 +1,7 @@
 # reversi software
 import subprocess
 from time import sleep
+from random import random, randint
 
 hw = 8
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
@@ -86,7 +87,7 @@ class reversi:
                     res = False
                     self.grid[y][x] = 2
         if res:
-            print('Pass!')
+            #print('Pass!')
             self.player = 1 - self.player
         return res
 
@@ -101,6 +102,14 @@ class reversi:
                 print(chr(0X25CB) if self.grid[y][x] == 0 else chr(0X25CF) if self.grid[y][x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
             print('')
     
+    def output_file(self):
+        res = ''
+        for y in range(hw):
+            for x in range(hw):
+                res += '*' if self.grid[y][x] == 0 else 'O' if self.grid[y][x] == 1 else '-'
+        res += ' *'
+        return res
+
     def end(self):
         if min(self.nums) == 0:
             return True
@@ -113,62 +122,58 @@ class reversi:
     
     def judge(self):
         if self.nums[0] > self.nums[1]:
-            print('Black won!', self.nums[0], '-', self.nums[1])
+            #print('Black won!', self.nums[0], '-', self.nums[1])
+            return 0
         elif self.nums[1] > self.nums[0]:
-            print('White won!', self.nums[0], '-', self.nums[1])
+            #print('White won!', self.nums[0], '-', self.nums[1])
+            return 1
         else:
-            print('Draw!', self.nums[0], '-', self.nums[1])
+            #print('Draw!', self.nums[0], '-', self.nums[1])
+            return -1
 
-ai_mode = True
-ai_player = 1
-
-ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-stdin = str(ai_player) + '\n'
-ai.stdin.write(stdin.encode('utf-8'))
-ai.stdin.flush()
-param_num = 3
-#        put_weight, confirm_weight, open_weight
-param = [10.0,      10.0,            0.0]
-for j in range(param_num):
-    stdin = str(param[j]) + '\n'
+def match(use_param):
+    ai_player = 1
+    ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    stdin = str(ai_player) + '\n' # white for 1
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()
-sleep(0.5)
-
-rv = reversi()
-while True:
-    if rv.check_pass() and rv.check_pass():
-        break
-    rv.output()
-    s = 'Black' if rv.player == 0 else 'White'
-    if ai_mode and rv.player == ai_player:
-        stdin = ''
-        for y in range(hw):
-            for x in range(hw):
-                stdin += str(rv.grid[y][x]) + ' '
-            stdin += '\n'
-        #print(stdin)
+    for j in range(param_num):
+        stdin = str(use_param[j]) + '\n'
         ai.stdin.write(stdin.encode('utf-8'))
         ai.stdin.flush()
-        y, x = [int(i) for i in ai.stdout.readline().decode().strip().split()]
-        print(s + ': ' + chr(x + ord('a')) + str(y + 1))
-    else:
-        ss = input(s + ': ')
-        if ss == 'exit':
+    rv = reversi()
+    while True:
+        if rv.check_pass() and rv.check_pass():
             break
-        try:
-            x = int(ord(ss[0]) - ord('a'))
-            y = int(ss[1]) - 1
-        except:
-            print('Please input correct')
-            continue
-        if not inside(y, x):
-            print('Please input correct')
-            continue
-    rv.move(y, x)
-    if rv.end():
-        break
-rv.check_pass()
-rv.output()
-rv.judge()
-ai.kill()
+        if rv.player == ai_player:
+            stdin = ''
+            for y in range(hw):
+                for x in range(hw):
+                    stdin += str(rv.grid[y][x]) + ' '
+                stdin += '\n'
+            ai.stdin.write(stdin.encode('utf-8'))
+            ai.stdin.flush()
+            y, x = [int(i) for i in ai.stdout.readline().decode().strip().split()]
+        else:
+            with open('state.txt', 'w') as f:
+                f.write(rv.output_file())
+            place = r'C:\Program Files\MasterReversiPro'
+            value = r'MRSolver.exe -m 2 -f C:\home\Reversi\state.txt'
+            all_data = subprocess.Popen(value.split(), cwd=place, stdout=subprocess.PIPE, shell=True).communicate()[0]
+            for data in all_data.decode().strip().split():
+                if data[:2] == '->':
+                    x, y = ord(data[2]) - ord('A'), int(data[3]) - 1
+                    break
+        rv.move(y, x)
+        rv.output()
+        if rv.end():
+            break
+    rv.check_pass()
+    winner = rv.judge()
+    ai.kill()
+    return rv.nums[ai_player] - rv.nums[1 - ai_player] if rv.nums[1 - ai_player] > 0 else hw * hw
+
+param_num = 3
+#        put_weight, confirm_weight, open_weight
+param = [30.0,      20.0,            10.0]
+print('match end score', match(param))
