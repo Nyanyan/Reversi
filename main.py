@@ -61,6 +61,7 @@ class reversi:
         plus, plus_grid = check(self.grid, self.player, y, x)
         if (not empty(self.grid, y, x)) or (not inside(y, x)) or not plus:
             print('Please input a correct move')
+            exit()
             return
         self.grid[y][x] = self.player
         for ny in range(hw):
