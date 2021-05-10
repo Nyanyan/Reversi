@@ -10,6 +10,7 @@ def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
 DEF hw = 8
 DEF hw2 = hw * hw
+DEF min_max_depth = 8
 #DEF put_weight = 10.0
 #DEF confirm_weight = 10.0
 #DEF open_weight = 5.0
@@ -129,7 +130,6 @@ cdef double evaluate(int player, unsigned long long grid_me, unsigned long long 
     cdef int confirm_me = 0, confirm_op = 0
     cdef unsigned long long mobility, stones
     cdef int i, j, k
-    cdef bint flag
     for i in range(hw2):
         if 1 & (grid_me >> (hw2 - i - 1)):
             weight_me += weight[i]
@@ -140,26 +140,19 @@ cdef double evaluate(int player, unsigned long long grid_me, unsigned long long 
     mobility = check_mobility(grid_me, grid_op)
     for i in range(hw2):
         canput_all += 1 & (mobility >> i)
-    for i in range(hw):
-        confirm_me += check_confirm(grid_me, i)
-        confirm_op += check_confirm(grid_op, i)
     stones = grid_me | grid_op
     for i in range(0, hw, 2):
         if check_confirm(stones, i) != hw:
-            continue
-        for j in range(2):
-            flag = 1 & (grid_me >> confirm_lst[i + j][0])
-            for k in range(hw):
-                if 1 & (grid_me >> confirm_lst[i + j][k]) and not flag:
-                    confirm_me += 1
-                else:
-                    flag = False
-            flag = 1 & (grid_op >> confirm_lst[i + j][0])
-            for k in range(hw):
-                if 1 & (grid_op >> confirm_lst[i + j][k]) and not flag:
-                    confirm_op += 1
-                else:
-                    flag = False
+            for j in range(2):
+                confirm_me += check_confirm(grid_me, i + j)
+                confirm_op += check_confirm(grid_op, i + j)
+        else:
+            for j in range(2):
+                for k in range(hw):
+                    if 1 & (grid_me >> confirm_lst[i + j][k]):
+                        confirm_me += 1
+                    if 1 & (grid_op >> confirm_lst[i + j][k]):
+                        confirm_op += 1
     cdef double weight_proc, canput_proc, confirm_proc
     weight_proc = weight_me / me_cnt - weight_op / op_cnt
     canput_proc = <double>(canput_all - canput) / max(1, canput_all) - <double>canput / max(1, canput_all)
@@ -265,7 +258,7 @@ cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid
 
 cdef double alpha_beta(int player, unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
     global ansy, ansx, memo_cnt
-    if time() - strt > tl:
+    if time() - strt > tl and max_depth > min_max_depth:
         return -100000000.0
     cdef int y, x, i
     cdef double val
@@ -317,7 +310,7 @@ confirm_weight = float(input())
 while True:
     ansy = -1
     ansx = -1
-    max_depth = 8
+    max_depth = min_max_depth
     vacant_cnt = 0
     in_grid = [[-1 if int(i) == 2 else int(i) for i in input().split()] for _ in range(hw)]
     in_grid_me = 0
