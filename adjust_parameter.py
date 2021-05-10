@@ -157,15 +157,15 @@ def match(use_param):
 
 population = 10
 match_num = 10
-param_num = 3
+param_num = 6
 
 param = [[0.0 for _ in range(param_num)] for _ in range(population)]
 for i in range(population):
-    lst = [0, 1, 2]
-    shuffle(lst)
-    param[i][lst[0]] = random()
-    param[i][lst[1]] = random() * (1.0 - param[i][lst[0]])
-    param[i][lst[2]] = 1.0 - param[i][lst[0]] - param[i][lst[1]]
+    for lst in [[0, 1, 2], [3, 4, 5]]:
+        shuffle(lst)
+        param[i][lst[0]] = random()
+        param[i][lst[1]] = random() * (1.0 - param[i][lst[0]])
+        param[i][lst[2]] = 1.0 - param[i][lst[0]] - param[i][lst[1]]
 
 win_rate = [0 for _ in range(population)]
 parents = [-1, -1]
@@ -199,8 +199,11 @@ while True:
     if random() < 0.1:
         children[randint(0, 1)][randint(0, 2)] += random() * 0.2 - 0.1
     for i in range(2):
-        sm = sum(children[i])
-        for j in range(param_num):
+        sm = sum(children[i][:param_num // 2])
+        for j in range(param_num // 2):
+            children[i][j] /= sm
+        sm = sum(children[i][param_num // 2:])
+        for j in range(param_num // 2, param_num):
             children[i][j] /= sm
     individual = [[0, [param[parents[i]][j] for j in range(param_num)]] for i in range(2)]
     for child in range(2):

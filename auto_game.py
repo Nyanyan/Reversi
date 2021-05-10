@@ -174,8 +174,7 @@ def match(use_param):
     ai.kill()
     return rv.nums[ai_player] - rv.nums[1 - ai_player] if rv.nums[1 - ai_player] > 0 else hw * hw
 
-param_num = 3
-param_num = 3
+param_num = 6
 #        weight  canput  confirm
-param = [0.33333, 0.33333, 0.33333]
+param = [0.9791265252688036, 0.01073263019060556, 0.010140844540590823, 0.8752543421126578, 0.09433170270366928, 0.030413955183672875]
 print('match end score', match(param))

@@ -11,9 +11,6 @@ def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 DEF hw = 8
 DEF hw2 = hw * hw
 DEF min_max_depth = 8
-#DEF put_weight = 10.0
-#DEF confirm_weight = 10.0
-#DEF open_weight = 5.0
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
@@ -116,7 +113,6 @@ cdef int check_confirm(unsigned long long grid, int idx):
     return res
 
 cdef double evaluate(int player, unsigned long long grid_me, unsigned long long grid_op, int canput):
-    cdef double ratio = <double>(hw2 - vacant_cnt) / hw2
     cdef int canput_all = canput
     cdef double weight_me = 0.0, weight_op = 0.0
     cdef int me_cnt = 0, op_cnt = 0
@@ -162,7 +158,7 @@ cdef double evaluate(int player, unsigned long long grid_me, unsigned long long 
         canput_proc *= -1
         confirm_proc *= -1
     #debug(weight_proc, canput_proc, confirm_proc)
-    return weight_proc * weight_weight * (1.0 - ratio) + canput_proc * canput_weight * (1.0 - ratio) + confirm_proc * confirm_weight
+    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight
 
 cdef double end_game(int player, unsigned long long grid_me, unsigned long long grid_op):
     cdef int res = 0, i
@@ -268,18 +264,25 @@ cdef double alpha_beta(int player, unsigned long long grid_me, unsigned long lon
     else:
         return beta
 
+cdef double map_double(double s, double e, double x):
+    return s + (e - s) * x
+
 cdef int ai_player, vacant_cnt, y, x, ansy, ansx, outy, outx
 cdef double score, weight_weight, canput_weight, confirm_weight
+cdef double weight_weight_s, canput_weight_s, confirm_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e
 cdef int max_depth
-cdef double strt
+cdef double strt, ratio
 cdef unsigned long long in_grid_me, in_grid_op
 cdef double tl = 5.0
 
 ai_player = int(input())
 #debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
-weight_weight = float(input())
-canput_weight = float(input())
-confirm_weight = float(input())
+weight_weight_s = float(input())
+canput_weight_s = float(input())
+confirm_weight_s = float(input())
+weight_weight_e = float(input())
+canput_weight_e = float(input())
+confirm_weight_e = float(input())
 while True:
     ansy = -1
     ansx = -1
@@ -297,6 +300,10 @@ while True:
             in_grid_op += <int>(in_grid[y][x] == 1 - ai_player)
     strt = time()
     while time() - strt < tl:
+        ratio = <double>(hw2 - vacant_cnt + max_depth) / hw2
+        weight_weight = map_double(weight_weight_s, weight_weight_e, ratio)
+        canput_weight = map_double(canput_weight_s, canput_weight_e, ratio)
+        confirm_weight = map_double(confirm_weight_s, confirm_weight_e, ratio)
         score = alpha_beta(ai_player, in_grid_me, in_grid_op, max_depth, -100000000, 100000000, 0, 0)
         if score == -100000000.0:
             debug('depth', max_depth, 'timeout')
