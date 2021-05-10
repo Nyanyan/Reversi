@@ -1,7 +1,7 @@
 # reversi software
 import subprocess
 from time import sleep
-from random import random, randint
+from random import random, randint, shuffle
 
 hw = 8
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
@@ -155,11 +155,18 @@ def match(use_param):
         ai[i].kill()
     return rv.nums[0] - rv.nums[1] if rv.nums[1] > 0 else hw * hw
 
-population = 100
+population = 200
 match_num = 10
-param_num = 5
+param_num = 3
 
-param = [[random() * 200 - 100 for _ in range(param_num)] for _ in range(population)]
+param = [[0.0 for _ in range(param_num)] for _ in range(population)]
+for i in range(population):
+    lst = [0, 1, 2]
+    shuffle(lst)
+    param[i][lst[0]] = random()
+    param[i][lst[1]] = random() * (1.0 - param[i][lst[0]])
+    param[i][lst[2]] = 1.0 - param[i][lst[0]] - param[i][lst[1]]
+
 win_rate = [0 for _ in range(population)]
 parents = [-1, -1]
 children = [[-1 for _ in range(param_num)] for _ in range(2)]
@@ -189,8 +196,12 @@ while True:
         tmp = randint(0, 1)
         children[0][i] = param[parents[tmp]][i]
         children[1][i] = param[1 - parents[tmp]][i]
-    if random() < 0.05:
-        children[randint(0, 1)][randint(0, 2)] += random() * 50 - 25
+    if random() < 0.1:
+        children[randint(0, 1)][randint(0, 2)] += random() * 0.2 - 0.1
+    for i in range(2):
+        sm = sum(children[i])
+        for j in range(param_num):
+            children[i][j] /= sm
     individual = [[0, [param[parents[i]][j] for j in range(param_num)]] for i in range(2)]
     for child in range(2):
         individual.append([0, [children[child][i] for i in range(param_num)]])

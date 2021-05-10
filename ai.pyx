@@ -19,7 +19,7 @@ cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
 cdef bint inside(int y, int x):
     return 0 <= y < hw and 0 <= x < hw
 
-cdef int[hw][hw] weight = [
+cdef double[hw][hw] weight = [
     [100, -40, 20,  5,  5, 20, -40, 100],
     [-40, -80, -1, -1, -1, -1, -80, -40],
     [ 20,  -1,  5,  1,  1,  5,  -1,  20],
@@ -109,20 +109,20 @@ cdef bint check_canput(grid, int player, int y, int x):
     return False
 
 cdef double evaluate(int player, grid, int open_val, int canput):
-    cdef int is_ai_player = <int>(player == ai_player) * 2 - 1
-    cdef double res = -canput * is_ai_player
-    cdef double ratio = (hw2 - vacant_cnt) / hw2
-    cdef int y, x, confirm, ny, nx, dr, d, p, idx
+    cdef double ratio = vacant_cnt / hw2
+    cdef int y, x, ny, nx, dr, d, p, idx
     cdef bint flag
     cdef bint[hw][hw] marked = [[False for _ in range(hw)] for _ in range(hw)]
+    cdef int canput_all = canput
+    cdef double weight_all = 0.0, weight_sum = 0.0
+    cdef int confirm = 0, confirm_all = 0
     for y in range(hw):
         for x in range(hw):
             if grid[y][x] == -1:
-                res += <double>check_canput(grid, player, y, x) * (ratio * put_weight + put_seg) * is_ai_player
-                #res -= <double>check_canput(grid, 1 - player, y, x) * ratio * put_weight * is_ai_player
+                canput_all += <int>check_canput(grid, player, y, x)
             else:
-                res += weight[y][x] * (<int>(grid[y][x] == ai_player) * 2 - 1)
-    confirm = 0
+                weight_sum += weight[y][x] * (<int>(grid[y][x] == ai_player) * 2 - 1)
+                weight_all += weight[y][x]
     for p in range(2):
         for idx in range(8):
             y = confirm_lst[idx][0]
@@ -137,6 +137,7 @@ cdef double evaluate(int player, grid, int open_val, int canput):
                     break
                 marked[ny][nx] = True
                 confirm += <int>(p == ai_player) * 2 - 1
+                confirm_all += 1
         for idx in range(4):
             y = confirm_lst2[idx][0]
             x = confirm_lst2[idx][1]
@@ -153,9 +154,16 @@ cdef double evaluate(int player, grid, int open_val, int canput):
                     if grid[ny][nx] == p and not marked[ny][nx]:
                         marked[ny][nx] = True
                         confirm += <int>(p == ai_player) * 2 - 1
-    res += <double>confirm * confirm_weight
-    res += <double>open_val * (ratio * open_weight + open_seg)
-    return res
+                        confirm_all += 1
+    cdef double weight_proc, canput_proc, confirm_proc
+    weight_proc = weight_sum / max(1.0, weight_all)
+    if player == ai_player:
+        canput_proc = <double>(canput_all - canput) / max(1, canput_all)
+    else:
+        canput_proc = <double>canput / max(1, canput_all)
+    confirm_proc = <double>confirm / max(1, confirm_all)
+    #debug(weight_proc, canput_proc, confirm_proc)
+    return weight_proc * weight_weight * ratio + canput_proc * canput_weight * (1.0 - ratio) + confirm_proc * confirm_weight
 
 cdef double end_game(grid):
     cdef int y, x, res
@@ -165,7 +173,7 @@ cdef double end_game(grid):
             if grid[y][x] == -1:
                 continue
             res += <int>(grid[y][x] == ai_player) * 2 - 1
-    return res * 1000
+    return <double>res
 
 cdef bint isskip(grid):
     cdef int y, x
@@ -283,15 +291,13 @@ cdef double alpha_beta(int player, grid, int depth, double alpha, double beta, i
         return beta
 
 cdef int ai_player, vacant_cnt, y, x, ansy, ansx
-cdef double score, put_weight, confirm_weight, open_weight, put_seg, open_seg
+cdef double score, weight_weight, canput_weight, confirm_weight
 
 ai_player = int(input())
 #debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
-put_weight = float(input())
+weight_weight = float(input())
+canput_weight = float(input())
 confirm_weight = float(input())
-open_weight = float(input())
-put_seg = float(input())
-open_seg = float(input())
 #put_weight, confirm_weight, open_weight, put_seg, open_seg = 
 while True:
     ansy = -1

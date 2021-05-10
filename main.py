@@ -126,9 +126,9 @@ ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdo
 stdin = str(ai_player) + '\n'
 ai.stdin.write(stdin.encode('utf-8'))
 ai.stdin.flush()
-param_num = 5
-#        put_weight, confirm_weight, open_weight, put_seg, open_seg
-param = [44.758727211251895, 33.81178251680102, -23.375932674269684, 24.51048214089346, 1.5893550900205184]
+param_num = 3
+#        weight  canput  confirm
+param = [0.33333, 0.33333, 0.33333]
 for j in range(param_num):
     stdin = str(param[j]) + '\n'
     ai.stdin.write(stdin.encode('utf-8'))
