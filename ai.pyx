@@ -1,8 +1,12 @@
+# distutils: language=c++
 #cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 
 # Reversi AI Cython version
 
 from __future__ import print_function
+from libcpp.vector cimport vector
+from libcpp.algorithm cimport sort as csort
+from libcpp.map cimport map as cmap
 import sys
 from random import random, shuffle
 from time import time
@@ -227,7 +231,6 @@ cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid
 
 
 cdef double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
-    global memo_hit
     if max_depth > min_max_depth and time() - strt > tl:
         return -100000000.0
     cdef int y, x, i
@@ -238,32 +241,28 @@ cdef double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, i
         return evaluate(grid_me, grid_op, canput)
     cdef int n_canput = 0
     cdef unsigned long long mobility = check_mobility(grid_me, grid_op)
-    cdef unsigned long long n_grid_me, n_grid_op
-    cdef list lst = []
+    cdef unsigned long long n_grid_me, n_grid_op, priority_val
+    cdef vector[vector[unsigned long long]] lst
     for i in range(hw2):
         if 1 & (mobility >> i):
             n_canput += 1
             n_grid_me = move(grid_me, grid_op, i)
             n_grid_op = (n_grid_me ^ grid_op) & grid_op
-            if n_grid_me in memo:
-                val = memo[n_grid_me]
-                memo_hit += 1
-            else:
-                val = 0.0
-            lst.append([val, n_grid_me, n_grid_op])
+            priority_val = memo[n_grid_me]
+            lst.push_back([priority_val, n_grid_me, n_grid_op])
     if n_canput == 0:
         val = -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0)
         if abs(val) == 100000000.0:
             return -100000000.0
         return max(alpha, val)
-    lst.sort(reverse=True)
-    for i in range(n_canput):
+    csort(lst.begin(), lst.end())
+    for i in reversed(range(n_canput)):
         n_grid_me = lst[i][1]
         n_grid_op = lst[i][2]
         val = -nega_alpha(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput)
         if abs(val) == 100000000.0:
             return -100000000.0
-        memo[n_grid_me] = val
+        memo[n_grid_me] = <unsigned long long>((val + 65.0) * 100000000.0)
         alpha = max(alpha, val)
         if alpha >= beta:
             return alpha
@@ -294,11 +293,10 @@ cdef int ai_player
 cdef double weight_weight, canput_weight, confirm_weight
 cdef int max_depth
 cdef double strt, ratio
-cdef dict memo = {}
-cdef int memo_hit
+cdef cmap[unsigned long long, unsigned long long] memo
 
 cdef void main():
-    global ai_player, weight_weight, canput_weight, confirm_weight, max_depth, strt, ratio, memo, memo_hit
+    global ai_player, weight_weight, canput_weight, confirm_weight, max_depth, strt, ratio, memo
     cdef int vacant_cnt, y, x, ansy, ansx, outy, outx, i, canput
     cdef double score, max_score
     cdef double weight_weight_s, canput_weight_s, confirm_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e
@@ -314,7 +312,6 @@ cdef void main():
     confirm_weight_e = float(input())
     debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
     while True:
-        memo_hit = 0
         outy = -1
         outx = -1
         max_depth = min_max_depth
@@ -361,7 +358,7 @@ cdef void main():
                 break
             outy = ansy
             outx = ansx
-            debug('depth', max_depth, 'next', outy, outx, 'score', max_score, time() - strt, 'sec', 'memo hit', memo_hit)
+            debug('depth', max_depth, 'next', outy, outx, 'score', max_score, time() - strt)
             if abs(score) >= 1.0:
                 debug('game end')
                 break
