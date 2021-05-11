@@ -10,7 +10,8 @@ def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
 DEF hw = 8
 DEF hw2 = hw * hw
-DEF min_max_depth = 8
+DEF min_max_depth = 9
+DEF tl = 5.0
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
@@ -18,35 +19,35 @@ cdef bint inside(int y, int x):
     return 0 <= y < hw and 0 <= x < hw
 
 cdef double[hw2] weight = [
-    2.262372348782404, 0.5027494108405341, 1.2568735271013354, 1.0683424980361351, 1.0683424980361351, 1.2568735271013354, 0.5027494108405341, 2.262372348782404,
-    0.5027494108405341, 0.0, 0.992930086410055, 0.992930086410055, 0.992930086410055, 0.992930086410055, 0.0, 0.5027494108405341,
-    1.2568735271013354, 0.992930086410055, 1.0683424980361351, 1.0180675569520816, 1.0180675569520816, 1.0683424980361351, 0.992930086410055, 1.2568735271013354,
-    1.0683424980361351, 0.992930086410055, 1.0180675569520816, 1.0054988216810683, 1.0054988216810683, 1.0180675569520816, 0.992930086410055, 1.0683424980361351,
-    1.0683424980361351, 0.992930086410055, 1.0180675569520816, 1.0054988216810683, 1.0054988216810683, 1.0180675569520816, 0.992930086410055, 1.0683424980361351,
-    1.2568735271013354, 0.992930086410055, 1.0683424980361351, 1.0180675569520816, 1.0180675569520816, 1.0683424980361351, 0.992930086410055, 1.2568735271013354,
-    0.5027494108405341, 0.0, 0.992930086410055, 0.992930086410055, 0.992930086410055, 0.992930086410055, 0.0, 0.5027494108405341,
-    2.262372348782404, 0.5027494108405341, 1.2568735271013354, 1.0683424980361351, 1.0683424980361351, 1.2568735271013354, 0.5027494108405341, 2.262372348782404
+    3.2323232323232323, 0.23088023088023088, 1.3852813852813852, 1.0389610389610389, 1.0389610389610389, 1.3852813852813852, 0.23088023088023088, 3.2323232323232323,
+    0.23088023088023088, 0.0, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.0, 0.23088023088023088,
+    1.3852813852813852, 0.9004329004329005, 1.0389610389610389, 0.9466089466089466, 0.9466089466089466, 1.0389610389610389, 0.9004329004329005, 1.3852813852813852,
+    1.0389610389610389, 0.9004329004329005, 0.9466089466089466, 0.9235209235209235, 0.9235209235209235, 0.9466089466089466, 0.9004329004329005, 1.0389610389610389,
+    1.0389610389610389, 0.9004329004329005, 0.9466089466089466, 0.9235209235209235, 0.9235209235209235, 0.9466089466089466, 0.9004329004329005, 1.0389610389610389,
+    1.3852813852813852, 0.9004329004329005, 1.0389610389610389, 0.9466089466089466, 0.9466089466089466, 1.0389610389610389, 0.9004329004329005, 1.3852813852813852,
+    0.23088023088023088, 0.0, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.0, 0.23088023088023088,
+    3.2323232323232323, 0.23088023088023088, 1.3852813852813852, 1.0389610389610389, 1.0389610389610389, 1.3852813852813852, 0.23088023088023088, 3.2323232323232323
 ]
 
 '''
-cdef double[hw][hw] weight = [
-    [100, -40, 20,  5,  5, 20, -40, 100],
-    [-40, -80, -1, -1, -1, -1, -80, -40],
-    [ 20,  -1,  5,  1,  1,  5,  -1,  20],
-    [  5,  -1,  1,  0,  0,  1,  -1,   5],
-    [  5,  -1,  1,  0,  0,  1,  -1,   5],
-    [ 20,  -1,  5,  1,  1,  5,  -1,  20],
-    [-40, -80, -1, -1, -1, -1, -80, -40],
-    [100, -40, 20,  5,  5, 20, -40, 100]
+weight = [
+    100, -30, 20,  5,  5, 20, -30, 100,
+    -30, -40, -1, -1, -1, -1, -40, -30,
+     20,  -1,  5,  1,  1,  5,  -1,  20,
+      5,  -1,  1,  0,  0,  1,  -1,   5,
+      5,  -1,  1,  0,  0,  1,  -1,   5,
+     20,  -1,  5,  1,  1,  5,  -1,  20,
+    -30, -40, -1, -1, -1, -1, -40, -30,
+    100, -30, 20,  5,  5, 20, -30, 100
 ]
-weight_sm = 0.0
-for yy in range(hw):
-    for xx in range(hw):
-        weight_sm += weight[yy][xx] + 80.0
+min_weight = min(weight)
+weight = [weight[i] - min_weight for i in range(hw2)]
+weight_sm = sum(weight) / hw2
 print(weight_sm)
-weight = [[(weight[yy][xx] + 80.0) / weight_sm * 64.0 for xx in range(hw)] for yy in range(hw)]
-for i in weight:
-    print(i)
+weight = [weight[i] / weight_sm for i in range(hw2)]
+for i in range(0, hw2, 8):
+    print(weight[i:i + 8])
+exit()
 '''
 cdef int[8][8] confirm_lst = [
     [63, 62, 61, 60, 59, 58, 57, 56],
@@ -84,23 +85,23 @@ cdef unsigned long long check_mobility(unsigned long long grid_me, unsigned long
     res |= blank & (t >> hw)
 
     w = grid_op & 0x007e7e7e7e7e7e00
-    t = w & (grid_me << hw - 1)
+    t = w & (grid_me << (hw - 1))
     for i in range(hw - 3):
-        t |= w & (t << hw - 1)
-    res |= blank & (t << hw - 1)
-    t = w & (grid_me >> hw - 1)
+        t |= w & (t << (hw - 1))
+    res |= blank & (t << (hw - 1))
+    t = w & (grid_me >> (hw - 1))
     for i in range(hw - 3):
-        t |= w & (t >> hw - 1)
-    res |= blank & (t >> hw - 1)
+        t |= w & (t >> (hw - 1))
+    res |= blank & (t >> (hw - 1))
 
-    t = w & (grid_me << hw + 1)
+    t = w & (grid_me << (hw + 1))
     for i in range(hw - 3):
-        t |= w & (t << hw + 1)
-    res |= blank & (t << hw + 1)
-    t = w & (grid_me >> hw + 1)
+        t |= w & (t << (hw + 1))
+    res |= blank & (t << (hw + 1))
+    t = w & (grid_me >> (hw + 1))
     for i in range(hw - 3):
-        t |= w & (t >> hw + 1)
-    res |= blank & (t >> hw + 1)
+        t |= w & (t >> (hw + 1))
+    res |= blank & (t >> (hw + 1))
     return res
 
 cdef int check_confirm(unsigned long long grid, int idx):
@@ -112,7 +113,7 @@ cdef int check_confirm(unsigned long long grid, int idx):
             break
     return res
 
-cdef double evaluate(int player, unsigned long long grid_me, unsigned long long grid_op, int canput):
+cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canput):
     cdef int canput_all = canput
     cdef double weight_me = 0.0, weight_op = 0.0
     cdef int me_cnt = 0, op_cnt = 0
@@ -141,31 +142,27 @@ cdef double evaluate(int player, unsigned long long grid_me, unsigned long long 
             for j in range(2):
                 confirm_me += max(0, check_confirm(grid_me, i + j) - 1)
                 confirm_op += max(0, check_confirm(grid_op, i + j) - 1)
-    confirm_me += 1 & (grid_me >> 0)
-    confirm_me += 1 & (grid_me >> hw - 1)
-    confirm_me += 1 & (grid_me >> hw2 - hw)
-    confirm_me += 1 & (grid_me >> hw2 - 1)
-    confirm_op += 1 & (grid_op >> 0)
-    confirm_op += 1 & (grid_op >> hw - 1)
-    confirm_op += 1 & (grid_op >> hw2 - hw)
-    confirm_op += 1 & (grid_op >> hw2 - 1)
+    confirm_me += 1 & grid_me
+    confirm_me += 1 & (grid_me >> (hw - 1))
+    confirm_me += 1 & (grid_me >> (hw2 - hw))
+    confirm_me += 1 & (grid_me >> (hw2 - 1))
+    confirm_op += 1 & grid_op
+    confirm_op += 1 & (grid_op >> (hw - 1))
+    confirm_op += 1 & (grid_op >> (hw2 - hw))
+    confirm_op += 1 & (grid_op >> (hw2 - 1))
     cdef double weight_proc, canput_proc, confirm_proc
     weight_proc = weight_me / me_cnt - weight_op / op_cnt
     canput_proc = <double>(canput_all - canput) / max(1, canput_all) - <double>canput / max(1, canput_all)
     confirm_proc = <double>confirm_me / max(1, confirm_me + confirm_op) - <double>confirm_op / max(1, confirm_me + confirm_op)
-    if player != ai_player:
-        weight_proc *= -1
-        canput_proc *= -1
-        confirm_proc *= -1
-    #debug(weight_proc, canput_proc, confirm_proc)
     return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight
 
-cdef double end_game(int player, unsigned long long grid_me, unsigned long long grid_op):
+cdef double end_game(unsigned long long grid_me, unsigned long long grid_op):
+    #output(grid_me, grid_op, debug)
     cdef int res = 0, i
     for i in range(hw2):
         res += 1 & (grid_me >> i)
         res -= 1 & (grid_op >> i)
-    return <double>res * ((player == ai_player) * 2 - 1)
+    return <double>res
 
 def output(grid_me, grid_op, func):
     grid = [[-1 for _ in range(hw)] for _ in range(hw)]
@@ -206,9 +203,10 @@ cdef unsigned long long transfer(unsigned long long put, int k):
     return 0
 
 cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place):
-    cdef unsigned long long put, rev1 = 0, rev2, mask
+    cdef unsigned long long put, rev1, rev2, mask
     cdef int i
     put = <unsigned long long>1 << place
+    rev1 = 0
     for i in range(hw):
         rev2 = 0
         mask = transfer(put, i)
@@ -216,56 +214,47 @@ cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid
             rev2 |= mask
             mask = transfer(mask, i)
         if (mask & grid_me) != 0:
-            rev1 = rev2
+            rev1 |= rev2
     return grid_me ^ (put | rev1)
 
 
-cdef double alpha_beta(int player, unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
+cdef double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
     global ansy, ansx, memo_cnt
     if max_depth > min_max_depth and time() - strt > tl:
         return -100000000.0
     cdef int y, x, i
     cdef double val
     if skip_cnt == 2:
-        return end_game(player, grid_me, grid_op)
+        return end_game(grid_me, grid_op)
     elif depth == 0:
-        return evaluate(player, grid_me, grid_op, canput)
+        return evaluate(grid_me, grid_op, canput)
     cdef list lst = []
     cdef int n_canput = 0
     cdef unsigned long long mobility = check_mobility(grid_me, grid_op)
     for i in range(hw2):
         n_canput += 1 & (mobility >> i)
     if n_canput == 0:
-        if player == ai_player:
-            return max(alpha, alpha_beta(player ^ 1, grid_op, grid_me, depth, alpha, beta, skip_cnt + 1, 0))
-        else:
-            return min(beta, alpha_beta(player ^ 1, grid_op, grid_me, depth, alpha, beta, skip_cnt + 1, 0))
+        val = -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0)
+        if abs(val) == 100000000.0:
+            return -100000000.0
+        return max(alpha, val)
     cdef unsigned long long n_grid_me, n_grid_op
     for i in range(hw2):
         if (1 & (mobility >> i)) == 0:
             continue
         n_grid_me = move(grid_me, grid_op, i)
         n_grid_op = (n_grid_me ^ grid_op) & grid_op
-        if player == ai_player:
-            val = alpha_beta(player ^ 1, n_grid_op, n_grid_me, depth - 1, alpha, beta, 0, n_canput)
-            if val == -100000000.0:
-                return -100000000.0
-            if val > alpha:
-                alpha = val
-                if depth == max_depth:
-                    ansy = (hw2 - i - 1) // hw
-                    ansx = (hw2 - i - 1) % hw
-        else:
-            val = alpha_beta(player ^ 1, n_grid_op, n_grid_me, depth - 1, alpha, beta, 0, n_canput)
-            if val == -100000000.0:
-                return -100000000.0
-            beta = min(beta, val)
+        val = -nega_alpha(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput)
+        if abs(val) == 100000000.0:
+            return -100000000.0
+        if val > alpha:
+            alpha = val
+            if depth == max_depth:
+                ansy = (hw2 - i - 1) // hw
+                ansx = (hw2 - i - 1) % hw
         if alpha >= beta:
-            break
-    if player == ai_player:
-        return alpha
-    else:
-        return beta
+            return alpha
+    return alpha
 
 cdef double map_double(double s, double e, double x):
     return s + (e - s) * x
@@ -276,7 +265,6 @@ cdef double weight_weight_s, canput_weight_s, confirm_weight_s, weight_weight_e,
 cdef int max_depth
 cdef double strt, ratio
 cdef unsigned long long in_grid_me, in_grid_op
-cdef double tl = 5.0
 
 ai_player = int(input())
 #debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
@@ -307,8 +295,8 @@ while True:
         weight_weight = map_double(weight_weight_s, weight_weight_e, ratio)
         canput_weight = map_double(canput_weight_s, canput_weight_e, ratio)
         confirm_weight = map_double(confirm_weight_s, confirm_weight_e, ratio)
-        score = alpha_beta(ai_player, in_grid_me, in_grid_op, max_depth, -100000000, 100000000, 0, 0)
-        if score == -100000000.0:
+        score = nega_alpha(in_grid_me, in_grid_op, max_depth, -100000000, 100000000, 0, 0)
+        if abs(score) == 100000000.0:
             debug('depth', max_depth, 'timeout')
             break
         debug('depth', max_depth, 'score', score, time() - strt, 'sec')
