@@ -129,7 +129,7 @@ ai.stdin.write(stdin.encode('utf-8'))
 ai.stdin.flush()
 param_num = 6
 #        weight  canput  confirm
-param = [0.8640006588380739, 0.013905227251788721, 0.12209411391013741, 0.8002788183876407, 0.0782932225419902, 0.12142795907036918]
+param = [0.2672372538812086, 0.29215254984703876, 0.4406101962717526, 0.07938086187048915, 0.29975313369335055, 0.6208660044361604]
 for j in range(param_num):
     stdin = str(param[j]) + '\n'
     ai.stdin.write(stdin.encode('utf-8'))
