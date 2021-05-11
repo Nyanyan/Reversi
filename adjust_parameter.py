@@ -153,10 +153,10 @@ def match(use_param):
     winner = rv.judge()
     for i in range(2):
         ai[i].kill()
-    return rv.nums[0] - rv.nums[1] if rv.nums[1] > 0 else hw * hw
+    return rv.nums[0] - rv.nums[1] if rv.nums[1] > 0 and rv.nums[0] > 0 else hw * hw if rv.nums[1] == 0 else -hw * hw
 
-population = 10
-match_num = 10
+population = 300
+match_num = 20
 param_num = 6
 
 param = [[0.0 for _ in range(param_num)] for _ in range(population)]

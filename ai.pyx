@@ -236,7 +236,10 @@ cdef double alpha_beta(int player, unsigned long long grid_me, unsigned long lon
     for i in range(hw2):
         n_canput += 1 & (mobility >> i)
     if n_canput == 0:
-        return max(alpha, alpha_beta(player ^ 1, grid_op, grid_me, depth, alpha, beta, skip_cnt + 1, 0))
+        if player == ai_player:
+            return max(alpha, alpha_beta(player ^ 1, grid_op, grid_me, depth, alpha, beta, skip_cnt + 1, 0))
+        else:
+            return min(beta, alpha_beta(player ^ 1, grid_op, grid_me, depth, alpha, beta, skip_cnt + 1, 0))
     cdef unsigned long long n_grid_me, n_grid_op
     for i in range(hw2):
         if (1 & (mobility >> i)) == 0:
@@ -314,9 +317,9 @@ while True:
         if abs(score) >= 1.0:
             debug('game end')
             break
-        max_depth += 1
         if vacant_cnt < max_depth:
             debug('game end')
             break
+        max_depth += 1
     print(outy, outx)
     sys.stdout.flush()
