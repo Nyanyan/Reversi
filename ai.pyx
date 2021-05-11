@@ -10,7 +10,7 @@ def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
 DEF hw = 8
 DEF hw2 = hw * hw
-DEF min_max_depth = 9
+DEF min_max_depth = 8
 DEF tl = 5.0
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]

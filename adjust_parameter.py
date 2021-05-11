@@ -155,8 +155,8 @@ def match(use_param):
         ai[i].kill()
     return rv.nums[0] - rv.nums[1] if rv.nums[1] > 0 and rv.nums[0] > 0 else hw * hw if rv.nums[1] == 0 else -hw * hw
 
-population = 300
-match_num = 20
+population = 10
+match_num = 10
 param_num = 6
 
 param = [[0.0 for _ in range(param_num)] for _ in range(population)]
