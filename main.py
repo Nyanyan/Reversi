@@ -121,7 +121,7 @@ class reversi:
             print('Draw!', self.nums[0], '-', self.nums[1])
 
 ai_mode = True
-ai_player = 1
+ai_player = 0
 
 ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 stdin = str(ai_player) + '\n'

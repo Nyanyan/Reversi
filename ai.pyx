@@ -11,7 +11,7 @@ def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 DEF hw = 8
 DEF hw2 = hw * hw
 DEF min_max_depth = 6
-DEF tl = 5.0
+DEF tl = 10.0
 DEF window = 0.00001
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
@@ -50,7 +50,7 @@ for i in range(0, hw2, 8):
     print(weight[i:i + 8])
 exit()
 '''
-cdef int[8][8] confirm_lst = [
+cdef int[hw][hw] confirm_lst = [
     [63, 62, 61, 60, 59, 58, 57, 56],
     [56, 57, 58, 59, 60, 61, 62, 63],
     [63, 55, 47, 39, 31, 23, 15,  7],
@@ -62,48 +62,56 @@ cdef int[8][8] confirm_lst = [
 ]
 
 cdef unsigned long long check_mobility(unsigned long long grid_me, unsigned long long grid_op):
-    cdef unsigned long long w, t, res, blank
+    cdef unsigned long long res, t, u, v, w
+    res = 0
+    # 左だけ高速に演算できる
+    t = 0b1111111100000000111111110000000011111111000000001111111100000000
+    u = grid_op & t
+    v = (grid_me & t) << 1
+    w = ~(v | grid_op)
+    res |= w & (u + v) & t
+    t = 0b0000000011111111000000001111111100000000111111110000000011111111
+    u = grid_op & t
+    v = (grid_me & t) << 1
+    w = ~(v | grid_op)
+    res |= w & (u + v) & t
+
     cdef int i
-    blank = ~(grid_me | grid_op)
     w = grid_op & 0x7e7e7e7e7e7e7e7e
-    t = w & (grid_me << 1)
-    for i in range(hw - 3):
-        t |= w & (t << 1)
-    res = blank & (t << 1)
     t = w & (grid_me >> 1)
     for i in range(hw - 3):
         t |= w & (t >> 1)
-    res |= blank & (t >> 1)
+    res |= (t >> 1)
 
     w = grid_op & 0x00FFFFFFFFFFFF00
     t = w & (grid_me << hw)
     for i in range(hw - 3):
         t |= w & (t << hw)
-    res |= blank & (t << hw)
+    res |= (t << hw)
     t = w & (grid_me >> hw)
     for i in range(hw - 3):
         t |= w & (t >> hw)
-    res |= blank & (t >> hw)
+    res |= (t >> hw)
 
     w = grid_op & 0x007e7e7e7e7e7e00
     t = w & (grid_me << (hw - 1))
     for i in range(hw - 3):
         t |= w & (t << (hw - 1))
-    res |= blank & (t << (hw - 1))
+    res |= (t << (hw - 1))
     t = w & (grid_me >> (hw - 1))
     for i in range(hw - 3):
         t |= w & (t >> (hw - 1))
-    res |= blank & (t >> (hw - 1))
+    res |= (t >> (hw - 1))
 
     t = w & (grid_me << (hw + 1))
     for i in range(hw - 3):
         t |= w & (t << (hw + 1))
-    res |= blank & (t << (hw + 1))
+    res |= (t << (hw + 1))
     t = w & (grid_me >> (hw + 1))
     for i in range(hw - 3):
         t |= w & (t >> (hw + 1))
-    res |= blank & (t >> (hw + 1))
-    return res
+    res |= (t >> (hw + 1))
+    return ~(grid_me | grid_op) & res
 
 cdef int check_confirm(unsigned long long grid, int idx):
     cdef int i, res = 0
@@ -158,7 +166,6 @@ cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int
     return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight
 
 cdef double end_game(unsigned long long grid_me, unsigned long long grid_op):
-    #output(grid_me, grid_op, debug)
     cdef int res = 0, i
     for i in range(hw2):
         res += 1 & (grid_me >> i)
