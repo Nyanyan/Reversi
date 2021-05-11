@@ -208,29 +208,21 @@ while True:
     individual = [[0, [param[parents[i]][j] for j in range(param_num)]] for i in range(2)]
     for child in range(2):
         individual.append([0, [children[child][i] for i in range(param_num)]])
-    for child1 in range(4):
+    for child in range(4):
         for i in range(param_num):
-            use_param[0][i] = individual[child1][1][i]
-        for child2 in range(child1 + 1, 4):
-            for i in range(param_num):
-                use_param[1][i] = individual[child2][1][i]
-            val = match(use_param)
-            individual[child1][0] += val
-            individual[child2][0] -= val
+            use_param[0][i] = individual[child][1][i]
+        for _ in range(match_num):
+            op = randint(0, population - 1)
+            for j in range(param_num):
+                use_param[1][j] = param[op][j]
+            individual[child][0] += match(use_param)
+        individual[child][0] /= match_num
     individual.sort(reverse=True)
     #print([i[0] for i in individual])
     for i in range(2):
         for j in range(param_num):
             param[parents[i]][j] = individual[i][1][j]
-        win_rate[parents[i]] = 0
-        for j in range(param_num):
-            use_param[0][j] = param[parents[i]][j]
-        for _ in range(match_num):
-            op = randint(0, population - 1)
-            for j in range(param_num):
-                use_param[1][j] = param[op][j]
-            win_rate[parents[i]] += match(use_param)
-        win_rate[parents[i]] /= match_num
+        win_rate[parents[i]] = individual[i][0]
     cnt += 1
     t += 1
     #if t & (1 << 1):
