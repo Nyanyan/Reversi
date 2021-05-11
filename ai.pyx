@@ -10,8 +10,9 @@ def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
 
 DEF hw = 8
 DEF hw2 = hw * hw
-DEF min_max_depth = 8
+DEF min_max_depth = 6
 DEF tl = 5.0
+DEF window = 0.00001
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
 cdef int[8] dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
@@ -219,7 +220,7 @@ cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid
 
 
 cdef double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
-    global ansy, ansx, memo_cnt
+    global memo_hit
     if max_depth > min_max_depth and time() - strt > tl:
         return -100000000.0
     cdef int y, x, i
@@ -228,86 +229,140 @@ cdef double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, i
         return end_game(grid_me, grid_op)
     elif depth == 0:
         return evaluate(grid_me, grid_op, canput)
-    cdef list lst = []
     cdef int n_canput = 0
     cdef unsigned long long mobility = check_mobility(grid_me, grid_op)
+    cdef unsigned long long n_grid_me, n_grid_op
+    cdef list lst = []
     for i in range(hw2):
-        n_canput += 1 & (mobility >> i)
+        if 1 & (mobility >> i):
+            n_canput += 1
+            n_grid_me = move(grid_me, grid_op, i)
+            n_grid_op = (n_grid_me ^ grid_op) & grid_op
+            if n_grid_me in memo:
+                val = memo[n_grid_me]
+                memo_hit += 1
+            else:
+                val = 0.0
+            lst.append([val, n_grid_me, n_grid_op])
     if n_canput == 0:
         val = -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0)
         if abs(val) == 100000000.0:
             return -100000000.0
         return max(alpha, val)
-    cdef unsigned long long n_grid_me, n_grid_op
-    for i in range(hw2):
-        if (1 & (mobility >> i)) == 0:
-            continue
-        n_grid_me = move(grid_me, grid_op, i)
-        n_grid_op = (n_grid_me ^ grid_op) & grid_op
+    lst.sort(reverse=True)
+    for i in range(n_canput):
+        n_grid_me = lst[i][1]
+        n_grid_op = lst[i][2]
         val = -nega_alpha(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput)
         if abs(val) == 100000000.0:
             return -100000000.0
-        if val > alpha:
-            alpha = val
-            if depth == max_depth:
-                ansy = (hw2 - i - 1) // hw
-                ansx = (hw2 - i - 1) % hw
+        memo[n_grid_me] = val
+        alpha = max(alpha, val)
         if alpha >= beta:
             return alpha
     return alpha
 
+'''
+cdef double mtd_f(unsigned long long grid_me, unsigned long long grid_op, int depth, int canput):
+    cdef double g, upper_bound, lower_bounds, beta
+    g = 0.0
+    upper_bound = <double>hw2 + 1.0
+    lower_bound = -(<double>hw2 + 1.0)
+    while upper_bound - lower_bound > window * 2.0:
+        beta = max(lower_bound + window, g)
+        g = -nega_alpha(grid_me, grid_op, depth, -beta, -beta + window, 0, canput)
+        if abs(g) == 100000000.0:
+            return -100000000.0
+        if g < beta:
+            upper_bound = g
+        else:
+            lower_bound = g
+    return g
+'''
+
 cdef double map_double(double s, double e, double x):
     return s + (e - s) * x
 
-cdef int ai_player, vacant_cnt, y, x, ansy, ansx, outy, outx
-cdef double score, weight_weight, canput_weight, confirm_weight
-cdef double weight_weight_s, canput_weight_s, confirm_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e
+cdef int ai_player
+cdef double weight_weight, canput_weight, confirm_weight
 cdef int max_depth
 cdef double strt, ratio
-cdef unsigned long long in_grid_me, in_grid_op
+cdef dict memo = {}
+cdef int memo_hit
 
-ai_player = int(input())
-#debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
-weight_weight_s = float(input())
-canput_weight_s = float(input())
-confirm_weight_s = float(input())
-weight_weight_e = float(input())
-canput_weight_e = float(input())
-confirm_weight_e = float(input())
-while True:
-    ansy = -1
-    ansx = -1
-    max_depth = min_max_depth
-    vacant_cnt = 0
-    in_grid = [[-1 if int(i) == 2 else int(i) for i in input().split()] for _ in range(hw)]
-    in_grid_me = 0
-    in_grid_op = 0
-    for y in range(hw):
-        for x in range(hw):
-            vacant_cnt += <int>(in_grid[y][x] == -1)
-            in_grid_me <<= 1
-            in_grid_op <<= 1
-            in_grid_me += <int>(in_grid[y][x] == ai_player)
-            in_grid_op += <int>(in_grid[y][x] == 1 - ai_player)
-    strt = time()
-    while time() - strt < tl:
-        ratio = <double>(hw2 - vacant_cnt + max_depth) / hw2
-        weight_weight = map_double(weight_weight_s, weight_weight_e, ratio)
-        canput_weight = map_double(canput_weight_s, canput_weight_e, ratio)
-        confirm_weight = map_double(confirm_weight_s, confirm_weight_e, ratio)
-        score = nega_alpha(in_grid_me, in_grid_op, max_depth, -100000000, 100000000, 0, 0)
-        if abs(score) == 100000000.0:
-            debug('depth', max_depth, 'timeout')
-            break
-        debug('depth', max_depth, 'score', score, time() - strt, 'sec')
-        outy = ansy
-        outx = ansx
-        if abs(score) >= 1.0:
-            debug('game end')
-            break
-        if vacant_cnt < max_depth:
-            debug('game end')
-            break
-        max_depth += 1
-    print(outy, outx)
-    sys.stdout.flush()
+cdef void main():
+    global ai_player, weight_weight, canput_weight, confirm_weight, max_depth, strt, ratio, memo, memo_hit
+    cdef int vacant_cnt, y, x, ansy, ansx, outy, outx, i, canput
+    cdef double score, max_score
+    cdef double weight_weight_s, canput_weight_s, confirm_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e
+    cdef unsigned long long in_grid_me, in_grid_op, in_mobility, grid_me, grid_op
+    cdef list in_grid
+    cdef str elem
+    ai_player = int(input())
+    weight_weight_s = float(input())
+    canput_weight_s = float(input())
+    confirm_weight_s = float(input())
+    weight_weight_e = float(input())
+    canput_weight_e = float(input())
+    confirm_weight_e = float(input())
+    debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
+    while True:
+        memo_hit = 0
+        outy = -1
+        outx = -1
+        max_depth = min_max_depth
+        vacant_cnt = 0
+        in_grid = []
+        in_grid = [[int(elem) for elem in input().split()] for _ in range(hw)]
+        in_grid_me = 0
+        in_grid_op = 0
+        in_mobility = 0
+        canput = 0
+        for y in range(hw):
+            for x in range(hw):
+                vacant_cnt += <int>(in_grid[y][x] == -1 or in_grid[y][x] == 2)
+                in_mobility <<= 1
+                in_mobility += <int>(in_grid[y][x] == 2)
+                canput += <int>(in_grid[y][x] == 2)
+                in_grid_me <<= 1
+                in_grid_op <<= 1
+                in_grid_me += <int>(in_grid[y][x] == ai_player)
+                in_grid_op += <int>(in_grid[y][x] == ai_player ^ 1)
+        strt = time()
+        while time() - strt < tl:
+            ratio = <double>(hw2 - vacant_cnt + max_depth) / hw2
+            weight_weight = map_double(weight_weight_s, weight_weight_e, ratio)
+            canput_weight = map_double(canput_weight_s, canput_weight_e, ratio)
+            confirm_weight = map_double(confirm_weight_s, confirm_weight_e, ratio)
+            max_score = -(<double>hw2 + 1.0)
+            for i in range(hw2):
+                if (1 & (in_mobility >> i)) == 0:
+                    continue
+                grid_me = move(in_grid_me, in_grid_op, i)
+                grid_op = (grid_me ^ in_grid_op) & in_grid_op
+                score = -nega_alpha(grid_op, grid_me, max_depth - 1, -100000000, -max_score, 0, canput)
+                #score = mtd_f(grid_op, grid_me, max_depth - 1, canput)
+                if abs(score) == 100000000.0:
+                    max_score = -100000000.0
+                    break
+                if score > max_score:
+                    max_score = score
+                    ansy = (hw2 - i - 1) // hw
+                    ansx = (hw2 - i - 1) % hw
+            if max_score == -100000000.0:
+                debug('depth', max_depth, 'timeout')
+                break
+            outy = ansy
+            outx = ansx
+            debug('depth', max_depth, 'next', outy, outx, 'score', max_score, time() - strt, 'sec', 'memo hit', memo_hit)
+            if abs(score) >= 1.0:
+                debug('game end')
+                break
+            if vacant_cnt < max_depth:
+                debug('game end')
+                break
+            max_depth += 1
+        print(outy, outx)
+        sys.stdout.flush()
+
+main()
