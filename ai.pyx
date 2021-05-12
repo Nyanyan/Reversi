@@ -64,6 +64,12 @@ cdef int[hw][hw] confirm_lst = [
     [56, 48, 40 , 32, 24, 16, 8,  0],
     [ 0,  8, 16, 24, 32, 40, 48, 56]
 ]
+cdef unsigned long long[4] confirm_num = [
+    0b0000000000000000000000000000000000000000000000000000000011111111,
+    0b0000000100000001000000010000000100000001000000010000000100000001,
+    0b1111111100000000000000000000000000000000000000000000000000000000,
+    0b1000000010000000100000001000000010000000100000001000000010000000
+]
 
 cdef unsigned long long check_mobility(unsigned long long grid_me, unsigned long long grid_op):
     cdef unsigned long long res, t, u, v, w
@@ -145,16 +151,16 @@ cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int
         canput_all += 1 & (mobility >> i)
     stones = grid_me | grid_op
     for i in range(0, hw, 2):
-        if check_confirm(stones, i) == hw:
+        if stones ^ confirm_num[i // 2]:
+            for j in range(2):
+                confirm_me += max(0, check_confirm(grid_me, i + j) - 1)
+                confirm_op += max(0, check_confirm(grid_op, i + j) - 1)
+        else:
             for j in range(1, hw - 1):
                 if 1 & (grid_me >> confirm_lst[i][j]):
                     confirm_me += 1
                 elif 1 & (grid_op >> confirm_lst[i][j]):
                     confirm_op += 1
-        else:
-            for j in range(2):
-                confirm_me += max(0, check_confirm(grid_me, i + j) - 1)
-                confirm_op += max(0, check_confirm(grid_op, i + j) - 1)
     confirm_me += 1 & grid_me
     confirm_me += 1 & (grid_me >> (hw - 1))
     confirm_me += 1 & (grid_me >> (hw2 - hw))
@@ -294,6 +300,7 @@ cdef double weight_weight, canput_weight, confirm_weight
 cdef int max_depth
 cdef double strt, ratio
 cdef cmap[unsigned long long, unsigned long long] memo
+#cdef vector[vector[unsigned long long]] next_start
 
 cdef void main():
     global ai_player, weight_weight, canput_weight, confirm_weight, max_depth, strt, ratio, memo
