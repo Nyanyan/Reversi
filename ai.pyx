@@ -236,7 +236,7 @@ cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid
     return grid_me ^ (put | rev1)
 
 
-cdef double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
+cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
     if max_depth > min_max_depth and time() - strt > tl:
         return -100000000.0
     cdef int y, x, i
@@ -256,21 +256,36 @@ cdef double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, i
             n_grid_op = (n_grid_me ^ grid_op) & grid_op
             lst.push_back([memo[n_grid_me], n_grid_me, n_grid_op])
     if n_canput == 0:
-        val = -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0)
+        val = -nega_scout(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0)
         if abs(val) == 100000000.0:
             return -100000000.0
         return max(alpha, val)
     csort(lst.begin(), lst.end())
-    for i in reversed(range(n_canput)):
+    val = -nega_scout(lst[n_canput - 1][2], lst[n_canput - 1][1], depth - 1, -beta, -alpha, 0, n_canput)
+    if abs(val) == 100000000.0:
+        return -100000000.0
+    memo[n_grid_me] = <unsigned long long>((val + 65.0) * 100000000.0)
+    alpha = max(alpha, val)
+    if alpha >= beta:
+        return alpha
+    for i in reversed(range(n_canput - 1)):
         n_grid_me = lst[i][1]
         n_grid_op = lst[i][2]
-        val = -nega_alpha(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput)
+        val = -nega_scout(n_grid_op, n_grid_me, depth - 1, -alpha - window, -alpha, 0, n_canput)
         if abs(val) == 100000000.0:
             return -100000000.0
         memo[n_grid_me] = <unsigned long long>((val + 65.0) * 100000000.0)
-        alpha = max(alpha, val)
-        if alpha >= beta:
-            return alpha
+        if beta <= val:
+            return val
+        if alpha < val:
+            alpha = val
+            val = -nega_scout(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput)
+            if abs(val) == 100000000.0:
+                return -100000000.0
+            memo[n_grid_me] = <unsigned long long>((val + 65.0) * 100000000.0)
+            alpha = max(alpha, val)
+            if alpha >= beta:
+                return alpha
     return alpha
 
 '''
@@ -281,7 +296,7 @@ cdef double mtd_f(unsigned long long grid_me, unsigned long long grid_op, int de
     lower_bound = -(<double>hw2 + 1.0)
     while upper_bound - lower_bound > window * 2.0:
         beta = max(lower_bound + window, g)
-        g = -nega_alpha(grid_me, grid_op, depth, -beta, -beta + window, 0, canput)
+        g = -nega_scout(grid_me, grid_op, depth, -beta, -beta + window, 0, canput)
         if abs(g) == 100000000.0:
             return -100000000.0
         if g < beta:
@@ -345,7 +360,7 @@ cdef void main():
                 grid_op = (grid_me ^ in_grid_op) & in_grid_op
                 lst.push_back([memo[grid_me], grid_me, grid_op, <unsigned long long>i])
         strt = time()
-        while time() - strt < tl:
+        while time() - strt < tl / 2:
             csort(lst.begin(), lst.end())
             ratio = <double>(hw2 - vacant_cnt + max_depth) / hw2
             weight_weight = map_double(weight_weight_s, weight_weight_e, ratio)
@@ -355,7 +370,7 @@ cdef void main():
             for i in range(canput):
                 grid_me = lst[i][1]
                 grid_op = lst[i][2]
-                score = -nega_alpha(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput)
+                score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput)
                 lst[i][0] = <unsigned long long>((score + 65.0) * 100000000.0)
                 if abs(score) == 100000000.0:
                     max_score = -100000000.0
@@ -377,6 +392,7 @@ cdef void main():
                 debug('game end')
                 break
             max_depth += 1
+            break
         debug(outy, outx)
         print(outy, outx)
         sys.stdout.flush()
