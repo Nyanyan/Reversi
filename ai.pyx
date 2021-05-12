@@ -132,12 +132,36 @@ cdef int check_confirm(unsigned long long grid, int idx):
             break
     return res
 
+cdef int dfs(int i):
+    global marked
+    cdef int res = 1
+    marked |= <unsigned long long>1 << i
+    if i - 1 >= 0 and not (1 & (marked >> (i - 1))):
+        res += dfs(i - 1)
+    if i + 1 < hw2 and not (1 & (marked >> (i + 1))):
+        res += dfs(i + 1)
+    if i - hw >= 0 and not (1 & (marked >> (i - hw))):
+        res += dfs(i - hw)
+    if i + hw < hw2 and not (1 & (marked >> (i + hw))):
+        res += dfs(i + hw)
+    if i - hw - 1 >= 0 and not (1 & (marked >> (i - hw - 1))):
+        res += dfs(i - hw - 1)
+    if i + hw + 1 < hw2 and not (1 & (marked >> (i + hw + 1))):
+        res += dfs(i + hw + 1)
+    if i - hw + 1 >= 0 and not (1 & (marked >> (i - hw + 1))):
+        res += dfs(i - hw + 1)
+    if i + hw - 1 < hw2 and not (1 & (marked >> (i + hw - 1))):
+        res += dfs(i + hw - 1)
+    return res
+
 cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canput):
+    global marked
     cdef int canput_all = canput
     cdef double weight_me = 0.0, weight_op = 0.0
     cdef int me_cnt = 0, op_cnt = 0
     cdef int confirm_me = 0, confirm_op = 0
     cdef int stone_me = 0, stone_op = 0
+    cdef int odd_vacant = 0, even_vacant = 0
     cdef unsigned long long mobility, stones
     cdef int i, j
     for i in range(hw2):
@@ -151,6 +175,15 @@ cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int
     for i in range(hw2):
         canput_all += 1 & (mobility >> i)
     stones = grid_me | grid_op
+    if ratio > 0.7:
+        marked = stones
+        for i in range(hw2):
+            if 1 & (marked >> i):
+                continue
+            if dfs(i) & 1:
+                odd_vacant += 1
+            else:
+                even_vacant += 1
     for i in range(0, hw, 2):
         if stones ^ confirm_num[i // 2]:
             for j in range(2):
@@ -173,12 +206,13 @@ cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int
     for i in range(hw2):
         stone_me += 1 & (grid_me >> i)
         stone_op += 1 & (grid_op >> i)
-    cdef double weight_proc, canput_proc, confirm_proc, stone_proc
+    cdef double weight_proc, canput_proc, confirm_proc, stone_proc, odd_even_proc
     weight_proc = weight_me / me_cnt - weight_op / op_cnt
     canput_proc = <double>(canput_all - canput) / max(1, canput_all) - <double>canput / max(1, canput_all)
     confirm_proc = <double>confirm_me / max(1, confirm_me + confirm_op) - <double>confirm_op / max(1, confirm_me + confirm_op)
     stone_proc = -<double>stone_me / (stone_me + stone_op) + <double>stone_op / (stone_me + stone_op)
-    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight
+    odd_even_proc = <double>odd_vacant / max(1, odd_vacant + even_vacant) - <double>even_vacant / max(1, odd_vacant + even_vacant)
+    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + odd_even_proc * odd_even_weight
 
 cdef double end_game(unsigned long long grid_me, unsigned long long grid_op):
     cdef int res = 0, i
@@ -315,16 +349,17 @@ cdef double map_double(double s, double e, double x):
     return s + (e - s) * x
 
 cdef int ai_player
-cdef double weight_weight, canput_weight, confirm_weight, stone_weight
+cdef double weight_weight, canput_weight, confirm_weight, stone_weight, odd_even_weight
 cdef int max_depth
 cdef double strt, ratio
 cdef cmap[unsigned long long, unsigned long long] memo
+cdef unsigned long long marked
 
 cdef void main():
-    global ai_player, weight_weight, canput_weight, confirm_weight, max_depth, strt, ratio, memo
+    global ai_player, weight_weight, canput_weight, confirm_weight, stone_weight, odd_even_weight, max_depth, strt, ratio, memo
     cdef int vacant_cnt, y, x, ansy, ansx, outy, outx, i, canput
     cdef double score, max_score
-    cdef double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e
+    cdef double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, odd_even_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, odd_even_weight_e
     cdef unsigned long long in_grid_me, in_grid_op, in_mobility, grid_me, grid_op
     cdef list in_grid
     cdef str elem
@@ -334,10 +369,12 @@ cdef void main():
     canput_weight_s = float(input())
     confirm_weight_s = float(input())
     stone_weight_s = float(input())
+    odd_even_weight_s = float(input())
     weight_weight_e = float(input())
     canput_weight_e = float(input())
     confirm_weight_e = float(input())
     stone_weight_e = float(input())
+    odd_even_weight_e = float(input())
     debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
     while True:
         outy = -1
@@ -374,6 +411,7 @@ cdef void main():
             canput_weight = map_double(canput_weight_s, canput_weight_e, ratio)
             confirm_weight = map_double(confirm_weight_s, confirm_weight_e, ratio)
             stone_weight = map_double(stone_weight_s, stone_weight_e, ratio)
+            odd_even_weight = map_double(odd_even_weight_s, odd_even_weight_e, ratio)
             max_score = -65.0
             for i in range(canput):
                 grid_me = lst[i][1]

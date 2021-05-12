@@ -61,8 +61,8 @@ class reversi:
     def move(self, y, x):
         plus, plus_grid = check(self.grid, self.player, y, x)
         if (not empty(self.grid, y, x)) or (not inside(y, x)) or not plus:
-            print('Please input a correct move')
-            return
+            #print('Please input a correct move')
+            return 1
         self.grid[y][x] = self.player
         for ny in range(hw):
             for nx in range(hw):
@@ -71,6 +71,7 @@ class reversi:
         self.nums[self.player] += 1 + plus
         self.nums[1 - self.player] -= plus
         self.player = 1 - self.player
+        return 0
     
     def check_pass(self):
         for y in range(hw):
@@ -147,7 +148,9 @@ def match(use_param):
         ai[rv.player].stdin.write(stdin.encode('utf-8'))
         ai[rv.player].stdin.flush()
         y, x = [int(i) for i in ai[rv.player].stdout.readline().decode().strip().split()]
-        rv.move(y, x)
+        if rv.move(y, x):
+            print('illegal move')
+            break
         if rv.end():
             break
     rv.check_pass()
@@ -158,7 +161,7 @@ def match(use_param):
 
 population = 10
 match_num = 10
-param_num = 8
+param_num = 10
 
 param = [[0.0 for _ in range(param_num)] for _ in range(population)]
 for i in range(population):
