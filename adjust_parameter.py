@@ -163,10 +163,12 @@ population = 10
 match_num = 10
 param_num = 10
 
+param_base = [0.3, 0.2, 0.1, 0.395, 0.005,  0.1, 0.6, 0.295, 0.0, 0.005]
+
 param = [[0.0 for _ in range(param_num)] for _ in range(population)]
 for i in range(population):
     for j in range(param_num):
-        param[i][j] = random()
+        param[i][j] = param_base[j] + random() * 0.1 - 0.05
     sm = sum(param[i][:param_num // 2])
     for j in range(param_num // 2):
         param[i][j] /= sm
@@ -204,7 +206,7 @@ while True:
         children[0][i] = param[parents[tmp]][i]
         children[1][i] = param[1 - parents[tmp]][i]
     if random() < 0.1:
-        children[randint(0, 1)][randint(0, 2)] += random() * 0.2 - 0.1
+        children[randint(0, 1)][randint(0, param_num - 1)] += random() * 0.1 - 0.05
     for i in range(2):
         sm = sum(children[i][:param_num // 2])
         for j in range(param_num // 2):

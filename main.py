@@ -121,7 +121,7 @@ class reversi:
             print('Draw!', self.nums[0], '-', self.nums[1])
 
 ai_mode = True
-ai_player = 0
+ai_player = 1
 
 ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 stdin = str(ai_player) + '\n'
@@ -129,7 +129,8 @@ ai.stdin.write(stdin.encode('utf-8'))
 ai.stdin.flush()
 param_num = 10
 #        weight  canput  confirm
-param = [0.35040005986471073, 0.15947540029536195, 0.2057166496401806, 0.2844078901997467, 0.01119177727784958, 0.15605466760887582, 0.8291261122201004, 0.003627442893174265]
+param = [0.3, 0.2, 0.1, 0.395, 0.005,  0.1, 0.65, 0.295, -0.05, 0.005]
+#[0.35040005986471073, 0.15947540029536195, 0.2057166496401806, 0.2844078901997467, 0.01119177727784958, 0.15605466760887582, 0.8291261122201004, 0.003627442893174265]
 #[0.2672372538812086, 0.29215254984703876, 0.4406101962717526, 0.07938086187048915, 0.29975313369335055, 0.6208660044361604]
 for j in range(param_num):
     stdin = str(param[j]) + '\n'

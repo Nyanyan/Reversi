@@ -10,11 +10,11 @@ from libcpp.map cimport map as cmap
 import sys
 from random import random, shuffle
 from time import time
-def debug(*args, end='\n'): print(*args, file=sys.stderr, end=end)
+def debug(*args, end='\n'): return #print(*args, file=sys.stderr, end=end)
 
 DEF hw = 8
 DEF hw2 = hw * hw
-DEF min_max_depth = 7
+DEF min_max_depth = 1
 DEF tl = 10.0
 DEF window = 0.00001
 cdef int[8] dy = [0, 1, 0, -1, 1, 1, -1, -1]
@@ -70,6 +70,12 @@ cdef unsigned long long[4] confirm_num = [
     0b1111111100000000000000000000000000000000000000000000000000000000,
     0b1000000010000000100000001000000010000000100000001000000010000000
 ]
+
+cdef struct grid_priority:
+    double priority
+    unsigned long long me
+    unsigned long long op
+    int open_val
 
 cdef unsigned long long check_mobility(unsigned long long grid_me, unsigned long long grid_op):
     cdef unsigned long long res, t, u, v, w
@@ -154,14 +160,13 @@ cdef int dfs(int i):
         res += dfs(i + hw - 1)
     return res
 
-cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canput):
+cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canput, int open_val):
     global marked
     cdef int canput_all = canput
     cdef double weight_me = 0.0, weight_op = 0.0
     cdef int me_cnt = 0, op_cnt = 0
     cdef int confirm_me = 0, confirm_op = 0
     cdef int stone_me = 0, stone_op = 0
-    cdef int odd_vacant = 0, even_vacant = 0
     cdef unsigned long long mobility, stones
     cdef int i, j
     for i in range(hw2):
@@ -175,15 +180,15 @@ cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int
     for i in range(hw2):
         canput_all += 1 & (mobility >> i)
     stones = grid_me | grid_op
-    if ratio > 0.7:
+    '''
+    if vacant_cnt - max_depth < 20:
         marked = stones
         for i in range(hw2):
             if 1 & (marked >> i):
                 continue
             if dfs(i) & 1:
                 odd_vacant += 1
-            else:
-                even_vacant += 1
+    '''
     for i in range(0, hw, 2):
         if stones ^ confirm_num[i // 2]:
             for j in range(2):
@@ -206,13 +211,13 @@ cdef double evaluate(unsigned long long grid_me, unsigned long long grid_op, int
     for i in range(hw2):
         stone_me += 1 & (grid_me >> i)
         stone_op += 1 & (grid_op >> i)
-    cdef double weight_proc, canput_proc, confirm_proc, stone_proc, odd_even_proc
+    cdef double weight_proc, canput_proc, confirm_proc, stone_proc, open_proc
     weight_proc = weight_me / me_cnt - weight_op / op_cnt
     canput_proc = <double>(canput_all - canput) / max(1, canput_all) - <double>canput / max(1, canput_all)
     confirm_proc = <double>confirm_me / max(1, confirm_me + confirm_op) - <double>confirm_op / max(1, confirm_me + confirm_op)
     stone_proc = -<double>stone_me / (stone_me + stone_op) + <double>stone_op / (stone_me + stone_op)
-    odd_even_proc = <double>odd_vacant / max(1, odd_vacant + even_vacant) - <double>even_vacant / max(1, odd_vacant + even_vacant)
-    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + odd_even_proc * odd_even_weight
+    open_proc = max(-1.0, <double>(5 - open_val) / 5)
+    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight
 
 cdef double end_game(unsigned long long grid_me, unsigned long long grid_op):
     cdef int res = 0, i
@@ -274,8 +279,25 @@ cdef unsigned long long move(unsigned long long grid_me, unsigned long long grid
             rev1 |= rev2
     return grid_me ^ (put | rev1)
 
+cdef int calc_open(unsigned long long stones, unsigned long long rev):
+    cdef int i, res = 0
+    for i in range(hw2):
+        if 1 & (rev >> i):
+            res += 1 - (1 & (stones >> (i + 1)))
+            res += 1 - (1 & (stones >> (i - 1)))
+            res += 1 - (1 & (stones >> (i + hw)))
+            res += 1 - (1 & (stones >> (i - hw)))
+            res += 1 - (1 & (stones >> (i + hw + 1)))
+            res += 1 - (1 & (stones >> (i - hw + 1)))
+            res += 1 - (1 & (stones >> (i + hw - 1)))
+            res += 1 - (1 & (stones >> (i - hw - 1)))
+    return res
 
-cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput):
+cdef int cmp(grid_priority p, grid_priority q):
+    return <int>(p.priority > q.priority)
+
+cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val):
+    #global marked
     if max_depth > min_max_depth and time() - strt > tl:
         return -100000000.0
     cdef int y, x, i
@@ -283,45 +305,58 @@ cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, i
     if skip_cnt == 2:
         return end_game(grid_me, grid_op)
     elif depth == 0:
-        return evaluate(grid_me, grid_op, canput)
+        return evaluate(grid_me, grid_op, canput, open_val)
     cdef int n_canput = 0
     cdef unsigned long long mobility = check_mobility(grid_me, grid_op)
     cdef unsigned long long n_grid_me, n_grid_op
-    cdef vector[vector[unsigned long long]] lst
+    cdef double priority
+    cdef vector[grid_priority] lst
     for i in range(hw2):
         if 1 & (mobility >> i):
             n_canput += 1
             n_grid_me = move(grid_me, grid_op, i)
             n_grid_op = (n_grid_me ^ grid_op) & grid_op
-            lst.push_back([memo[n_grid_me], n_grid_me, n_grid_op])
+            priority = memo[n_grid_me]
+            if vacant_cnt - max_depth + depth < 20:
+                marked = grid_me | grid_op
+                if dfs(i) & 1:
+                    priority += 0.5
+            open_val = calc_open(n_grid_me | n_grid_op, n_grid_me ^ grid_me)
+            priority -= open_val * 0.1
+            lst.push_back(grid_priority(priority, n_grid_me, n_grid_op, open_val))
     if n_canput == 0:
-        val = -nega_scout(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0)
+        val = -nega_scout(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0)
         if abs(val) == 100000000.0:
             return -100000000.0
         return max(alpha, val)
-    csort(lst.begin(), lst.end())
-    val = -nega_scout(lst[n_canput - 1][2], lst[n_canput - 1][1], depth - 1, -beta, -alpha, 0, n_canput)
+    csort(lst.begin(), lst.end(), cmp)
+    open_val = 0
+    if depth == 1:
+        open_val = lst[0].open_val
+    val = -nega_scout(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, open_val)
     if abs(val) == 100000000.0:
         return -100000000.0
-    memo[n_grid_me] = <unsigned long long>((val + 65.0) * 100000000.0)
+    memo[n_grid_me] = val #<unsigned long long>((val + 65.0) * 100000000.0)
     alpha = max(alpha, val)
     if alpha >= beta:
         return alpha
-    for i in reversed(range(n_canput - 1)):
-        n_grid_me = lst[i][1]
-        n_grid_op = lst[i][2]
-        val = -nega_scout(n_grid_op, n_grid_me, depth - 1, -alpha - window, -alpha, 0, n_canput)
+    for i in range(1, n_canput):
+        n_grid_me = lst[i].me
+        n_grid_op = lst[i].op
+        if depth == 1:
+            open_val = lst[i].open_val
+        val = -nega_scout(n_grid_op, n_grid_me, depth - 1, -alpha - window, -alpha, 0, n_canput, open_val)
         if abs(val) == 100000000.0:
             return -100000000.0
-        memo[n_grid_me] = <unsigned long long>((val + 65.0) * 100000000.0)
+        memo[n_grid_me] = val #<unsigned long long>((val + 65.0) * 100000000.0)
         if beta <= val:
             return val
         if alpha < val:
             alpha = val
-            val = -nega_scout(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput)
+            val = -nega_scout(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput, open_val)
             if abs(val) == 100000000.0:
                 return -100000000.0
-            memo[n_grid_me] = <unsigned long long>((val + 65.0) * 100000000.0)
+            memo[n_grid_me] = val #<unsigned long long>((val + 65.0) * 100000000.0)
             alpha = max(alpha, val)
             if alpha >= beta:
                 return alpha
@@ -349,17 +384,17 @@ cdef double map_double(double s, double e, double x):
     return s + (e - s) * x
 
 cdef int ai_player
-cdef double weight_weight, canput_weight, confirm_weight, stone_weight, odd_even_weight
-cdef int max_depth
+cdef double weight_weight, canput_weight, confirm_weight, stone_weight, open_weight
+cdef int max_depth, vacant_cnt
 cdef double strt, ratio
-cdef cmap[unsigned long long, unsigned long long] memo
+cdef cmap[unsigned long long, double] memo
 cdef unsigned long long marked
 
 cdef void main():
-    global ai_player, weight_weight, canput_weight, confirm_weight, stone_weight, odd_even_weight, max_depth, strt, ratio, memo
-    cdef int vacant_cnt, y, x, ansy, ansx, outy, outx, i, canput
+    global ai_player, weight_weight, canput_weight, confirm_weight, stone_weight, open_weight, max_depth, strt, ratio, memo, vacant_cnt
+    cdef int y, x, ansy, ansx, outy, outx, i, canput
     cdef double score, max_score
-    cdef double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, odd_even_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, odd_even_weight_e
+    cdef double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e
     cdef unsigned long long in_grid_me, in_grid_op, in_mobility, grid_me, grid_op
     cdef list in_grid
     cdef str elem
@@ -369,12 +404,12 @@ cdef void main():
     canput_weight_s = float(input())
     confirm_weight_s = float(input())
     stone_weight_s = float(input())
-    odd_even_weight_s = float(input())
+    open_weight_s = float(input())
     weight_weight_e = float(input())
     canput_weight_e = float(input())
     confirm_weight_e = float(input())
     stone_weight_e = float(input())
-    odd_even_weight_e = float(input())
+    open_weight_e = float(input())
     debug('AI initialized AI is', 'Black' if ai_player == 0 else 'White')
     while True:
         outy = -1
@@ -402,7 +437,7 @@ cdef void main():
             if (1 & (in_mobility >> i)):
                 grid_me = move(in_grid_me, in_grid_op, i)
                 grid_op = (grid_me ^ in_grid_op) & in_grid_op
-                lst.push_back([memo[grid_me], grid_me, grid_op, <unsigned long long>i])
+                lst.push_back([<unsigned long long>((memo[grid_me] + 65.0) * 100000000.0), grid_me, grid_op, <unsigned long long>i])
         strt = time()
         while time() - strt < tl / 2:
             csort(lst.begin(), lst.end())
@@ -411,12 +446,12 @@ cdef void main():
             canput_weight = map_double(canput_weight_s, canput_weight_e, ratio)
             confirm_weight = map_double(confirm_weight_s, confirm_weight_e, ratio)
             stone_weight = map_double(stone_weight_s, stone_weight_e, ratio)
-            odd_even_weight = map_double(odd_even_weight_s, odd_even_weight_e, ratio)
+            open_weight = map_double(open_weight_s, open_weight_e, ratio)
             max_score = -65.0
             for i in range(canput):
                 grid_me = lst[i][1]
                 grid_op = lst[i][2]
-                score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput)
+                score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0)
                 lst[i][0] = <unsigned long long>((score + 65.0) * 100000000.0)
                 if abs(score) == 100000000.0:
                     max_score = -100000000.0
@@ -431,13 +466,14 @@ cdef void main():
             outy = ansy
             outx = ansx
             debug('depth', max_depth, 'next', outy, outx, 'score', max_score, time() - strt)
-            if abs(score) >= 1.0:
-                debug('game end')
-                break
             if vacant_cnt < max_depth:
                 debug('game end')
                 break
+            if abs(max_score) >= 1.0:
+                debug('game end')
+                break
             max_depth += 1
+            break
         debug(outy, outx)
         print(outy, outx)
         sys.stdout.flush()
