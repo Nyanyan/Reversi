@@ -125,8 +125,10 @@ class reversi:
 
 def match(use_param):
     ai = [subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for _ in range(2)]
+    lst = [0, 1]
+    shuffle(lst)
     for i in range(2):
-        stdin = str(i) + '\n'
+        stdin = str(lst[i]) + '\n'
         ai[i].stdin.write(stdin.encode('utf-8'))
         ai[i].stdin.flush()
         for j in range(param_num):
@@ -152,19 +154,22 @@ def match(use_param):
     winner = rv.judge()
     for i in range(2):
         ai[i].kill()
-    return rv.nums[0] - rv.nums[1] if rv.nums[1] > 0 and rv.nums[0] > 0 else hw * hw if rv.nums[1] == 0 else -hw * hw
+    return rv.nums[lst[0]] - rv.nums[lst[1]] if rv.nums[lst[1]] > 0 and rv.nums[lst[0]] > 0 else hw * hw if rv.nums[lst[1]] == 0 else -hw * hw
 
-population = 200
-match_num = 20
-param_num = 6
+population = 10
+match_num = 10
+param_num = 8
 
 param = [[0.0 for _ in range(param_num)] for _ in range(population)]
 for i in range(population):
-    for lst in [[0, 1, 2], [3, 4, 5]]:
-        shuffle(lst)
-        param[i][lst[0]] = random()
-        param[i][lst[1]] = random() * (1.0 - param[i][lst[0]])
-        param[i][lst[2]] = 1.0 - param[i][lst[0]] - param[i][lst[1]]
+    for j in range(param_num):
+        param[i][j] = random()
+    sm = sum(param[i][:param_num // 2])
+    for j in range(param_num // 2):
+        param[i][j] /= sm
+    sm = sum(param[i][param_num // 2:])
+    for j in range(param_num // 2, param_num):
+        param[i][j] /= sm
 
 win_rate = [0 for _ in range(population)]
 parents = [-1, -1]

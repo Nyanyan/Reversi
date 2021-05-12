@@ -159,7 +159,7 @@ def match(use_param):
             with open('state.txt', 'w') as f:
                 f.write(rv.output_file())
             place = r'C:\Program Files\MasterReversiPro'
-            value = r'MRSolver.exe -m 3 -f C:\home\Reversi\state.txt'
+            value = r'MRSolver.exe -m 5 -f C:\home\Reversi\state.txt'
             all_data = subprocess.Popen(value.split(), cwd=place, stdout=subprocess.PIPE, shell=True).communicate()[0]
             for data in all_data.decode().strip().split():
                 if data[:2] == '->':
@@ -174,7 +174,8 @@ def match(use_param):
     ai.kill()
     return rv.nums[ai_player] - rv.nums[1 - ai_player] if rv.nums[1 - ai_player] > 0 else hw * hw
 
-param_num = 6
+param_num = 8
 #        weight  canput  confirm
-param = [0.2672372538812086, 0.29215254984703876, 0.4406101962717526, 0.07938086187048915, 0.29975313369335055, 0.6208660044361604]
+param = [0.35040005986471073, 0.15947540029536195, 0.2057166496401806, 0.2844078901997467, 0.01119177727784958, 0.15605466760887582, 0.8291261122201004, 0.003627442893174265]
+#[0.2672372538812086, 0.29215254984703876, 0.4406101962717526, 0.07938086187048915, 0.29975313369335055, 0.6208660044361604]
 print('match end score', match(param))
