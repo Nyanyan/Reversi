@@ -247,15 +247,14 @@ cdef double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, i
         return evaluate(grid_me, grid_op, canput)
     cdef int n_canput = 0
     cdef unsigned long long mobility = check_mobility(grid_me, grid_op)
-    cdef unsigned long long n_grid_me, n_grid_op, priority_val
+    cdef unsigned long long n_grid_me, n_grid_op
     cdef vector[vector[unsigned long long]] lst
     for i in range(hw2):
         if 1 & (mobility >> i):
             n_canput += 1
             n_grid_me = move(grid_me, grid_op, i)
             n_grid_op = (n_grid_me ^ grid_op) & grid_op
-            priority_val = memo[n_grid_me]
-            lst.push_back([priority_val, n_grid_me, n_grid_op])
+            lst.push_back([memo[n_grid_me], n_grid_me, n_grid_op])
     if n_canput == 0:
         val = -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0)
         if abs(val) == 100000000.0:
@@ -300,7 +299,6 @@ cdef double weight_weight, canput_weight, confirm_weight
 cdef int max_depth
 cdef double strt, ratio
 cdef cmap[unsigned long long, unsigned long long] memo
-#cdef vector[vector[unsigned long long]] next_start
 
 cdef void main():
     global ai_player, weight_weight, canput_weight, confirm_weight, max_depth, strt, ratio, memo
@@ -310,6 +308,7 @@ cdef void main():
     cdef unsigned long long in_grid_me, in_grid_op, in_mobility, grid_me, grid_op
     cdef list in_grid
     cdef str elem
+    cdef vector[vector[unsigned long long]] lst
     ai_player = int(input())
     weight_weight_s = float(input())
     canput_weight_s = float(input())
@@ -339,27 +338,32 @@ cdef void main():
                 in_grid_op <<= 1
                 in_grid_me += <int>(in_grid[y][x] == ai_player)
                 in_grid_op += <int>(in_grid[y][x] == ai_player ^ 1)
+        lst = []
+        for i in range(hw2):
+            if (1 & (in_mobility >> i)):
+                grid_me = move(in_grid_me, in_grid_op, i)
+                grid_op = (grid_me ^ in_grid_op) & in_grid_op
+                lst.push_back([memo[grid_me], grid_me, grid_op, <unsigned long long>i])
         strt = time()
         while time() - strt < tl:
+            csort(lst.begin(), lst.end())
             ratio = <double>(hw2 - vacant_cnt + max_depth) / hw2
             weight_weight = map_double(weight_weight_s, weight_weight_e, ratio)
             canput_weight = map_double(canput_weight_s, canput_weight_e, ratio)
             confirm_weight = map_double(confirm_weight_s, confirm_weight_e, ratio)
-            max_score = -(<double>hw2 + 1.0)
-            for i in range(hw2):
-                if (1 & (in_mobility >> i)) == 0:
-                    continue
-                grid_me = move(in_grid_me, in_grid_op, i)
-                grid_op = (grid_me ^ in_grid_op) & in_grid_op
-                score = -nega_alpha(grid_op, grid_me, max_depth - 1, -100000000, -max_score, 0, canput)
-                #score = mtd_f(grid_op, grid_me, max_depth - 1, canput)
+            max_score = -65.0
+            for i in range(canput):
+                grid_me = lst[i][1]
+                grid_op = lst[i][2]
+                score = -nega_alpha(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput)
+                lst[i][0] = <unsigned long long>((score + 65.0) * 100000000.0)
                 if abs(score) == 100000000.0:
                     max_score = -100000000.0
                     break
                 if score > max_score:
                     max_score = score
-                    ansy = (hw2 - i - 1) // hw
-                    ansx = (hw2 - i - 1) % hw
+                    ansy = (hw2 - <int>lst[i][3] - 1) // hw
+                    ansx = (hw2 - <int>lst[i][3] - 1) % hw
             if max_score == -100000000.0:
                 debug('depth', max_depth, 'timeout')
                 break
@@ -373,6 +377,7 @@ cdef void main():
                 debug('game end')
                 break
             max_depth += 1
+        debug(outy, outx)
         print(outy, outx)
         sys.stdout.flush()
 
