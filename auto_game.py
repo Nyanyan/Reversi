@@ -133,7 +133,7 @@ class reversi:
 
 def match(use_param):
     ai_player = 1
-    ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    ai = subprocess.Popen('a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdin = str(ai_player) + '\n' # white for 1
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()
@@ -162,7 +162,7 @@ def match(use_param):
             with open('state.txt', 'w') as f:
                 f.write(rv.output_file())
             place = r'C:\Program Files\MasterReversiPro'
-            value = r'MRSolver.exe -m 5 -f C:\home\Reversi\state.txt'
+            value = r'MRSolver.exe -m 6 -f C:\home\Reversi\state.txt'
             all_data = subprocess.Popen(value.split(), cwd=place, stdout=subprocess.PIPE, shell=True).communicate()[0]
             for data in all_data.decode().strip().split():
                 if data[:2] == '->':
@@ -177,7 +177,7 @@ def match(use_param):
     ai.kill()
     return rv.nums[ai_player] - rv.nums[1 - ai_player] if rv.nums[1 - ai_player] > 0 else hw * hw
 
-tl = 20.0
+tl = 20000
 param_num = 10
 #weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e
 param = [0.34536779645622856, 0.1691274097088668, 0.0892489731834872, 0.37682794628570937, 0.01942787436570797, 0.12257349937655919, 0.6659002360919307, 0.26888169690483155, -0.026666677139788895, -0.030688755233532452]

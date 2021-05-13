@@ -6,7 +6,7 @@ def debug(*args): print(*args, file=sys.stderr)
 
 cmd = 'python setup.py build_ext --inplace'
 try:
-    o = subprocess.run(cmd.split(), input='ai.pyx', encoding='utf-8', stderr=subprocess.STDOUT, timeout=None)
+    o = subprocess.run(cmd.split(), input='ai_cython.pyx', encoding='utf-8', stderr=subprocess.STDOUT, timeout=None)
 except subprocess.CalledProcessError as e:
     debug('ERROR:', e.stdout)
     exit()
