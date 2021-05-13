@@ -137,6 +137,9 @@ def match(use_param):
     stdin = str(ai_player) + '\n' # white for 1
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()
+    stdin = str(tl) + '\n'
+    ai.stdin.write(stdin.encode('utf-8'))
+    ai.stdin.flush()
     for j in range(param_num):
         stdin = str(use_param[j]) + '\n'
         ai.stdin.write(stdin.encode('utf-8'))
@@ -174,6 +177,7 @@ def match(use_param):
     ai.kill()
     return rv.nums[ai_player] - rv.nums[1 - ai_player] if rv.nums[1 - ai_player] > 0 else hw * hw
 
+tl = 20.0
 param_num = 10
 #weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e
 param = [0.34536779645622856, 0.1691274097088668, 0.0892489731834872, 0.37682794628570937, 0.01942787436570797, 0.12257349937655919, 0.6659002360919307, 0.26888169690483155, -0.026666677139788895, -0.030688755233532452]

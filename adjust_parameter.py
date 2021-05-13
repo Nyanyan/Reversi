@@ -132,6 +132,9 @@ def match(use_param):
         stdin = str(lst[i]) + '\n'
         ai[i].stdin.write(stdin.encode('utf-8'))
         ai[i].stdin.flush()
+        stdin = str(tl) + '\n'
+        ai[i].stdin.write(stdin.encode('utf-8'))
+        ai[i].stdin.flush()
         for j in range(param_num):
             stdin = str(use_param[i][j]) + '\n'
             ai[i].stdin.write(stdin.encode('utf-8'))
@@ -162,6 +165,7 @@ def match(use_param):
 population = 10
 match_num = 10
 param_num = 10
+tl = 0.1
 
 param_base = [0.3, 0.2, 0.1, 0.395, 0.005,  0.1, 0.6, 0.295, 0.0, 0.005]
 

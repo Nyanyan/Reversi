@@ -121,9 +121,13 @@ class reversi:
 
 ai_mode = True
 ai_player = 1
+tl = 20.0
 
 ai = subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 stdin = str(ai_player) + '\n'
+ai.stdin.write(stdin.encode('utf-8'))
+ai.stdin.flush()
+stdin = str(tl) + '\n' # white for 1
 ai.stdin.write(stdin.encode('utf-8'))
 ai.stdin.flush()
 param_num = 10
