@@ -77,6 +77,7 @@ cdef struct grid_priority:
     unsigned long long op
     int open_val
 
+
 cdef unsigned long long check_mobility(unsigned long long grid_me, unsigned long long grid_op):
     cdef unsigned long long res, t, u, v, w
     res = 0
@@ -300,8 +301,8 @@ cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, i
     global memo, memo_turn
     if max_depth > min_max_depth and time() - strt > tl:
         return -100000000.0
-    if memo_turn[grid_me] != 0.0:
-        return memo_turn[grid_me]
+    #if memo_turn[grid_me] != 0.0:
+    #    return memo_turn[grid_me]
     cdef int y, x, i
     cdef double val
     if skip_cnt == 2:
@@ -318,7 +319,7 @@ cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, i
             n_canput += 1
             n_grid_me = move(grid_me, grid_op, i)
             n_grid_op = (n_grid_me ^ grid_op) & grid_op
-            priority = memo[n_grid_op]
+            priority = memo_turn[n_grid_op]
             '''
             if vacant_cnt - max_depth + depth < 20:
                 marked = grid_me | grid_op
@@ -340,8 +341,8 @@ cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, i
     val = -nega_scout(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, open_val)
     if abs(val) == 100000000.0:
         return -100000000.0
-    memo[lst[0].op] = val
-    memo_turn[lst[0].op] = val
+    #memo[lst[0].op] = -val
+    #memo_turn[lst[0].op] = -val
     alpha = max(alpha, val)
     if alpha >= beta:
         return alpha
@@ -351,8 +352,6 @@ cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, i
         val = -nega_scout(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, open_val)
         if abs(val) == 100000000.0:
             return -100000000.0
-        memo[lst[0].op] = val
-        memo_turn[lst[0].op] = val
         if beta <= val:
             return val
         if alpha < val:
@@ -360,30 +359,12 @@ cdef double nega_scout(unsigned long long grid_me, unsigned long long grid_op, i
             val = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, open_val)
             if abs(val) == 100000000.0:
                 return -100000000.0
-            memo[lst[0].op] = val
-            memo_turn[lst[0].op] = val
+            #memo[lst[i].op] = -val
+            #memo_turn[lst[i].op] = -val
             alpha = max(alpha, val)
             if alpha >= beta:
                 return alpha
     return alpha
-
-'''
-cdef double mtd_f(unsigned long long grid_me, unsigned long long grid_op, int depth, int canput):
-    cdef double g, upper_bound, lower_bounds, beta
-    g = 0.0
-    upper_bound = <double>hw2 + 1.0
-    lower_bound = -(<double>hw2 + 1.0)
-    while upper_bound - lower_bound > window * 2.0:
-        beta = max(lower_bound + window, g)
-        g = -nega_scout(grid_me, grid_op, depth, -beta, -beta + window, 0, canput)
-        if abs(g) == 100000000.0:
-            return -100000000.0
-        if g < beta:
-            upper_bound = g
-        else:
-            lower_bound = g
-    return g
-'''
 
 cdef double map_double(double s, double e, double x):
     return s + (e - s) * x
@@ -437,7 +418,10 @@ cdef void main():
                 in_grid_op <<= 1
                 in_grid_me += <int>(in_grid[y][x] == ai_player)
                 in_grid_op += <int>(in_grid[y][x] == ai_player ^ 1)
-        min_max_depth = former_depth + vacant_cnt - former_vacant
+        if vacant_cnt > 15:
+            min_max_depth = former_depth + vacant_cnt - former_vacant
+        else:
+            min_max_depth = 15
         debug('start depth', min_max_depth)
         max_depth = min_max_depth
         former_vacant = vacant_cnt
@@ -447,6 +431,7 @@ cdef void main():
                 grid_me = move(in_grid_me, in_grid_op, i)
                 grid_op = (grid_me ^ in_grid_op) & in_grid_op
                 lst.push_back([<unsigned long long>((memo[grid_me] + 65.0) * 100000000.0), grid_me, grid_op, <unsigned long long>i])
+        memo.clear()
         strt = time()
         while time() - strt < tl / 2:
             csort(lst.begin(), lst.end())
