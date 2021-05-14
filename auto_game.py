@@ -162,7 +162,7 @@ def match(use_param):
             with open('state.txt', 'w') as f:
                 f.write(rv.output_file())
             place = r'C:\Program Files\MasterReversiPro'
-            value = r'MRSolver.exe -m 6 -f C:\home\Reversi\state.txt'
+            value = r'MRSolver.exe -m 7 -f C:\home\Reversi\state.txt'
             all_data = subprocess.Popen(value.split(), cwd=place, stdout=subprocess.PIPE, shell=True).communicate()[0]
             for data in all_data.decode().strip().split():
                 if data[:2] == '->':
@@ -180,7 +180,7 @@ def match(use_param):
 tl = 20000
 param_num = 10
 #weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e
-param = [0.34536779645622856, 0.1691274097088668, 0.0892489731834872, 0.37682794628570937, 0.01942787436570797, 0.12257349937655919, 0.6659002360919307, 0.26888169690483155, -0.026666677139788895, -0.030688755233532452]
+param = [0.29897487925488575, 0.2563073241985653, 0.09962883504717203, 0.3015360766231666, 0.04355288487621023, 0.10724068225578637, 0.7042631039296219, 0.2370638323464772, -0.0439910303578425, -0.004576588174042863]
 #[0.34536779645622856, 0.1691274097088668, 0.0892489731834872, 0.37682794628570937, 0.01942787436570797, 0.12257349937655919, 0.6659002360919307, 0.26888169690483155, -0.026666677139788895, -0.030688755233532452]
 #[0.3, 0.2, 0.1, 0.395, 0.005,  0.1, 0.6, 0.295, 0.0, 0.005]
 #[0.2608336598778891, 0.1527989383786458, 0.3599495272757296, 0.21569888036289153, 0.010718994104843985, 0.19964746620817103, 0.15820182158874269, 0.38477257203715615, 0.21678102609238753, 0.04059711407354259]

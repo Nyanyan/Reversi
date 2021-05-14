@@ -125,7 +125,7 @@ class reversi:
             return -1
 
 def match(use_param):
-    ai = [subprocess.Popen('python ai_cython.py'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for _ in range(2)]
+    ai = [subprocess.Popen('a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for _ in range(2)]
     lst = [0, 1]
     shuffle(lst)
     for i in range(2):
@@ -162,10 +162,10 @@ def match(use_param):
         ai[i].kill()
     return rv.nums[lst[0]] - rv.nums[lst[1]] if rv.nums[lst[1]] > 0 and rv.nums[lst[0]] > 0 else hw * hw if rv.nums[lst[1]] == 0 else -hw * hw
 
-population = 10
-match_num = 10
+population = 100
+match_num = 20
 param_num = 10
-tl = 0.1
+tl = 100
 
 param_base = [0.3, 0.2, 0.1, 0.395, 0.005,  0.1, 0.6, 0.295, 0.0, 0.005]
 

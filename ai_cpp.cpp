@@ -84,7 +84,7 @@ int ai_player;
 double weight_weight, canput_weight, confirm_weight, stone_weight, open_weight;
 int max_depth, vacant_cnt;
 double game_ratio;
-unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo;
+unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo, memo_exact;
 unsigned long long marked;
 int min_max_depth;
 int tl, strt;
@@ -307,16 +307,20 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         return end_game(grid_me, grid_op);
     else if (depth == 0)
         return evaluate(grid_me, grid_op, canput, open_val);
-    int y, x, i;
     double val;
-    int n_canput = 0;
+    pair<unsigned long long, unsigned long long> grid_all, n_grid_all;
+    grid_all.first = grid_me;
+    grid_all.second = grid_op;
+    /*
+    val = memo_exact[grid_all];
+    if (val != 0.0)
+        return val;
+    */
+    int i, n_canput = 0;
     unsigned long long mobility = check_mobility(grid_me, grid_op);
     unsigned long long n_grid_me, n_grid_op;
     double priority;
     vector<grid_priority> lst;
-    pair<unsigned long long, unsigned long long> grid_all, n_grid_all;
-    grid_all.first = grid_me;
-    grid_all.second = grid_op;
     for (i = 0; i < hw2; i++){
         if (1 & (mobility >> i)){
             n_canput++;
@@ -372,6 +376,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
                 return alpha;
         }
     }
+    //memo_exact[grid_all] = alpha;
     return alpha;
 }
 
@@ -422,10 +427,10 @@ int main(){
             in_grid_me += (int)(elem == ai_player);
             in_grid_op += (int)(elem == 1 - ai_player);
         }
-        if (vacant_cnt > 15)
+        if (vacant_cnt > 13)
             min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
         else
-            min_max_depth = 15;
+            min_max_depth = 14;
         cerr << "start depth " << min_max_depth << endl;
         max_depth = min_max_depth;
         former_vacant = vacant_cnt;
@@ -447,6 +452,7 @@ int main(){
         memo.clear();
         strt = tim();
         while (tim() - strt < tl / 2){
+            //memo_exact.clear();
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp);
             game_ratio = (double)(hw2 - vacant_cnt + max_depth) / hw2;
