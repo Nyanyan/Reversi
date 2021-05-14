@@ -358,7 +358,7 @@ int cmp(grid_priority p, grid_priority q){
     return p.priority > q.priority;
 }
 
-double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val, unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair>* memo_to, unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair>* memo_from){
+double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val){
     if (max_depth > min_max_depth && tim() - strt > tl)
         return -100000000.0;
     if (skip_cnt == 2)
@@ -395,9 +395,11 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
             n_grid_op = (n_grid_me ^ grid_op) & grid_op;
             n_grid_all.first = n_grid_op;
             n_grid_all.second = n_grid_me;
-            priority = (*memo_from)[n_grid_all];
+            //priority = (*memo_from)[n_grid_all];
+            //if (priority == 0.0)
+            ///    priority = -1.0;
             open_val = calc_open(n_grid_me | n_grid_op, n_grid_me ^ grid_me);
-            priority -= 0.1 * open_val;
+            priority = -0.1 * open_val;
             grid_priority tmp;
             tmp.priority = priority;
             tmp.me = n_grid_me;
@@ -407,7 +409,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         }
     }
     if (n_canput == 0){
-        val = -nega_scout(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0, memo_to, memo_from);
+        val = -nega_scout(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
         if (fabs(val) == 100000000.0)
             return -100000000.0;
         /*
@@ -420,7 +422,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
             memo_lb[grid_all] = val;
         }
         */
-        (*memo_to)[grid_all] = val;
+        //(*memo_to)[grid_all] = val;
         return val;
     }
     if (n_canput > 1)
@@ -428,31 +430,31 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
     open_val = 0;
     if (depth == 1)
         open_val = lst[0].open_val;
-    v = -nega_scout(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, open_val, memo_to, memo_from);
+    v = -nega_scout(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, open_val);
     val = v;
     if (fabs(v) == 100000000.0)
         return -100000000.0;
-    (*memo_to)[grid_all] = v;
+    //(*memo_to)[grid_all] = v;
     if (beta <= v)
         return v;
     alpha = max(alpha, v);
     for (i = 1; i < n_canput; i++){
         if (depth == 1)
             open_val = lst[i].open_val;
-        v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, open_val, memo_to, memo_from);
+        v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, open_val);
         if (fabs(v) == 100000000.0)
             return -100000000.0;
-        (*memo_to)[grid_all] = v;
+        //(*memo_to)[grid_all] = v;
         if (beta <= v)
             return v;
         if (alpha < v){
             alpha = v;
-            v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, open_val, memo_to, memo_from);
+            v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, open_val);
             if (fabs(v) == 100000000.0)
                 return -100000000.0;
             if (beta <= v)
                 return v;
-            (*memo_to)[grid_all] = v;
+            //(*memo_to)[grid_all] = v;
             alpha = max(alpha, v);
         }
         if (val < v)
@@ -468,7 +470,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         memo_lb[grid_all] = val;
     }
     */
-    (*memo_to)[grid_all] = val;
+    //(*memo_to)[grid_all] = val;
     return val;
 }
 
@@ -535,20 +537,25 @@ int main(){
                 grid_all.first = grid_me;
                 grid_all.second = grid_op;
                 grid_priority tmp;
+                tmp.priority = -0.1 * calc_open(grid_me | grid_op, grid_me ^ in_grid_me);
+                /*
                 if (memo_flag)
                     tmp.priority = memo2[grid_all];
                 else
                     tmp.priority = memo1[grid_all];
+                */
                 tmp.me = grid_me;
                 tmp.op = grid_op;
                 tmp.open_val = i;
                 lst.push_back(tmp);
             }
         }
+        /*
         if (memo_flag)
             memo1.clear();
         else
             memo2.clear();
+        */
         strt = tim();
         while (tim() - strt < tl / 2){
             //memo_ub.clear();
@@ -565,10 +572,13 @@ int main(){
             for (i = 0; i < canput; i++){
                 grid_me = lst[i].me;
                 grid_op = lst[i].op;
+                /*
                 if (memo_flag)
                     score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo1, &memo2);
                 else
                     score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo2, &memo1);
+                */
+               score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0);
                 if (fabs(score) == 100000000.0){
                     max_score = -100000000.0;
                     break;
