@@ -162,17 +162,17 @@ def match(use_param):
         ai[i].kill()
     return rv.nums[lst[0]] - rv.nums[lst[1]] if rv.nums[lst[1]] > 0 and rv.nums[lst[0]] > 0 else hw * hw if rv.nums[lst[1]] == 0 else -hw * hw
 
-population = 100
-match_num = 20
-param_num = 10
+population = 10
+match_num = 10
+param_num = 12
 tl = 100
 
-param_base = [0.3, 0.2, 0.1, 0.395, 0.005,  0.1, 0.6, 0.295, 0.0, 0.005]
+#param_base = [0.3, 0.2, 0.1, 0.395, 0.005,  0.1, 0.6, 0.295, 0.0, 0.005]
 
 param = [[0.0 for _ in range(param_num)] for _ in range(population)]
 for i in range(population):
     for j in range(param_num):
-        param[i][j] = param_base[j] + random() * 0.1 - 0.05
+        param[i][j] = random() #param_base[j] + random() * 0.1 - 0.05
     sm = sum(param[i][:param_num // 2])
     for j in range(param_num // 2):
         param[i][j] /= sm

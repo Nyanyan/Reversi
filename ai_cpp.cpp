@@ -83,10 +83,11 @@ struct grid_priority{
 };
 
 int ai_player;
-double weight_weight, canput_weight, confirm_weight, stone_weight, open_weight;
+double weight_weight, canput_weight, confirm_weight, stone_weight, open_weight, out_weight;
 int max_depth, vacant_cnt;
 double game_ratio;
-unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo1, memo2; //, memo_lb, memo_ub;
+unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo1, memo2; 
+unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo_lb, memo_ub;
 unsigned long long marked;
 int min_max_depth;
 int tl, strt;
@@ -181,6 +182,7 @@ double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canp
     int me_cnt = 0, op_cnt = 0;
     int confirm_me = 0, confirm_op = 0;
     int stone_me = 0, stone_op = 0;
+    int out_me = 0, out_op = 0;
     unsigned long long mobility, stones;
     int i, j;
     for (i = 0; i < hw2; i++){
@@ -223,13 +225,34 @@ double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canp
         stone_me += 1 & (grid_me >> i);
         stone_op += 1 & (grid_op >> i);
     }
-    double weight_proc, canput_proc, confirm_proc, stone_proc, open_proc;
+    for (i = 0; i < hw2; i++){
+        if (1 & (stones >> i))
+            continue;
+        out_me += 1 & (grid_me >> (i + 1));
+        out_me += 1 & (grid_me >> (i - 1));
+        out_me += 1 & (grid_me >> (i + hw));
+        out_me += 1 & (grid_me >> (i - hw));
+        out_me += 1 & (grid_me >> (i + hw + 1));
+        out_me += 1 & (grid_me >> (i - hw + 1));
+        out_me += 1 & (grid_me >> (i + hw - 1));
+        out_me += 1 & (grid_me >> (i - hw - 1));
+        out_op += 1 & (grid_op >> (i + 1));
+        out_op += 1 & (grid_op >> (i - 1));
+        out_op += 1 & (grid_op >> (i + hw));
+        out_op += 1 & (grid_op >> (i - hw));
+        out_op += 1 & (grid_op >> (i + hw + 1));
+        out_op += 1 & (grid_op >> (i - hw + 1));
+        out_op += 1 & (grid_op >> (i + hw - 1));
+        out_op += 1 & (grid_op >> (i - hw - 1));
+    }
+    double weight_proc, canput_proc, confirm_proc, stone_proc, open_proc, out_proc;
     weight_proc = weight_me / me_cnt - weight_op / op_cnt;
     canput_proc = (double)(canput_all - canput) / max(1, canput_all) - (double)canput / max(1, canput_all);
     confirm_proc = (double)confirm_me / max(1, confirm_me + confirm_op) - (double)confirm_op / max(1, confirm_me + confirm_op);
     stone_proc = -(double)stone_me / (stone_me + stone_op) + (double)stone_op / (stone_me + stone_op);
     open_proc = max(-1.0, (double)(5 - open_val) / 5);
-    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight;
+    out_proc = -(double)out_me / max(1, out_me + out_op) + (double)out_op / max(1, out_me + out_op);
+    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight + out_proc * out_weight;
 }
 
 double end_game(unsigned long long grid_me, unsigned long long grid_op){
@@ -369,7 +392,6 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
     pair<unsigned long long, unsigned long long> grid_all, n_grid_all;
     grid_all.first = grid_me;
     grid_all.second = grid_op;
-    /*
     lb = memo_lb[grid_all];
     if (lb != 0.0){
         if (lb >= beta)
@@ -382,7 +404,6 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
             return ub;
         beta = min(beta, ub);
     }
-    */
     int i, n_canput = 0;
     unsigned long long mobility = check_mobility(grid_me, grid_op);
     unsigned long long n_grid_me, n_grid_op;
@@ -460,7 +481,6 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         if (val < v)
             val = v;
     }
-    /*
     if (val <= alpha)
         memo_ub[grid_all] = val;
     else if (val >= beta)
@@ -469,7 +489,6 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         memo_ub[grid_all] = val;
         memo_lb[grid_all] = val;
     }
-    */
     //(*memo_to)[grid_all] = val;
     return val;
 }
@@ -481,7 +500,7 @@ double map_double(double s, double e, double x){
 int main(){
     int ansy, ansx, outy, outx, i, canput, former_depth = 9, former_vacant = hw2 - 4;
     double score, max_score;
-    double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e;
+    double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
     unsigned long long in_grid_me, in_grid_op, in_mobility, grid_me, grid_op;
     vector<grid_priority> lst;
     pair<unsigned long long, unsigned long long> grid_all;
@@ -494,11 +513,13 @@ int main(){
     cin >> confirm_weight_s;
     cin >> stone_weight_s;
     cin >> open_weight_s;
+    cin >> out_weight_s;
     cin >> weight_weight_e;
     cin >> canput_weight_e;
     cin >> confirm_weight_e;
     cin >> stone_weight_e;
     cin >> open_weight_e;
+    cin >> out_weight_e;
     if (ai_player == 0)
         cerr << "AI initialized AI is Black" << endl;
     else
@@ -558,8 +579,8 @@ int main(){
         */
         strt = tim();
         while (tim() - strt < tl / 2){
-            //memo_ub.clear();
-            //memo_lb.clear();
+            memo_ub.clear();
+            memo_lb.clear();
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp);
             game_ratio = (double)(hw2 - vacant_cnt + max_depth) / hw2;
@@ -568,6 +589,7 @@ int main(){
             confirm_weight = map_double(confirm_weight_s, confirm_weight_e, game_ratio);
             stone_weight = map_double(stone_weight_s, stone_weight_e, game_ratio);
             open_weight = map_double(open_weight_s, open_weight_e, game_ratio);
+            out_weight = map_double(out_weight_s, out_weight_e, game_ratio);
             max_score = -65.0;
             for (i = 0; i < canput; i++){
                 grid_me = lst[i].me;
@@ -578,7 +600,7 @@ int main(){
                 else
                     score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo2, &memo1);
                 */
-               score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0);
+                score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0);
                 if (fabs(score) == 100000000.0){
                     max_score = -100000000.0;
                     break;
