@@ -73,6 +73,8 @@ unsigned long long confirm_num[4] = {
     0b1000000010000000100000001000000010000000100000001000000010000000
 };
 
+//int move_arr[256][256][8];
+
 struct grid_priority{
     double priority;
     unsigned long long me;
@@ -84,7 +86,7 @@ int ai_player;
 double weight_weight, canput_weight, confirm_weight, stone_weight, open_weight;
 int max_depth, vacant_cnt;
 double game_ratio;
-unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo, memo_exact;
+unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo1, memo2; //, memo_lb, memo_ub;
 unsigned long long marked;
 int min_max_depth;
 int tl, strt;
@@ -266,7 +268,7 @@ unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, 
     int i;
     put = (unsigned long long)1 << place;
     rev1 = 0;
-    for (i = 0; i < hw; i++){
+    for (i = 0; i < 8; i++){
         rev2 = 0;
         mask = transfer(put, i);
         while (mask != 0 && (mask & grid_op) != 0){
@@ -278,7 +280,63 @@ unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, 
     }
     return grid_me ^ (put | rev1);
 }
+/*
+void move_init(){
+    unsigned long long grid_me, grid_op;
+    int place;
+    for (grid_me = 0; grid_me < 256; grid_me++){
+        for (grid_op = 0; grid_op < 256; grid_op++){
+            if (grid_me & grid_op)
+                continue;
+            for (place = 0; place < hw; place++){
+                if (1 & (grid_me >> place) || 1 & (grid_op >> place))
+                    continue;
+                move_arr[grid_me][grid_op][place] = move_slow((unsigned long long)grid_me, (unsigned long long)grid_op, place);
+            }
+        }
+    }
+}
 
+unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place){
+    unsigned long long me_proc, op_proc, res = grid_me, tmp;
+    int y, x, i, x_start;
+    y = place >> 3;
+    x = place & 0b111;
+    me_proc = (grid_me >> y) & 0b11111111;
+    op_proc = (grid_op >> y) & 0b11111111;
+    res |= move_arr[me_proc][op_proc][x] << y; // 横
+    me_proc = 0;
+    op_proc = 0;
+    for (i = 0; i < hw; i++){
+        me_proc |= (1 & (grid_me >> (i * hw + x))) << i;
+        op_proc |= (1 & (grid_op >> (i * hw + x))) << i;
+    }
+    tmp = move_arr[me_proc][op_proc][y]; // 縦
+    for (i = 0; i < hw; i++)
+        res |= (1 & (tmp >> i)) << (i * hw + x);
+    me_proc = 0;
+    op_proc = 0;
+    x_start = y - x;
+    for (i = 0; i < hw; i++){
+        me_proc |= (1 & (grid_me >> (i * (hw + 1) + x_start))) << i;
+        op_proc |= (1 & (grid_op >> (i * (hw + 1) + x_start))) << i;
+    }
+    tmp = move_arr[me_proc][op_proc][y]; // 左上->右下
+    for (i = 0; i < hw; i++)
+        res |= (1 & (tmp >> i)) << (i * (hw + 1) + x_start);
+    me_proc = 0;
+    op_proc = 0;
+    x_start = y + x;
+    for (i = 0; i < hw; i++){
+        me_proc |= (1 & (grid_me >> (i * (hw - 1) + x_start))) << i;
+        op_proc |= (1 & (grid_op >> (i * (hw - 1) + x_start))) << i;
+    }
+    tmp = move_arr[me_proc][op_proc][x]; // 右上->左下
+    for (i = 0; i < hw; i++)
+        res |= (1 & (tmp >> i)) << (i * (hw - 1) + x_start);
+    return res;
+}
+*/
 int calc_open(unsigned long long stones, unsigned long long rev){
     int i, res = 0;
     for (i = 0; i < hw2; i++){
@@ -300,21 +358,30 @@ int cmp(grid_priority p, grid_priority q){
     return p.priority > q.priority;
 }
 
-double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val){
+double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val, unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair>* memo_to, unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair>* memo_from){
     if (max_depth > min_max_depth && tim() - strt > tl)
         return -100000000.0;
     if (skip_cnt == 2)
         return end_game(grid_me, grid_op);
     else if (depth == 0)
         return evaluate(grid_me, grid_op, canput, open_val);
-    double val;
+    double val, v, ub, lb;
     pair<unsigned long long, unsigned long long> grid_all, n_grid_all;
     grid_all.first = grid_me;
     grid_all.second = grid_op;
     /*
-    val = memo_exact[grid_all];
-    if (val != 0.0)
-        return val;
+    lb = memo_lb[grid_all];
+    if (lb != 0.0){
+        if (lb >= beta)
+            return lb;
+        alpha = max(alpha, lb);
+    }
+    ub = memo_ub[grid_all];
+    if (ub != 0.0){
+        if (alpha >= ub || ub == lb)
+            return ub;
+        beta = min(beta, ub);
+    }
     */
     int i, n_canput = 0;
     unsigned long long mobility = check_mobility(grid_me, grid_op);
@@ -328,7 +395,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
             n_grid_op = (n_grid_me ^ grid_op) & grid_op;
             n_grid_all.first = n_grid_op;
             n_grid_all.second = n_grid_me;
-            priority = memo[n_grid_all];
+            priority = (*memo_from)[n_grid_all];
             open_val = calc_open(n_grid_me | n_grid_op, n_grid_me ^ grid_me);
             priority -= 0.1 * open_val;
             grid_priority tmp;
@@ -340,44 +407,69 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         }
     }
     if (n_canput == 0){
-        val = -nega_scout(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
+        val = -nega_scout(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0, memo_to, memo_from);
         if (fabs(val) == 100000000.0)
             return -100000000.0;
-        return max(alpha, val);
+        /*
+        if (val <= alpha)
+            memo_ub[grid_all] = val;
+        else if (val >= beta)
+            memo_lb[grid_all] = val;
+        else {
+            memo_ub[grid_all] = val;
+            memo_lb[grid_all] = val;
+        }
+        */
+        (*memo_to)[grid_all] = val;
+        return val;
     }
     if (n_canput > 1)
         sort(lst.begin(), lst.end(), cmp);
     open_val = 0;
     if (depth == 1)
         open_val = lst[0].open_val;
-    val = -nega_scout(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, open_val);
-    if (fabs(val) == 100000000.0)
+    v = -nega_scout(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, open_val, memo_to, memo_from);
+    val = v;
+    if (fabs(v) == 100000000.0)
         return -100000000.0;
-    memo[grid_all] = val;
-    alpha = max(alpha, val);
-    if (alpha >= beta)
-        return alpha;
+    (*memo_to)[grid_all] = v;
+    if (beta <= v)
+        return v;
+    alpha = max(alpha, v);
     for (i = 1; i < n_canput; i++){
         if (depth == 1)
             open_val = lst[i].open_val;
-        val = -nega_scout(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, open_val);
-        if (fabs(val) == 100000000.0)
+        v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, open_val, memo_to, memo_from);
+        if (fabs(v) == 100000000.0)
             return -100000000.0;
-        if (beta <= val)
-            return val;
-        if (alpha < val){
-            alpha = val;
-            val = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, open_val);
-            if (fabs(val) == 100000000.0)
+        (*memo_to)[grid_all] = v;
+        if (beta <= v)
+            return v;
+        if (alpha < v){
+            alpha = v;
+            v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, open_val, memo_to, memo_from);
+            if (fabs(v) == 100000000.0)
                 return -100000000.0;
-            memo[grid_all] = val;
-            alpha = max(alpha, val);
-            if (alpha >= beta)
-                return alpha;
+            if (beta <= v)
+                return v;
+            (*memo_to)[grid_all] = v;
+            alpha = max(alpha, v);
         }
+        if (val < v)
+            val = v;
     }
-    //memo_exact[grid_all] = alpha;
-    return alpha;
+    /*
+    if (val <= alpha)
+        memo_ub[grid_all] = val;
+    else if (val >= beta)
+        memo_lb[grid_all] = val;
+    else {
+        memo_ub[grid_all] = val;
+        memo_lb[grid_all] = val;
+    }
+    */
+    (*memo_to)[grid_all] = val;
+    return val;
 }
 
 double map_double(double s, double e, double x){
@@ -392,6 +484,7 @@ int main(){
     vector<grid_priority> lst;
     pair<unsigned long long, unsigned long long> grid_all;
     int elem;
+    bool memo_flag = true;
     cin >> ai_player;
     cin >> tl;
     cin >> weight_weight_s;
@@ -427,10 +520,10 @@ int main(){
             in_grid_me += (int)(elem == ai_player);
             in_grid_op += (int)(elem == 1 - ai_player);
         }
-        if (vacant_cnt > 13)
+        if (vacant_cnt > 14)
             min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
         else
-            min_max_depth = 14;
+            min_max_depth = 15;
         cerr << "start depth " << min_max_depth << endl;
         max_depth = min_max_depth;
         former_vacant = vacant_cnt;
@@ -442,17 +535,24 @@ int main(){
                 grid_all.first = grid_me;
                 grid_all.second = grid_op;
                 grid_priority tmp;
-                tmp.priority = memo[grid_all];
+                if (memo_flag)
+                    tmp.priority = memo2[grid_all];
+                else
+                    tmp.priority = memo1[grid_all];
                 tmp.me = grid_me;
                 tmp.op = grid_op;
                 tmp.open_val = i;
                 lst.push_back(tmp);
             }
         }
-        memo.clear();
+        if (memo_flag)
+            memo1.clear();
+        else
+            memo2.clear();
         strt = tim();
         while (tim() - strt < tl / 2){
-            //memo_exact.clear();
+            //memo_ub.clear();
+            //memo_lb.clear();
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp);
             game_ratio = (double)(hw2 - vacant_cnt + max_depth) / hw2;
@@ -465,7 +565,10 @@ int main(){
             for (i = 0; i < canput; i++){
                 grid_me = lst[i].me;
                 grid_op = lst[i].op;
-                score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0);
+                if (memo_flag)
+                    score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo1, &memo2);
+                else
+                    score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo2, &memo1);
                 if (fabs(score) == 100000000.0){
                     max_score = -100000000.0;
                     break;
@@ -491,6 +594,7 @@ int main(){
             }
             max_depth++;
         }
+        memo_flag = !memo_flag;
         cout << outy << " " << outx << endl;
     }
     return 0;
