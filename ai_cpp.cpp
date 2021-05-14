@@ -21,6 +21,8 @@ using namespace std;
 #define hw2 64
 #define window 0.00001
 
+#define SWAP(a,b) ((a != b) && (a += b,b = a - b,a -= b))
+
 int dy[8] = {0, 1, 0, -1, 1, 1, -1, -1};
 int dx[8] = {1, 0, -1, 0, 1, -1, 1, -1};
 
@@ -86,7 +88,8 @@ int ai_player;
 double weight_weight, canput_weight, confirm_weight, stone_weight, open_weight;
 int max_depth, vacant_cnt;
 double game_ratio;
-unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo1, memo2; //, memo_lb, memo_ub;
+//unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo1, memo2;
+unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo_lb, memo_ub;
 unsigned long long marked;
 int min_max_depth;
 int tl, strt;
@@ -175,7 +178,9 @@ int check_confirm(unsigned long long grid, int idx){
     return res;
 }
 
-double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canput, int open_val){
+double evaluate(int player, unsigned long long grid_me, unsigned long long grid_op, int canput, int open_val){
+    if (player != ai_player)
+        SWAP(grid_me, grid_op);
     int canput_all = canput;
     double weight_me = 0.0, weight_op = 0.0;
     int me_cnt = 0, op_cnt = 0;
@@ -229,7 +234,10 @@ double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canp
     confirm_proc = (double)confirm_me / max(1, confirm_me + confirm_op) - (double)confirm_op / max(1, confirm_me + confirm_op);
     stone_proc = -(double)stone_me / (stone_me + stone_op) + (double)stone_op / (stone_me + stone_op);
     open_proc = max(-1.0, (double)(5 - open_val) / 5);
-    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight;
+    double res = weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight;
+    if (player != ai_player)
+        return -res;
+    return res;
 }
 
 double end_game(unsigned long long grid_me, unsigned long long grid_op){
@@ -357,8 +365,8 @@ int calc_open(unsigned long long stones, unsigned long long rev){
 int cmp(grid_priority p, grid_priority q){
     return p.priority > q.priority;
 }
-
-double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val){
+/*
+double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val){
     if (max_depth > min_max_depth && tim() - strt > tl)
         return -100000000.0;
     if (skip_cnt == 2)
@@ -369,7 +377,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
     pair<unsigned long long, unsigned long long> grid_all, n_grid_all;
     grid_all.first = grid_me;
     grid_all.second = grid_op;
-    /*
+
     lb = memo_lb[grid_all];
     if (lb != 0.0){
         if (lb >= beta)
@@ -382,7 +390,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
             return ub;
         beta = min(beta, ub);
     }
-    */
+
     int i, n_canput = 0;
     unsigned long long mobility = check_mobility(grid_me, grid_op);
     unsigned long long n_grid_me, n_grid_op;
@@ -409,10 +417,9 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         }
     }
     if (n_canput == 0){
-        val = -nega_scout(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
+        val = -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
         if (fabs(val) == 100000000.0)
             return -100000000.0;
-        /*
         if (val <= alpha)
             memo_ub[grid_all] = val;
         else if (val >= beta)
@@ -421,16 +428,12 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
             memo_ub[grid_all] = val;
             memo_lb[grid_all] = val;
         }
-        */
         //(*memo_to)[grid_all] = val;
         return val;
     }
     if (n_canput > 1)
         sort(lst.begin(), lst.end(), cmp);
-    open_val = 0;
-    if (depth == 1)
-        open_val = lst[0].open_val;
-    v = -nega_scout(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, open_val);
+    v = -nega_alpha(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val);
     val = v;
     if (fabs(v) == 100000000.0)
         return -100000000.0;
@@ -438,29 +441,26 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
     if (beta <= v)
         return v;
     alpha = max(alpha, v);
-    for (i = 1; i < n_canput; i++){
-        if (depth == 1)
-            open_val = lst[i].open_val;
-        v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, open_val);
+    for (i = 0; i < n_canput; i++){
+        v = -nega_alpha(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val);
         if (fabs(v) == 100000000.0)
             return -100000000.0;
         //(*memo_to)[grid_all] = v;
         if (beta <= v)
             return v;
         if (alpha < v){
-            alpha = v;
-            v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, open_val);
-            if (fabs(v) == 100000000.0)
-                return -100000000.0;
-            if (beta <= v)
-                return v;
-            //(*memo_to)[grid_all] = v;
-            alpha = max(alpha, v);
-        }
-        if (val < v)
-            val = v;
+        alpha = v;
+        v = -nega_alpha(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
+        if (fabs(v) == 100000000.0)
+            return -100000000.0;
+        if (beta <= v)
+            return v;
+        //(*memo_to)[grid_all] = v;
+        alpha = max(alpha, v);
+        //}
+        val = max(val, v);
     }
-    /*
+    
     if (val <= alpha)
         memo_ub[grid_all] = val;
     else if (val >= beta)
@@ -469,9 +469,108 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         memo_ub[grid_all] = val;
         memo_lb[grid_all] = val;
     }
-    */
+    
     //(*memo_to)[grid_all] = val;
     return val;
+}
+*/
+double alpha_beta(int player, unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val){
+    if (max_depth > min_max_depth && tim() - strt > tl)
+        return -100000000.0;
+    if (skip_cnt == 2)
+        return end_game(grid_me, grid_op);
+    else if (depth == 0)
+        return evaluate(player, grid_me, grid_op, canput, open_val);
+    double val, v, ub, lb;
+    pair<unsigned long long, unsigned long long> grid_all;
+    grid_all.first = grid_me;
+    grid_all.second = grid_op;
+    lb = memo_lb[grid_all];
+    if (lb != 0.0){
+        if (lb >= beta)
+            return lb;
+        alpha = max(alpha, lb);
+    }
+    ub = memo_ub[grid_all];
+    if (ub != 0.0){
+        if (alpha >= ub)
+            return ub;
+        beta = min(beta, ub);
+    }
+    int i, n_canput = 0;
+    unsigned long long mobility;
+    if (player == ai_player)
+        mobility = check_mobility(grid_me, grid_op);
+    else
+        mobility = check_mobility(grid_op, grid_me);
+    unsigned long long n_grid_me, n_grid_op;
+    for (i = 0; i < hw2; i++)
+        n_canput += 1 & (mobility >> i);
+    if (n_canput == 0){
+        val = alpha_beta(1 - player, grid_me, grid_op, depth, alpha, beta, skip_cnt + 1, 0, 0);
+        if (fabs(val) == 100000000.0)
+            return -100000000.0;
+        return val;
+    }
+    if (player == ai_player){
+        val = -65.0;
+        for (i = 0; i < hw2; i++){
+            if (1 & (mobility >> i)){
+                n_grid_me = move(grid_me, grid_op, i);
+                n_grid_op = (n_grid_me ^ grid_op) & grid_op;
+                if (depth == 1)
+                    v = alpha_beta(1 - player, n_grid_me, n_grid_op, depth - 1, alpha, beta, 0, n_canput, calc_open(n_grid_me | n_grid_op, n_grid_me ^ grid_me));
+                else
+                    v = alpha_beta(1 - player, n_grid_me, n_grid_op, depth - 1, alpha, beta, 0, n_canput, 0);
+                if (fabs(v) == 100000000.0)
+                    return -100000000.0;
+                val = max(val, v);
+                if (beta <= val){
+                    memo_lb[grid_all] = val;
+                    return val;
+                }
+                alpha = max(alpha, val);
+            }
+        }
+    } else {
+        val = 65.0;
+        for (i = 0; i < hw2; i++){
+            if (1 & (mobility >> i)){
+                n_grid_op = move(grid_op, grid_me, i);
+                n_grid_me = (n_grid_op ^ grid_me) & grid_me;
+                if (depth == 1)
+                    v = alpha_beta(1 - player, n_grid_me, n_grid_op, depth - 1, alpha, beta, 0, n_canput, calc_open(n_grid_me | n_grid_op, n_grid_op ^ grid_op));
+                else
+                    v = alpha_beta(1 - player, n_grid_me, n_grid_op, depth - 1, alpha, beta, 0, n_canput, 0);
+                if (fabs(v) == 100000000.0)
+                    return -100000000.0;
+                val = min(val, v);
+                if (alpha >= val){
+                    memo_ub[grid_all] = val;
+                    return val;
+                }
+                beta = min(beta, val);
+            }
+        }
+    }
+    memo_ub[grid_all] = val;
+    memo_lb[grid_all] = val;
+
+    return val;
+}
+
+double mtd_f(int player, unsigned long long grid_me, unsigned long long grid_op, int depth, int canput){
+    double ub = 65.0, lb = -65.0, beta;
+    double g = 0.0;
+    while (lb < ub){
+        beta = max(g, lb + window);
+        g = alpha_beta(player, grid_me, grid_op, depth, beta - window, beta, 0, canput, 0);
+        if (g < beta)
+            ub = g;
+        else
+            lb = g;
+    }
+    return g;
 }
 
 double map_double(double s, double e, double x){
@@ -558,8 +657,8 @@ int main(){
         */
         strt = tim();
         while (tim() - strt < tl / 2){
-            //memo_ub.clear();
-            //memo_lb.clear();
+            memo_ub.clear();
+            memo_lb.clear();
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp);
             game_ratio = (double)(hw2 - vacant_cnt + max_depth) / hw2;
@@ -574,11 +673,12 @@ int main(){
                 grid_op = lst[i].op;
                 /*
                 if (memo_flag)
-                    score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo1, &memo2);
+                    score = -nega_alpha(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo1, &memo2);
                 else
-                    score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo2, &memo1);
+                    score = -nega_alpha(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0, &memo2, &memo1);
                 */
-               score = -nega_scout(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0);
+                //score = -nega_alpha(grid_op, grid_me, max_depth - 1, -65.0, -max_score, 0, canput, 0);
+                score = mtd_f(1 - ai_player, grid_me, grid_op, max_depth - 1, canput);
                 if (fabs(score) == 100000000.0){
                     max_score = -100000000.0;
                     break;
