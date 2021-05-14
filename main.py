@@ -121,7 +121,7 @@ class reversi:
 
 ai_mode = True
 ai_player = 1
-tl = 30000
+tl = 2000
 
 ai = subprocess.Popen('a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 stdin = str(ai_player) + '\n'

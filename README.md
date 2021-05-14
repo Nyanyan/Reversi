@@ -30,7 +30,7 @@ $ python main.py
 ## How to play
 For each actions, you type a coordinate. For example,
 ```
- ABCDEFGH
+ abcdefgh
 1●●○○○○○○
 2●○●○○○○○
 3●○○●○○○○
@@ -39,8 +39,8 @@ For each actions, you type a coordinate. For example,
 6●○○●○○○
 7●●●○*..
 8○●●●●●*
-Black: H8
+Black: h8
 ```
 Place that you can place is shown as ```*```.
-If you place a stone on the right-down corner, you should write ```H8```.
+If you place a stone on the right-down corner, you should write ```h8```.
 
