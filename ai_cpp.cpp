@@ -23,8 +23,8 @@ using namespace std;
 #define window 0.00001
 #define simple_threshold 2
 
-int dy[8] = {0, 1, 0, -1, 1, 1, -1, -1};
-int dx[8] = {1, 0, -1, 0, 1, -1, 1, -1};
+const int dy[8] = {0, 1, 0, -1, 1, 1, -1, -1};
+const int dx[8] = {1, 0, -1, 0, 1, -1, 1, -1};
 
 int tim(){
     return static_cast<int>(chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch()).count());
@@ -46,7 +46,7 @@ struct HashPair {
 
 size_t HashPair::m_hash_pair_random = (size_t) random_device()();
 
-double weight[hw2] = {
+const double weight[hw2] = {
     3.2323232323232323, 0.23088023088023088, 1.3852813852813852, 1.0389610389610389, 1.0389610389610389, 1.3852813852813852, 0.23088023088023088, 3.2323232323232323,
     0.23088023088023088, 0.0, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.0, 0.23088023088023088,
     1.3852813852813852, 0.9004329004329005, 1.0389610389610389, 0.9466089466089466, 0.9466089466089466, 1.0389610389610389, 0.9004329004329005, 1.3852813852813852,
@@ -57,7 +57,7 @@ double weight[hw2] = {
     3.2323232323232323, 0.23088023088023088, 1.3852813852813852, 1.0389610389610389, 1.0389610389610389, 1.3852813852813852, 0.23088023088023088, 3.2323232323232323
 };
 
-int confirm_lst[hw][hw] = {
+const int confirm_lst[hw][hw] = {
     {63, 62, 61, 60, 59, 58, 57, 56},
     {56, 57, 58, 59, 60, 61, 62, 63},
     {63, 55, 47, 39, 31, 23, 15,  7},
@@ -68,7 +68,7 @@ int confirm_lst[hw][hw] = {
     { 0,  8, 16, 24, 32, 40, 48, 56}
 };
 
-unsigned long long confirm_num[4] = {
+const unsigned long long confirm_num[4] = {
     0b0000000000000000000000000000000000000000000000000000000011111111,
     0b0000000100000001000000010000000100000001000000010000000100000001,
     0b1111111100000000000000000000000000000000000000000000000000000000,
@@ -158,7 +158,7 @@ unsigned long long check_mobility(const unsigned long long P, const unsigned lon
 	MM = _mm_or_si128(MM, _mm_slli_epi64(flip, 9));					moves |= flip1 >> 1;		moves |= flip8 >> 8;
 
 	moves |= _mm_cvtsi128_si64(MM) | mirror_v(_mm_cvtsi128_si64(_mm_unpackhi_epi64(MM, MM)));
-	return moves & ~(P|O);	// mask with empties
+	return moves & ~(P | O);	// mask with empties
 }
 /*
 unsigned long long check_mobility(unsigned long long grid_me, unsigned long long grid_op){
@@ -240,6 +240,195 @@ unsigned long long check_mobility(unsigned long long grid_me, unsigned long long
     return ~(grid_me | grid_op) & res;
 }
 */
+
+unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place){
+    unsigned long long wh, put, m1, m2, m3, m4, m5, m6, rev;
+    put = (unsigned long long)1 << place;
+    rev = 0;
+    wh = grid_op & 0x7e7e7e7e7e7e7e7e;
+    m1 = put >> 1;
+    if( (m1 & wh) != 0 ) {
+        if( ((m2 = m1 >> 1) & wh) == 0  ) {
+            if( (m2 & grid_me) != 0 )
+                rev |= m1;
+        } else if( ((m3 = m2 >> 1) & wh) == 0 ) {
+            if( (m3 & grid_me) != 0 )
+                rev |= m1 | m2;
+        } else if( ((m4 = m3 >> 1) & wh) == 0 ) {
+            if( (m4 & grid_me) != 0 )
+                rev |= m1 | m2 | m3;
+        } else if( ((m5 = m4 >> 1) & wh) == 0 ) {
+            if( (m5 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4;
+        } else if( ((m6 = m5 >> 1) & wh) == 0 ) {
+            if( (m6 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5;
+        } else {
+            if( ((m6 >> 1) & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5 | m6;
+        }
+    }
+    m1 = put << 1;
+    if( (m1 & wh) != 0 ) {
+        if( ((m2 = m1 << 1) & wh) == 0  ) {
+            if( (m2 & grid_me) != 0 )
+                rev |= m1;
+        } else if( ((m3 = m2 << 1) & wh) == 0 ) {
+            if( (m3 & grid_me) != 0 )
+                rev |= m1 | m2;
+        } else if( ((m4 = m3 << 1) & wh) == 0 ) {
+            if( (m4 & grid_me) != 0 )
+                rev |= m1 | m2 | m3;
+        } else if( ((m5 = m4 << 1) & wh) == 0 ) {
+            if( (m5 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4;
+        } else if( ((m6 = m5 << 1) & wh) == 0 ) {
+            if( (m6 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5;
+        } else {
+            if( ((m6 << 1) & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5 | m6;
+        }
+    }
+
+    wh = grid_op & 0x00FFFFFFFFFFFF00;
+    m1 = put >> hw;
+    if( (m1 & wh) != 0 ) {
+        if( ((m2 = m1 >> hw) & wh) == 0  ) {
+            if( (m2 & grid_me) != 0 )
+                rev |= m1;
+        } else if( ((m3 = m2 >> hw) & wh) == 0 ) {
+            if( (m3 & grid_me) != 0 )
+                rev |= m1 | m2;
+        } else if( ((m4 = m3 >> hw) & wh) == 0 ) {
+            if( (m4 & grid_me) != 0 )
+                rev |= m1 | m2 | m3;
+        } else if( ((m5 = m4 >> hw) & wh) == 0 ) {
+            if( (m5 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4;
+        } else if( ((m6 = m5 >> hw) & wh) == 0 ) {
+            if( (m6 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5;
+        } else {
+            if( ((m6 >> hw) & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5 | m6;
+        }
+    }
+    m1 = put << hw;
+    if( (m1 & wh) != 0 ) {
+        if( ((m2 = m1 << hw) & wh) == 0  ) {
+            if( (m2 & grid_me) != 0 )
+                rev |= m1;
+        } else if( ((m3 = m2 << hw) & wh) == 0 ) {
+            if( (m3 & grid_me) != 0 )
+                rev |= m1 | m2;
+        } else if( ((m4 = m3 << hw) & wh) == 0 ) {
+            if( (m4 & grid_me) != 0 )
+                rev |= m1 | m2 | m3;
+        } else if( ((m5 = m4 << hw) & wh) == 0 ) {
+            if( (m5 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4;
+        } else if( ((m6 = m5 << hw) & wh) == 0 ) {
+            if( (m6 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5;
+        } else {
+            if( ((m6 << hw) & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5 | m6;
+        }
+    }
+
+    wh = grid_op & 0x007e7e7e7e7e7e00;
+    m1 = put >> (hw - 1);
+    if( (m1 & wh) != 0 ) {
+        if( ((m2 = m1 >> (hw - 1)) & wh) == 0  ) {
+            if( (m2 & grid_me) != 0 )
+                rev |= m1;
+        } else if( ((m3 = m2 >> (hw - 1)) & wh) == 0 ) {
+            if( (m3 & grid_me) != 0 )
+                rev |= m1 | m2;
+        } else if( ((m4 = m3 >> (hw - 1)) & wh) == 0 ) {
+            if( (m4 & grid_me) != 0 )
+                rev |= m1 | m2 | m3;
+        } else if( ((m5 = m4 >> (hw - 1)) & wh) == 0 ) {
+            if( (m5 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4;
+        } else if( ((m6 = m5 >> (hw - 1)) & wh) == 0 ) {
+            if( (m6 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5;
+        } else {
+            if( ((m6 >> (hw - 1)) & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5 | m6;
+        }
+    }
+    m1 = put << (hw - 1);
+    if( (m1 & wh) != 0 ) {
+        if( ((m2 = m1 << (hw - 1)) & wh) == 0  ) {
+            if( (m2 & grid_me) != 0 )
+                rev |= m1;
+        } else if( ((m3 = m2 << (hw - 1)) & wh) == 0 ) {
+            if( (m3 & grid_me) != 0 )
+                rev |= m1 | m2;
+        } else if( ((m4 = m3 << (hw - 1)) & wh) == 0 ) {
+            if( (m4 & grid_me) != 0 )
+                rev |= m1 | m2 | m3;
+        } else if( ((m5 = m4 << (hw - 1)) & wh) == 0 ) {
+            if( (m5 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4;
+        } else if( ((m6 = m5 << (hw - 1)) & wh) == 0 ) {
+            if( (m6 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5;
+        } else {
+            if( ((m6 << (hw - 1)) & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5 | m6;
+        }
+    }
+
+    m1 = put >> (hw + 1);
+    if( (m1 & wh) != 0 ) {
+        if( ((m2 = m1 >> (hw + 1)) & wh) == 0  ) {
+            if( (m2 & grid_me) != 0 )
+                rev |= m1;
+        } else if( ((m3 = m2 >> (hw + 1)) & wh) == 0 ) {
+            if( (m3 & grid_me) != 0 )
+                rev |= m1 | m2;
+        } else if( ((m4 = m3 >> (hw + 1)) & wh) == 0 ) {
+            if( (m4 & grid_me) != 0 )
+                rev |= m1 | m2 | m3;
+        } else if( ((m5 = m4 >> (hw + 1)) & wh) == 0 ) {
+            if( (m5 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4;
+        } else if( ((m6 = m5 >> (hw + 1)) & wh) == 0 ) {
+            if( (m6 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5;
+        } else {
+            if( ((m6 >> (hw + 1)) & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5 | m6;
+        }
+    }
+    m1 = put << (hw + 1);
+    if( (m1 & wh) != 0 ) {
+        if( ((m2 = m1 << (hw + 1)) & wh) == 0  ) {
+            if( (m2 & grid_me) != 0 )
+                rev |= m1;
+        } else if( ((m3 = m2 << (hw + 1)) & wh) == 0 ) {
+            if( (m3 & grid_me) != 0 )
+                rev |= m1 | m2;
+        } else if( ((m4 = m3 << (hw + 1)) & wh) == 0 ) {
+            if( (m4 & grid_me) != 0 )
+                rev |= m1 | m2 | m3;
+        } else if( ((m5 = m4 << (hw + 1)) & wh) == 0 ) {
+            if( (m5 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4;
+        } else if( ((m6 = m5 << (hw + 1)) & wh) == 0 ) {
+            if( (m6 & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5;
+        } else {
+            if( ((m6 << (hw + 1)) & grid_me) != 0 )
+                rev |= m1 | m2 | m3 | m4 | m5 | m6;
+        }
+    }
+    return grid_me ^ (put | rev);
+}
 
 int check_confirm(unsigned long long grid, int idx){
     int i, res = 0;
@@ -340,6 +529,7 @@ double end_game(unsigned long long grid_me, unsigned long long grid_op){
     return (double)res;
 }
 
+/*
 unsigned long long transfer(unsigned long long put, int k){
     switch(k){
         case 0:
@@ -379,6 +569,8 @@ unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, 
     }
     return grid_me ^ (put | rev1);
 }
+*/
+
 /*
 void move_init(){
     unsigned long long grid_me, grid_op;
