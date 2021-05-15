@@ -75,8 +75,6 @@ const unsigned long long confirm_num[4] = {
     0b1000000010000000100000001000000010000000100000001000000010000000
 };
 
-//int move_arr[256][256][8];
-
 struct grid_priority{
     double priority;
     unsigned long long me;
@@ -99,43 +97,8 @@ int tl, strt;
 #else
 	#define	mirror_v(x)	__builtin_bswap64(x)
 #endif
-/*
-unsigned long long mirror_h (unsigned long long x) {
-    const unsigned long long k1 = 0x5555555555555555;
-    const unsigned long long k2 = 0x3333333333333333;
-    const unsigned long long k4 = 0x0f0f0f0f0f0f0f0f;
-    x = ((x >> 1) & k1) +  2*(x & k1);
-    x = ((x >> 2) & k2) +  4*(x & k2);
-    x = ((x >> 4) & k4) + 16*(x & k4);
-    return x;
-}
 
-unsigned long long transpose(unsigned long long b) {
-	__m256i	v = _mm256_sllv_epi64(_mm256_broadcastq_epi64(_mm_cvtsi64_si128(b)),
-		_mm256_set_epi64x(0, 1, 2, 3));
-	return ((unsigned long long) _mm256_movemask_epi8(v) << 32)
-		| (unsigned int) _mm256_movemask_epi8(_mm256_slli_epi64(v, 4));
-}
-
-unsigned long long left_check_mobility(unsigned long long grid_me, unsigned long long grid_op){
-    unsigned long long res, t, u, v, w;
-    // 左だけ高速に演算できる
-    t = 0b1111111100000000111111110000000011111111000000001111111100000000;
-    u = grid_op & t;
-    v = (grid_me & t) << 1;
-    w = ~(v | grid_op);
-    res = w & (u + v) & t;
-    t = 0b0000000011111111000000001111111100000000111111110000000011111111;
-    u = grid_op & t;
-    v = (grid_me & t) << 1;
-    w = ~(v | grid_op);
-    res |= w & (u + v) & t;
-    return res;
-}
-*/
-
-unsigned long long check_mobility(const unsigned long long P, const unsigned long long O)
-{
+unsigned long long check_mobility(const unsigned long long P, const unsigned long long O){
 	unsigned long long moves, mO, flip1, pre1, flip8, pre8;
 	__m128i	PP, mOO, MM, flip, pre;
 
@@ -160,86 +123,6 @@ unsigned long long check_mobility(const unsigned long long P, const unsigned lon
 	moves |= _mm_cvtsi128_si64(MM) | mirror_v(_mm_cvtsi128_si64(_mm_unpackhi_epi64(MM, MM)));
 	return moves & ~(P | O);	// mask with empties
 }
-/*
-unsigned long long check_mobility(unsigned long long grid_me, unsigned long long grid_op){
-    unsigned long long res;
-    res = left_check_mobility(grid_me, grid_op);
-    res |= mirror_h(left_check_mobility(mirror_h(grid_me), mirror_h(grid_op)));
-    //res |= transpose(left_check_mobility(transpose(grid_me), transpose(grid_op)));
-    //res |= transpose(mirror_v(left_check_mobility(mirror_v(transpose(grid_me)), mirror_v(transpose(grid_op)))));
-
-    unsigned long long t, u, v, w;
-    res = 0;
-    // 左だけ高速に演算できる
-    t = 0b1111111100000000111111110000000011111111000000001111111100000000;
-    u = grid_op & t;
-    v = (grid_me & t) << 1;
-    w = ~(v | grid_op);
-    res |= w & (u + v) & t;
-    t = 0b0000000011111111000000001111111100000000111111110000000011111111;
-    u = grid_op & t;
-    v = (grid_me & t) << 1;
-    w = ~(v | grid_op);
-    res |= w & (u + v) & t;
-    
-    w = grid_op & 0x7e7e7e7e7e7e7e7e;
-    t = w & (grid_me >> 1);
-    t |= w & (t >> 1);
-    t |= w & (t >> 1);
-    t |= w & (t >> 1);
-    t |= w & (t >> 1);
-    t |= w & (t >> 1);
-    res |= (t >> 1);
-
-    w = grid_op & 0x00FFFFFFFFFFFF00;
-    t = w & (grid_me << hw);
-    t |= w & (t << hw);
-    t |= w & (t << hw);
-    t |= w & (t << hw);
-    t |= w & (t << hw);
-    t |= w & (t << hw);
-    res |= (t << hw);
-    t = w & (grid_me >> hw);
-    t |= w & (t >> hw);
-    t |= w & (t >> hw);
-    t |= w & (t >> hw);
-    t |= w & (t >> hw);
-    t |= w & (t >> hw);
-    res |= (t >> hw);
-
-    w = grid_op & 0x007e7e7e7e7e7e00;
-    t = w & (grid_me << (hw - 1));
-    t |= w & (t << (hw - 1));
-    t |= w & (t << (hw - 1));
-    t |= w & (t << (hw - 1));
-    t |= w & (t << (hw - 1));
-    t |= w & (t << (hw - 1));
-    res |= (t << (hw - 1));
-    t = w & (grid_me >> (hw - 1));
-    t |= w & (t >> (hw - 1));
-    t |= w & (t >> (hw - 1));
-    t |= w & (t >> (hw - 1));
-    t |= w & (t >> (hw - 1));
-    t |= w & (t >> (hw - 1));
-    res |= (t >> (hw - 1));
-
-    t = w & (grid_me << (hw + 1));
-    t |= w & (t << (hw + 1));
-    t |= w & (t << (hw + 1));
-    t |= w & (t << (hw + 1));
-    t |= w & (t << (hw + 1));
-    t |= w & (t << (hw + 1));
-    res |= (t << (hw + 1));
-    t = w & (grid_me >> (hw + 1));
-    t |= w & (t >> (hw + 1));
-    t |= w & (t >> (hw + 1));
-    t |= w & (t >> (hw + 1));
-    t |= w & (t >> (hw + 1));
-    t |= w & (t >> (hw + 1));
-    res |= (t >> (hw + 1));
-    return ~(grid_me | grid_op) & res;
-}
-*/
 
 unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place){
     unsigned long long wh, put, m1, m2, m3, m4, m5, m6, rev;
@@ -529,105 +412,6 @@ double end_game(unsigned long long grid_me, unsigned long long grid_op){
     return (double)res;
 }
 
-/*
-unsigned long long transfer(unsigned long long put, int k){
-    switch(k){
-        case 0:
-            return (put << 8) & 0xffffffffffffff00;
-        case 1:
-            return (put << 7) & 0x7f7f7f7f7f7f7f00;
-        case 2:
-            return (put >> 1) & 0x7f7f7f7f7f7f7f7f;
-        case 3:
-            return (put >> 9) & 0x007f7f7f7f7f7f7f;
-        case 4:
-            return (put >> 8) & 0x00ffffffffffffff;
-        case 5:
-            return (put >> 7) & 0x00fefefefefefefe;
-        case 6:
-            return (put << 1) & 0xfefefefefefefefe;
-        case 7:
-            return (put << 9) & 0xfefefefefefefe00;
-    }
-    return 0;
-}
-
-unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place){
-    unsigned long long put, rev1, rev2, mask;
-    int i;
-    put = (unsigned long long)1 << place;
-    rev1 = 0;
-    for (i = 0; i < 8; i++){
-        rev2 = 0;
-        mask = transfer(put, i);
-        while (mask != 0 && (mask & grid_op) != 0){
-            rev2 |= mask;
-            mask = transfer(mask, i);
-        }
-        if ((mask & grid_me) != 0)
-            rev1 |= rev2;
-    }
-    return grid_me ^ (put | rev1);
-}
-*/
-
-/*
-void move_init(){
-    unsigned long long grid_me, grid_op;
-    int place;
-    for (grid_me = 0; grid_me < 256; grid_me++){
-        for (grid_op = 0; grid_op < 256; grid_op++){
-            if (grid_me & grid_op)
-                continue;
-            for (place = 0; place < hw; place++){
-                if (1 & (grid_me >> place) || 1 & (grid_op >> place))
-                    continue;
-                move_arr[grid_me][grid_op][place] = move_slow((unsigned long long)grid_me, (unsigned long long)grid_op, place);
-            }
-        }
-    }
-}
-
-unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place){
-    unsigned long long me_proc, op_proc, res = grid_me, tmp;
-    int y, x, i, x_start;
-    y = place >> 3;
-    x = place & 0b111;
-    me_proc = (grid_me >> y) & 0b11111111;
-    op_proc = (grid_op >> y) & 0b11111111;
-    res |= move_arr[me_proc][op_proc][x] << y; // 横
-    me_proc = 0;
-    op_proc = 0;
-    for (i = 0; i < hw; i++){
-        me_proc |= (1 & (grid_me >> (i * hw + x))) << i;
-        op_proc |= (1 & (grid_op >> (i * hw + x))) << i;
-    }
-    tmp = move_arr[me_proc][op_proc][y]; // 縦
-    for (i = 0; i < hw; i++)
-        res |= (1 & (tmp >> i)) << (i * hw + x);
-    me_proc = 0;
-    op_proc = 0;
-    x_start = y - x;
-    for (i = 0; i < hw; i++){
-        me_proc |= (1 & (grid_me >> (i * (hw + 1) + x_start))) << i;
-        op_proc |= (1 & (grid_op >> (i * (hw + 1) + x_start))) << i;
-    }
-    tmp = move_arr[me_proc][op_proc][y]; // 左上->右下
-    for (i = 0; i < hw; i++)
-        res |= (1 & (tmp >> i)) << (i * (hw + 1) + x_start);
-    me_proc = 0;
-    op_proc = 0;
-    x_start = y + x;
-    for (i = 0; i < hw; i++){
-        me_proc |= (1 & (grid_me >> (i * (hw - 1) + x_start))) << i;
-        op_proc |= (1 & (grid_op >> (i * (hw - 1) + x_start))) << i;
-    }
-    tmp = move_arr[me_proc][op_proc][x]; // 右上->左下
-    for (i = 0; i < hw; i++)
-        res |= (1 & (tmp >> i)) << (i * (hw - 1) + x_start);
-    return res;
-}
-*/
 int calc_open(unsigned long long stones, unsigned long long rev){
     int i, res = 0;
     for (i = 0; i < hw2; i++){
