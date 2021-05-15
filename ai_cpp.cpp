@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <random>
 #include <time.h>
+#include <immintrin.h>
 
 using namespace std;
 
@@ -93,8 +94,81 @@ unsigned long long marked;
 int min_max_depth;
 int tl, strt;
 
-unsigned long long check_mobility(unsigned long long grid_me, unsigned long long grid_op){
+#ifdef _MSC_VER
+	#define	mirror_v(x)	_byteswap_uint64(x)
+#else
+	#define	mirror_v(x)	__builtin_bswap64(x)
+#endif
+/*
+unsigned long long mirror_h (unsigned long long x) {
+    const unsigned long long k1 = 0x5555555555555555;
+    const unsigned long long k2 = 0x3333333333333333;
+    const unsigned long long k4 = 0x0f0f0f0f0f0f0f0f;
+    x = ((x >> 1) & k1) +  2*(x & k1);
+    x = ((x >> 2) & k2) +  4*(x & k2);
+    x = ((x >> 4) & k4) + 16*(x & k4);
+    return x;
+}
+
+unsigned long long transpose(unsigned long long b) {
+	__m256i	v = _mm256_sllv_epi64(_mm256_broadcastq_epi64(_mm_cvtsi64_si128(b)),
+		_mm256_set_epi64x(0, 1, 2, 3));
+	return ((unsigned long long) _mm256_movemask_epi8(v) << 32)
+		| (unsigned int) _mm256_movemask_epi8(_mm256_slli_epi64(v, 4));
+}
+
+unsigned long long left_check_mobility(unsigned long long grid_me, unsigned long long grid_op){
     unsigned long long res, t, u, v, w;
+    // 左だけ高速に演算できる
+    t = 0b1111111100000000111111110000000011111111000000001111111100000000;
+    u = grid_op & t;
+    v = (grid_me & t) << 1;
+    w = ~(v | grid_op);
+    res = w & (u + v) & t;
+    t = 0b0000000011111111000000001111111100000000111111110000000011111111;
+    u = grid_op & t;
+    v = (grid_me & t) << 1;
+    w = ~(v | grid_op);
+    res |= w & (u + v) & t;
+    return res;
+}
+*/
+
+unsigned long long check_mobility(const unsigned long long P, const unsigned long long O)
+{
+	unsigned long long moves, mO, flip1, pre1, flip8, pre8;
+	__m128i	PP, mOO, MM, flip, pre;
+
+	mO = O & 0x7e7e7e7e7e7e7e7eULL;
+	PP  = _mm_set_epi64x(mirror_v(P), P);
+	mOO = _mm_set_epi64x(mirror_v(mO), mO);
+		/* shift=-9:+7 */								/* shift=+1 */			/* shift = +8 */
+	flip = _mm_and_si128(mOO, _mm_slli_epi64(PP, 7));				flip1  = mO & (P << 1);		flip8  = O & (P << 8);
+	flip = _mm_or_si128(flip, _mm_and_si128(mOO, _mm_slli_epi64(flip, 7)));		flip1 |= mO & (flip1 << 1);	flip8 |= O & (flip8 << 8);
+	pre  = _mm_and_si128(mOO, _mm_slli_epi64(mOO, 7));				pre1   = mO & (mO << 1);	pre8   = O & (O << 8);
+	flip = _mm_or_si128(flip, _mm_and_si128(pre, _mm_slli_epi64(flip, 14)));	flip1 |= pre1 & (flip1 << 2);	flip8 |= pre8 & (flip8 << 16);
+	flip = _mm_or_si128(flip, _mm_and_si128(pre, _mm_slli_epi64(flip, 14)));	flip1 |= pre1 & (flip1 << 2);	flip8 |= pre8 & (flip8 << 16);
+	MM = _mm_slli_epi64(flip, 7);							moves = flip1 << 1;		moves |= flip8 << 8;
+		/* shift=-7:+9 */								/* shift=-1 */			/* shift = -8 */
+	flip = _mm_and_si128(mOO, _mm_slli_epi64(PP, 9));				flip1  = mO & (P >> 1);		flip8  = O & (P >> 8);
+	flip = _mm_or_si128(flip, _mm_and_si128(mOO, _mm_slli_epi64(flip, 9)));		flip1 |= mO & (flip1 >> 1);	flip8 |= O & (flip8 >> 8);
+	pre = _mm_and_si128(mOO, _mm_slli_epi64(mOO, 9));				pre1 >>= 1;			pre8 >>= 8;
+	flip = _mm_or_si128(flip, _mm_and_si128(pre, _mm_slli_epi64(flip, 18)));	flip1 |= pre1 & (flip1 >> 2);	flip8 |= pre8 & (flip8 >> 16);
+	flip = _mm_or_si128(flip, _mm_and_si128(pre, _mm_slli_epi64(flip, 18)));	flip1 |= pre1 & (flip1 >> 2);	flip8 |= pre8 & (flip8 >> 16);
+	MM = _mm_or_si128(MM, _mm_slli_epi64(flip, 9));					moves |= flip1 >> 1;		moves |= flip8 >> 8;
+
+	moves |= _mm_cvtsi128_si64(MM) | mirror_v(_mm_cvtsi128_si64(_mm_unpackhi_epi64(MM, MM)));
+	return moves & ~(P|O);	// mask with empties
+}
+/*
+unsigned long long check_mobility(unsigned long long grid_me, unsigned long long grid_op){
+    unsigned long long res;
+    res = left_check_mobility(grid_me, grid_op);
+    res |= mirror_h(left_check_mobility(mirror_h(grid_me), mirror_h(grid_op)));
+    //res |= transpose(left_check_mobility(transpose(grid_me), transpose(grid_op)));
+    //res |= transpose(mirror_v(left_check_mobility(mirror_v(transpose(grid_me)), mirror_v(transpose(grid_op)))));
+
+    unsigned long long t, u, v, w;
     res = 0;
     // 左だけ高速に演算できる
     t = 0b1111111100000000111111110000000011111111000000001111111100000000;
@@ -107,7 +181,7 @@ unsigned long long check_mobility(unsigned long long grid_me, unsigned long long
     v = (grid_me & t) << 1;
     w = ~(v | grid_op);
     res |= w & (u + v) & t;
-
+    
     w = grid_op & 0x7e7e7e7e7e7e7e7e;
     t = w & (grid_me >> 1);
     t |= w & (t >> 1);
@@ -165,6 +239,7 @@ unsigned long long check_mobility(unsigned long long grid_me, unsigned long long
     res |= (t >> (hw + 1));
     return ~(grid_me | grid_op) & res;
 }
+*/
 
 int check_confirm(unsigned long long grid, int idx){
     int i, res = 0;
@@ -390,11 +465,18 @@ double alpha_beta(unsigned long long grid_me, unsigned long long grid_op, int de
     double val, v, ub, lb;
     int i, n_canput = 0;
     unsigned long long mobility = check_mobility(grid_me, grid_op);
-    unsigned long long n_grid_me, n_grid_op;
+    unsigned long long n_grid_me, n_grid_op, x;
     double priority;
     val = -65.0;
+    x = mobility - ((mobility >> 1) & 0x5555555555555555);
+	x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
+	x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
+	x = (x * 0x0101010101010101) >> 56;
+    n_canput = (int)x;
+    /*
     for (i = 0; i < hw2; i++)
         n_canput += 1 & (mobility >> i);
+    */
     if (n_canput == 0)
         return -alpha_beta(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
     for (i = 0; i < hw2; i++){
@@ -484,7 +566,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         if (alpha < v){
             alpha = v;
             if (depth > simple_threshold)
-            v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0);
+                v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0);
             else
                 v = -alpha_beta(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
             if (fabs(v) == 100000000.0)
