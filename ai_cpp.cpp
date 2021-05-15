@@ -695,7 +695,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
     if (skip_cnt == 2)
         return end_game(grid_me, grid_op);
     double val, v, ub, lb;
-    pair<unsigned long long, unsigned long long> grid_all, n_grid_all;
+    pair<unsigned long long, unsigned long long> grid_all;
     grid_all.first = grid_me;
     grid_all.second = grid_op;
     lb = memo_lb[grid_all];
@@ -720,8 +720,6 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
             n_canput++;
             n_grid_me = move(grid_me, grid_op, i);
             n_grid_op = (n_grid_me ^ grid_op) & grid_op;
-            n_grid_all.first = n_grid_op;
-            n_grid_all.second = n_grid_me;
             open_val = calc_open(n_grid_me | n_grid_op, n_grid_me ^ grid_me);
             priority = -0.1 * open_val;
             grid_priority tmp;
