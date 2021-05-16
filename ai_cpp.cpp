@@ -98,7 +98,7 @@ int tl, strt;
 	#define	mirror_v(x)	__builtin_bswap64(x)
 #endif
 
-unsigned long long check_mobility(const unsigned long long P, const unsigned long long O){
+inline unsigned long long check_mobility(const unsigned long long P, const unsigned long long O){
 	unsigned long long moves, mO, flip1, pre1, flip8, pre8;
 	__m128i	PP, mOO, MM, flip, pre;
 
@@ -124,7 +124,7 @@ unsigned long long check_mobility(const unsigned long long P, const unsigned lon
 	return moves & ~(P | O);	// mask with empties
 }
 
-unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place){
+inline unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, int place){
     unsigned long long wh, put, m1, m2, m3, m4, m5, m6, rev;
     put = (unsigned long long)1 << place;
     rev = 0;
@@ -313,7 +313,7 @@ unsigned long long move(unsigned long long grid_me, unsigned long long grid_op, 
     return grid_me ^ (put | rev);
 }
 
-int check_confirm(unsigned long long grid, int idx){
+inline int check_confirm(unsigned long long grid, int idx){
     int i, res = 0;
     for (i = 0; i < hw; i++){
         if (1 & (grid >> confirm_lst[idx][i]))
@@ -324,7 +324,7 @@ int check_confirm(unsigned long long grid, int idx){
     return res;
 }
 
-double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canput, int open_val){
+inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canput, int open_val){
     int canput_all = canput;
     double weight_me = 0.0, weight_op = 0.0;
     int me_cnt = 0, op_cnt = 0;
@@ -403,7 +403,7 @@ double evaluate(unsigned long long grid_me, unsigned long long grid_op, int canp
     return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight + out_proc * out_weight;
 }
 
-double end_game(unsigned long long grid_me, unsigned long long grid_op){
+inline double end_game(unsigned long long grid_me, unsigned long long grid_op){
     int res = 0, i;
     for (i = 0; i < hw2; i++){
         res += 1 & (grid_me >> i);
@@ -412,7 +412,7 @@ double end_game(unsigned long long grid_me, unsigned long long grid_op){
     return (double)res;
 }
 
-int calc_open(unsigned long long stones, unsigned long long rev){
+inline int calc_open(unsigned long long stones, unsigned long long rev){
     int i, res = 0;
     for (i = 0; i < hw2; i++){
         if (1 & (rev >> i)){
@@ -433,6 +433,14 @@ int cmp(grid_priority p, grid_priority q){
     return p.priority > q.priority;
 }
 
+inline int pop_count_ull(unsigned long long x){
+    x = x - ((x >> 1) & 0x5555555555555555);
+	x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
+	x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
+	x = (x * 0x0101010101010101) >> 56;
+    return (int)x;
+}
+
 double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val){
     if (skip_cnt == 2)
         return end_game(grid_me, grid_op);
@@ -444,15 +452,7 @@ double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, int de
     unsigned long long n_grid_me, n_grid_op, x;
     double priority;
     val = -65.0;
-    x = mobility - ((mobility >> 1) & 0x5555555555555555);
-	x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
-	x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
-	x = (x * 0x0101010101010101) >> 56;
-    n_canput = (int)x;
-    /*
-    for (i = 0; i < hw2; i++)
-        n_canput += 1 & (mobility >> i);
-    */
+    n_canput = pop_count_ull(mobility);
     if (n_canput == 0)
         return -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
     for (i = 0; i < hw2; i++){
