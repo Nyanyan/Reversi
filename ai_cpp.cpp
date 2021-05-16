@@ -433,7 +433,7 @@ int cmp(grid_priority p, grid_priority q){
     return p.priority > q.priority;
 }
 
-double alpha_beta(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val){
+double nega_alpha(unsigned long long grid_me, unsigned long long grid_op, int depth, double alpha, double beta, int skip_cnt, int canput, int open_val){
     if (skip_cnt == 2)
         return end_game(grid_me, grid_op);
     else if (depth == 0)
@@ -454,13 +454,13 @@ double alpha_beta(unsigned long long grid_me, unsigned long long grid_op, int de
         n_canput += 1 & (mobility >> i);
     */
     if (n_canput == 0)
-        return -alpha_beta(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
+        return -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
     for (i = 0; i < hw2; i++){
         if (1 & (mobility >> i)){
             n_grid_me = move(grid_me, grid_op, i);
             n_grid_op = (n_grid_me ^ grid_op) & grid_op;
             open_val = calc_open(n_grid_me | n_grid_op, n_grid_me ^ grid_me);
-            v = -alpha_beta(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput, open_val);
+            v = -nega_alpha(n_grid_op, n_grid_me, depth - 1, -beta, -alpha, 0, n_canput, open_val);
             if (fabs(v) == 100000000.0)
                 return -100000000.0;
             if (beta <= v)
@@ -521,7 +521,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
     if (depth > simple_threshold)
         v = -nega_scout(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0);
     else
-        v = -alpha_beta(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val);
+        v = -nega_alpha(lst[0].op, lst[0].me, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val);
     val = v;
     if (fabs(v) == 100000000.0)
         return -100000000.0;
@@ -532,7 +532,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
         if (depth > simple_threshold)
             v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0);
         else
-            v = -alpha_beta(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val);
+            v = -nega_alpha(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val);
         if (fabs(v) == 100000000.0)
             return -100000000.0;
         if (beta <= v)
@@ -542,7 +542,7 @@ double nega_scout(unsigned long long grid_me, unsigned long long grid_op, int de
             if (depth > simple_threshold)
                 v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0);
             else
-                v = -alpha_beta(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
+                v = -nega_alpha(lst[i].op, lst[i].me, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
             if (fabs(v) == 100000000.0)
                 return -100000000.0;
             if (beta <= v)
