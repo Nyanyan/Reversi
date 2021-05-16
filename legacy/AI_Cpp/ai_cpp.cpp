@@ -591,12 +591,10 @@ int main(){
     cin >> stone_weight_e;
     cin >> open_weight_e;
     cin >> out_weight_e;
-    /*
     if (ai_player == 0)
-        //cerr << "AI initialized AI is Black" << endl;
+        cerr << "AI initialized AI is Black" << endl;
     else
-        //cerr << "AI initialized AI is White" << endl;
-    */
+        cerr << "AI initialized AI is White" << endl;
     while (true){
         outy = -1;
         outx = -1;
@@ -616,14 +614,11 @@ int main(){
             in_grid_me += (int)(elem == ai_player);
             in_grid_op += (int)(elem == 1 - ai_player);
         }
-        /*
         if (vacant_cnt > 14)
             min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
         else
             min_max_depth = 15;
-        */
-        min_max_depth = 2;
-        //cerr << "start depth " << min_max_depth << endl;
+        cerr << "start depth " << min_max_depth << endl;
         max_depth = min_max_depth;
         former_vacant = vacant_cnt;
         lst.clear();
@@ -669,7 +664,7 @@ int main(){
                 }
             }
             if (max_score == -100000000.0){
-                //cerr << "depth " << max_depth << " timeoout" << endl;
+                cerr << "depth " << max_depth << " timeoout" << endl;
                 break;
             }
             former_depth = max_depth;
@@ -677,12 +672,12 @@ int main(){
             outx = ansx;
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp_main);
-            //cerr << "depth " << max_depth;
+            cerr << "depth " << max_depth;
             for (i = 0; i < canput; i++)
-                //cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
-            //cerr << " time " << tim() - strt << endl;
+                cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
+            cerr << " time " << tim() - strt << endl;
             if (vacant_cnt < max_depth || fabs(max_score) >= 1.0){
-                //cerr << "game end" << endl;
+                cerr << "game end" << endl;
                 break;
             }
             max_depth++;
