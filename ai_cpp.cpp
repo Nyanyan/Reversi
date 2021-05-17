@@ -584,31 +584,8 @@ int cmp_main(grid_priority_main p, grid_priority_main q){
     return p.priority > q.priority;
 }
 
-int main(){
-    int ansy, ansx, outy, outx, i, j, canput, former_depth = 9, former_vacant = hw2 - 4;
-    double score, max_score;
-    double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
-    unsigned long long in_grid_me, in_grid_op, in_mobility, grid_me, grid_op;
-    vector<grid_priority_main> lst;
-    pair<unsigned long long, unsigned long long> grid_all;
-    int elem;
-    cin >> ai_player;
-    cin >> tl;
-    /*
-    cin >> weight_weight_s;
-    cin >> canput_weight_s;
-    cin >> confirm_weight_s;
-    cin >> stone_weight_s;
-    cin >> open_weight_s;
-    cin >> out_weight_s;
-    cin >> weight_weight_e;
-    cin >> canput_weight_e;
-    cin >> confirm_weight_e;
-    cin >> stone_weight_e;
-    cin >> open_weight_e;
-    cin >> out_weight_e;
-    */
-    /*
+void input_params_stdin(){
+    int i, j;
     for (i = 0; i < hw2 - 4; i++)
         cin >> weight_weight[i];
     for (i = 0; i < hw2 - 4; i++)
@@ -625,9 +602,12 @@ int main(){
         for (j = 0; j < hw2; j++)
             cin >> weight[i][j];
     }
-    */
+}
+
+void input_params_file(){
     FILE *fp;
     char cbuf[1024];
+    int i, j;
     if ((fp = fopen("params.txt", "r")) == NULL){
         cerr << "Parameter file not found please make params.txt" << endl;
         exit(1);
@@ -684,6 +664,22 @@ int main(){
         }
     }
     fclose(fp);
+}
+
+int main(){
+    int ansy, ansx, outy, outx, i, canput, former_depth = 9, former_vacant = hw2 - 4;
+    double score, max_score;
+    double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
+    unsigned long long in_grid_me, in_grid_op, in_mobility, grid_me, grid_op;
+    vector<grid_priority_main> lst;
+    pair<unsigned long long, unsigned long long> grid_all;
+    int elem;
+    cin >> ai_player;
+    cin >> tl;
+
+    //input_params_stdin();
+    input_params_file();
+    
     if (ai_player == 0){
         cerr << "AI initialized AI is Black" << endl;
     }else{
@@ -738,15 +734,6 @@ int main(){
             memo_ub.clear();
             memo_lb.clear();
             game_turn = hw2 - 4 - vacant_cnt + max_depth;
-            /*
-            game_ratio = (double)(hw2 - vacant_cnt + max_depth) / hw2;
-            weight_weight = map_double(weight_weight_s, weight_weight_e, game_ratio);
-            canput_weight = map_double(canput_weight_s, canput_weight_e, game_ratio);
-            confirm_weight = map_double(confirm_weight_s, confirm_weight_e, game_ratio);
-            stone_weight = map_double(stone_weight_s, stone_weight_e, game_ratio);
-            open_weight = map_double(open_weight_s, open_weight_e, game_ratio);
-            out_weight = map_double(out_weight_s, out_weight_e, game_ratio);
-            */
             max_score = -65.0;
             for (i = 0; i < canput; i++){
                 score = -nega_scout(lst[i].op, lst[i].me, max_depth - 1, -65.0, -max_score, 0);
