@@ -134,10 +134,7 @@ class reversi:
 def match():
     ai_player = 1
     ai = subprocess.Popen('./a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    stdin = str(ai_player) + '\n' # white for 1
-    ai.stdin.write(stdin.encode('utf-8'))
-    ai.stdin.flush()
-    stdin = str(tl) + '\n'
+    stdin = str(ai_player) + '\n' + str(tl) + '\n'
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()
     rv = reversi()
@@ -158,7 +155,7 @@ def match():
             with open('state.txt', 'w') as f:
                 f.write(rv.output_file())
             place = r'C:\Program Files\MasterReversiPro'
-            value = r'MRSolver.exe -m 5 -f C:\home\Reversi\state.txt'
+            value = r'MRSolver.exe -m 6 -f C:\home\Reversi\state.txt'
             all_data = subprocess.Popen(value.split(), cwd=place, stdout=subprocess.PIPE, shell=True).communicate()[0]
             for data in all_data.decode().strip().split():
                 if data[:2] == '->':

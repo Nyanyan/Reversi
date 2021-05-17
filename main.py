@@ -125,10 +125,7 @@ tl = 2000
 
 if ai_mode:
     ai = subprocess.Popen('./a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    stdin = str(ai_player) + '\n'
-    ai.stdin.write(stdin.encode('utf-8'))
-    ai.stdin.flush()
-    stdin = str(tl) + '\n' # white for 1
+    stdin = str(ai_player) + '\n' + str(tl) + '\n'
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()
 #        weight  canput  confirm

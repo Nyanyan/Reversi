@@ -226,8 +226,8 @@ def write_output(param, grid):
             for j in range(hw * hw):
                 f.write(str(grid[i][translate[j]]) + '\n')
 
-population = 10
-match_num = 10
+population = 100
+match_num = 20
 param_num = 6
 grid_param_num = 10
 max_turn = 60
