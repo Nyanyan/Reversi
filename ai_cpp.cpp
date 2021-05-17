@@ -15,6 +15,7 @@
 #include <random>
 #include <time.h>
 #include <immintrin.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -57,7 +58,9 @@ const double weight[hw2] = {
     3.2323232323232323, 0.23088023088023088, 1.3852813852813852, 1.0389610389610389, 1.0389610389610389, 1.3852813852813852, 0.23088023088023088, 3.2323232323232323
 };
 */
-const double weight[hw2] = {
+double weight[hw2 - 4][hw2];
+/*
+= {
     2.0634920634920637, 0.7936507936507936, 1.8253968253968254, 0.8571428571428571, 0.8571428571428571, 1.8253968253968254, 0.7936507936507936, 2.0634920634920637,
     0.7936507936507936, 0.0, 0.4603174603174603, 0.873015873015873, 0.873015873015873, 0.4603174603174603, 0.0, 0.7936507936507936,
     1.8253968253968254, 0.4603174603174603, 1.3968253968253967, 1.1111111111111112, 1.1111111111111112, 1.3968253968253967, 0.4603174603174603, 1.8253968253968254,
@@ -67,6 +70,7 @@ const double weight[hw2] = {
     0.7936507936507936, 0.0, 0.4603174603174603, 0.873015873015873, 0.873015873015873, 0.4603174603174603, 0.0, 0.7936507936507936,
     2.0634920634920637, 0.7936507936507936, 1.8253968253968254, 0.8571428571428571, 0.8571428571428571, 1.8253968253968254, 0.7936507936507936, 2.0634920634920637
 };
+*/
 
 const int confirm_lst[hw][hw] = {
     {63, 62, 61, 60, 59, 58, 57, 56},
@@ -100,8 +104,8 @@ struct grid_priority_main{
 };
 
 int ai_player;
-double weight_weight, canput_weight, confirm_weight, stone_weight, open_weight, out_weight;
-int max_depth, vacant_cnt;
+double weight_weight[60], canput_weight[60], confirm_weight[60], stone_weight[60], open_weight[60], out_weight[60];
+int max_depth, vacant_cnt, game_turn;
 double game_ratio;
 unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo1, memo2; 
 unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo_lb, memo_ub;
@@ -348,10 +352,10 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     int i, j;
     for (i = 0; i < hw2; i++){
         if (1 & (grid_me >> (hw2 - i - 1))){
-            weight_me += weight[i];
+            weight_me += weight[game_turn][i];
             me_cnt++;
         } else if (1 & (grid_op >> (hw2 - i - 1))){
-            weight_op += weight[i];
+            weight_op += weight[game_turn][i];
             op_cnt++;
         }
     }
@@ -413,7 +417,7 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     stone_proc = -(double)stone_me / (stone_me + stone_op) + (double)stone_op / (stone_me + stone_op);
     open_proc = max(-1.0, (double)(5 - open_val) / 5);
     out_proc = -(double)out_me / max(1, out_me + out_op) + (double)out_op / max(1, out_me + out_op);
-    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight + out_proc * out_weight;
+    return weight_proc * weight_weight[game_turn] + canput_proc * canput_weight[game_turn] + confirm_proc * confirm_weight[game_turn] + stone_proc * stone_weight[game_turn] + open_proc * open_weight[game_turn] + out_proc * out_weight[game_turn];
 }
 
 inline double end_game(unsigned long long grid_me, unsigned long long grid_op){
@@ -581,7 +585,7 @@ int cmp_main(grid_priority_main p, grid_priority_main q){
 }
 
 int main(){
-    int ansy, ansx, outy, outx, i, canput, former_depth = 9, former_vacant = hw2 - 4;
+    int ansy, ansx, outy, outx, i, j, canput, former_depth = 9, former_vacant = hw2 - 4;
     double score, max_score;
     double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
     unsigned long long in_grid_me, in_grid_op, in_mobility, grid_me, grid_op;
@@ -590,6 +594,7 @@ int main(){
     int elem;
     cin >> ai_player;
     cin >> tl;
+    /*
     cin >> weight_weight_s;
     cin >> canput_weight_s;
     cin >> confirm_weight_s;
@@ -602,10 +607,88 @@ int main(){
     cin >> stone_weight_e;
     cin >> open_weight_e;
     cin >> out_weight_e;
-    if (ai_player == 0)
+    */
+    /*
+    for (i = 0; i < hw2 - 4; i++)
+        cin >> weight_weight[i];
+    for (i = 0; i < hw2 - 4; i++)
+        cin >> canput_weight[i];
+    for (i = 0; i < hw2 - 4; i++)
+        cin >> confirm_weight[i];
+    for (i = 0; i < hw2 - 4; i++)
+        cin >> stone_weight[i];
+    for (i = 0; i < hw2 - 4; i++)
+        cin >> open_weight[i];
+    for (i = 0; i < hw2 - 4; i++)
+        cin >> out_weight[i];
+    for (i = 0; i < hw2 - 4; i++){
+        for (j = 0; j < hw2; j++)
+            cin >> weight[i][j];
+    }
+    */
+    FILE *fp;
+    char cbuf[1024];
+    if ((fp = fopen("params.txt", "r")) == NULL){
+        cerr << "Parameter file not found please make params.txt" << endl;
+        exit(1);
+    }
+    for (i = 0; i < hw2 - 4; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            cerr << "Parameter file broken" << endl;
+            exit(1);
+        }
+        weight_weight[i] = atof(cbuf);
+    }
+    for (i = 0; i < hw2 - 4; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            cerr << "Parameter file broken" << endl;
+            exit(1);
+        }
+        canput_weight[i] = atof(cbuf);
+    }
+    for (i = 0; i < hw2 - 4; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            cerr << "Parameter file broken" << endl;
+            exit(1);
+        }
+        confirm_weight[i] = atof(cbuf);
+    }
+    for (i = 0; i < hw2 - 4; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            cerr << "Parameter file broken" << endl;
+            exit(1);
+        }
+        stone_weight[i] = atof(cbuf);
+    }
+    for (i = 0; i < hw2 - 4; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            cerr << "Parameter file broken" << endl;
+            exit(1);
+        }
+        open_weight[i] = atof(cbuf);
+    }
+    for (i = 0; i < hw2 - 4; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            cerr << "Parameter file broken" << endl;
+            exit(1);
+        }
+        out_weight[i] = atof(cbuf);
+    }
+    for (i = 0; i < hw2 - 4; i++){
+        for (j = 0; j < hw2; j++){
+            if (!fgets(cbuf, 1024, fp)){
+                cerr << "Parameter file broken" << endl;
+                exit(1);
+            }
+            weight[i][j] = atof(cbuf);
+        }
+    }
+    fclose(fp);
+    if (ai_player == 0){
         cerr << "AI initialized AI is Black" << endl;
-    else
+    }else{
         cerr << "AI initialized AI is White" << endl;
+    }
     while (true){
         outy = -1;
         outx = -1;
@@ -629,6 +712,7 @@ int main(){
             min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
         else
             min_max_depth = 15;
+        //min_max_depth = 2;
         cerr << "start depth " << min_max_depth << endl;
         max_depth = min_max_depth;
         former_vacant = vacant_cnt;
@@ -653,6 +737,8 @@ int main(){
         while (tim() - strt < tl / 2){
             memo_ub.clear();
             memo_lb.clear();
+            game_turn = hw2 - 4 - vacant_cnt + max_depth;
+            /*
             game_ratio = (double)(hw2 - vacant_cnt + max_depth) / hw2;
             weight_weight = map_double(weight_weight_s, weight_weight_e, game_ratio);
             canput_weight = map_double(canput_weight_s, canput_weight_e, game_ratio);
@@ -660,6 +746,7 @@ int main(){
             stone_weight = map_double(stone_weight_s, stone_weight_e, game_ratio);
             open_weight = map_double(open_weight_s, open_weight_e, game_ratio);
             out_weight = map_double(out_weight_s, out_weight_e, game_ratio);
+            */
             max_score = -65.0;
             for (i = 0; i < canput; i++){
                 score = -nega_scout(lst[i].op, lst[i].me, max_depth - 1, -65.0, -max_score, 0);
@@ -684,14 +771,16 @@ int main(){
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp_main);
             cerr << "depth " << max_depth;
-            for (i = 0; i < canput; i++)
+            for (i = 0; i < canput; i++){
                 cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
+            }
             cerr << " time " << tim() - strt << endl;
             if (vacant_cnt < max_depth || fabs(max_score) >= 1.0){
                 cerr << "game end" << endl;
                 break;
             }
             max_depth++;
+            //break;
         }
         cout << outy << " " << outx << endl;
     }

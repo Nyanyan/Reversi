@@ -131,19 +131,15 @@ class reversi:
             #print('Draw!', self.nums[0], '-', self.nums[1])
             return -1
 
-def match(use_param):
+def match():
     ai_player = 1
-    ai = subprocess.Popen('a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    ai = subprocess.Popen('./a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdin = str(ai_player) + '\n' # white for 1
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()
     stdin = str(tl) + '\n'
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()
-    for j in range(param_num):
-        stdin = str(use_param[j]) + '\n'
-        ai.stdin.write(stdin.encode('utf-8'))
-        ai.stdin.flush()
     rv = reversi()
     while True:
         if rv.check_pass() and rv.check_pass():
@@ -178,9 +174,10 @@ def match(use_param):
     return rv.nums[ai_player] - rv.nums[1 - ai_player] if rv.nums[1 - ai_player] > 0 else hw * hw
 
 tl = 5000
-param_num = 12
 #double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
-param = [0.25, 0.3, 0.0, 0.2, 0.1, 0.05,  0.1, 0.55, 0.3, 0.0, 0.1, -0.05]
+
+
+#param = [0.25, 0.3, 0.0, 0.2, 0.1, 0.05,  0.1, 0.55, 0.3, 0.0, 0.1, -0.05]
 #[0.30288811933933507, 0.023667040619869673, 0.38484168625403836, 0.11491476667436311, 0.17290370673757446, 0.0007846803748192674, 0.12637328291777342, 0.27743891909702173, 0.3224275886777521, 0.12516714992181288, 0.017010853296369526, 0.1315822060892702]
 #[0.29897487925488575, 0.2563073241985653, 0.09962883504717203, 0.3015360766231666, 0.04355288487621023, 0.10724068225578637, 0.7042631039296219, 0.2370638323464772, -0.0439910303578425, -0.004576588174042863]
 #[0.34536779645622856, 0.1691274097088668, 0.0892489731834872, 0.37682794628570937, 0.01942787436570797, 0.12257349937655919, 0.6659002360919307, 0.26888169690483155, -0.026666677139788895, -0.030688755233532452]
@@ -189,4 +186,4 @@ param = [0.25, 0.3, 0.0, 0.2, 0.1, 0.05,  0.1, 0.55, 0.3, 0.0, 0.1, -0.05]
 #[0.2, 0.1, 0.2, 0.3, 0.2,  0.0, 0.2, 0.6, 0.0, 0.2]
 #[0.35040005986471073, 0.15947540029536195, 0.2057166496401806, 0.2844078901997467, 0.01119177727784958, 0.15605466760887582, 0.8291261122201004, 0.003627442893174265]
 #[0.2672372538812086, 0.29215254984703876, 0.4406101962717526, 0.07938086187048915, 0.29975313369335055, 0.6208660044361604]
-print('match end score', match(param))
+print('match end score', match())
