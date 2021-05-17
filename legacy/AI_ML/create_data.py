@@ -193,7 +193,7 @@ def match(use_param, strt_num):
     return strt_num + ln
 
 population = 1000
-match_num = 100
+match_num = 2000
 param_num = 12
 tl = 100
 
