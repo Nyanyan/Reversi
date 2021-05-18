@@ -758,7 +758,7 @@ int main(){
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp_main);
             cerr << "depth " << max_depth;
-            for (i = 0; i < canput; i++){
+            for (i = 0; i < 1; i++){
                 cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
             }
             cerr << " time " << tim() - strt << endl;
