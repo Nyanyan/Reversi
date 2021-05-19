@@ -331,7 +331,7 @@ inline unsigned long long move(const unsigned long long& grid_me, const unsigned
 
 inline int check_confirm(const unsigned long long& grid, const int& idx){
     int i, res = 0;
-    for (i = 0; i < hw; i++){
+    for (i = 0; i < hw; ++i){
         if (1 & (grid >> confirm_lst[idx][i]))
             res++;
         else
@@ -349,7 +349,7 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     int out_me = 0, out_op = 0;
     unsigned long long mobility, stones;
     int i, j;
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         if (1 & (grid_me >> (hw2 - i - 1))){
             weight_me += weight[i];
             me_cnt++;
@@ -359,17 +359,17 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
         }
     }
     mobility = check_mobility(grid_me, grid_op);
-    for (i = 0; i < hw2; i++)
+    for (i = 0; i < hw2; ++i)
         canput_all += 1 & (mobility >> i);
     stones = grid_me | grid_op;
     for (i = 0; i < hw; i += 2){
         if (stones ^ confirm_num[i / 2]){
-            for (j = 0; j < 2; j++){
+            for (j = 0; j < 2; ++j){
                 confirm_me += max(0, check_confirm(grid_me, i + j) - 1);
                 confirm_op += max(0, check_confirm(grid_op, i + j) - 1);
             }
         } else {
-            for (j = 1; j < hw - 1; j++){
+            for (j = 1; j < hw - 1; ++j){
                 if (1 & (grid_me >> confirm_lst[i][j]))
                     confirm_me++;
                 else if (1 & (grid_op >> confirm_lst[i][j]))
@@ -385,11 +385,11 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     confirm_op += 1 & (grid_op >> (hw - 1));
     confirm_op += 1 & (grid_op >> (hw2 - hw));
     confirm_op += 1 & (grid_op >> (hw2 - 1));
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         stone_me += 1 & (grid_me >> i);
         stone_op += 1 & (grid_op >> i);
     }
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         if (1 & (stones >> i))
             continue;
         out_me += 1 & (grid_me >> (i + 1));
@@ -416,12 +416,12 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     stone_proc = 0; //-(double)stone_me / (stone_me + stone_op) + (double)stone_op / (stone_me + stone_op);
     open_proc = max(-1.0, (double)(3 - open_val) / 3);
     out_proc = -(double)out_me / max(1, out_me + out_op) + (double)out_op / max(1, out_me + out_op);
-    return weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight + out_proc * out_weight;
+    return max(-0.999, min(0.999, weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight + out_proc * out_weight));
 }
 
 inline double end_game(unsigned long long grid_me, unsigned long long grid_op){
     int res = 0, i;
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         res += 1 & (grid_me >> i);
         res -= 1 & (grid_op >> i);
     }
@@ -430,7 +430,7 @@ inline double end_game(unsigned long long grid_me, unsigned long long grid_op){
 
 inline int calc_open(unsigned long long stones, unsigned long long rev){
     int i, res = 0;
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         if (1 & (rev >> i)){
             res += 1 - (1 & (stones >> (i + 1)));
             res += 1 - (1 & (stones >> (i - 1)));
@@ -471,7 +471,7 @@ double nega_alpha(const unsigned long long& grid_me, const unsigned long long& g
     n_canput = pop_count_ull(mobility);
     if (n_canput == 0)
         return -nega_alpha(grid_op, grid_me, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         if (1 & (mobility >> i)){
             n_grid_me = move(grid_me, grid_op, i);
             n_grid_op = (n_grid_me ^ grid_op) & grid_op;
@@ -514,7 +514,7 @@ double nega_scout(const unsigned long long& grid_me, const unsigned long long& g
     unsigned long long n_grid_me, n_grid_op;
     double priority;
     vector<grid_priority> lst;
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         if (1 & (mobility >> i)){
             n_canput++;
             n_grid_me = move(grid_me, grid_op, i);
@@ -540,7 +540,7 @@ double nega_scout(const unsigned long long& grid_me, const unsigned long long& g
     if (beta <= v)
         return v;
     alpha = max(alpha, v);
-    for (i = 1; i < n_canput; i++){
+    for (i = 1; i < n_canput; ++i){
         if (depth > simple_threshold)
             v = -nega_scout(lst[i].op, lst[i].me, depth - 1, -alpha - window, -alpha, 0);
         else
@@ -620,7 +620,7 @@ int main(){
         in_grid_op = 0;
         in_mobility = 0;
         canput = 0;
-        for (i = 0; i < hw2; i++){
+        for (i = 0; i < hw2; ++i){
             cin >> elem;
             vacant_cnt += (int)(elem == -1 || elem == 2);
             in_mobility <<= 1;
@@ -640,7 +640,7 @@ int main(){
         max_depth = min_max_depth;
         former_vacant = vacant_cnt;
         lst.clear();
-        for (i = 0; i < hw2; i++){
+        for (i = 0; i < hw2; ++i){
             if (1 & (in_mobility >> i)){
                 grid_me = move(in_grid_me, in_grid_op, i);
                 grid_op = (grid_me ^ in_grid_op) & in_grid_op;
@@ -672,7 +672,7 @@ int main(){
                 weight[i] = map_double(weight_f[i], weight_l[i], game_ratio);
             */
             max_score = -65.0;
-            for (i = 0; i < canput; i++){
+            for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].op, lst[i].me, max_depth - 1, -65.0, -max_score, 0);
                 if (fabs(score) == 100000000.0){
                     max_score = -100000000.0;
@@ -695,7 +695,7 @@ int main(){
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp_main);
             cerr << "depth " << max_depth;
-            for (i = 0; i < 1; i++){
+            for (i = 0; i < 1; ++i){
                 cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
             }
             cerr << " time " << tim() - strt << endl;
