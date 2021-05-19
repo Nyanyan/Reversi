@@ -46,7 +46,7 @@ struct HashPair {
 };
 
 size_t HashPair::m_hash_pair_random = (size_t) random_device()();
-/*
+
 const double weight[hw2] = {
     3.2323232323232323, 0.23088023088023088, 1.3852813852813852, 1.0389610389610389, 1.0389610389610389, 1.3852813852813852, 0.23088023088023088, 3.2323232323232323,
     0.23088023088023088, 0.0, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.0, 0.23088023088023088,
@@ -57,8 +57,8 @@ const double weight[hw2] = {
     0.23088023088023088, 0.0, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.9004329004329005, 0.0, 0.23088023088023088,
     3.2323232323232323, 0.23088023088023088, 1.3852813852813852, 1.0389610389610389, 1.0389610389610389, 1.3852813852813852, 0.23088023088023088, 3.2323232323232323
 };
-*/
-double weight[hw2 - 4][hw2];
+
+//double weight[hw2 - 4][hw2];
 /*
 = {
     2.0634920634920637, 0.7936507936507936, 1.8253968253968254, 0.8571428571428571, 0.8571428571428571, 1.8253968253968254, 0.7936507936507936, 2.0634920634920637,
@@ -352,10 +352,10 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     int i, j;
     for (i = 0; i < hw2; i++){
         if (1 & (grid_me >> (hw2 - i - 1))){
-            weight_me += weight[game_turn][i];
+            weight_me += weight[i];
             me_cnt++;
         } else if (1 & (grid_op >> (hw2 - i - 1))){
-            weight_op += weight[game_turn][i];
+            weight_op += weight[i];
             op_cnt++;
         }
     }
@@ -417,7 +417,7 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     stone_proc = -(double)stone_me / (stone_me + stone_op) + (double)stone_op / (stone_me + stone_op);
     open_proc = max(-1.0, (double)(5 - open_val) / 5);
     out_proc = -(double)out_me / max(1, out_me + out_op) + (double)out_op / max(1, out_me + out_op);
-    return weight_proc * weight_weight[game_turn] + canput_proc * canput_weight[game_turn] + confirm_proc * confirm_weight[game_turn] + stone_proc * stone_weight[game_turn] + open_proc * open_weight[game_turn] + out_proc * out_weight[game_turn];
+    return max(-0.999, min(0.999, weight_proc * weight_weight[game_turn] + canput_proc * canput_weight[game_turn] + confirm_proc * confirm_weight[game_turn] + stone_proc * stone_weight[game_turn] + open_proc * open_weight[game_turn] + out_proc * out_weight[game_turn]));
 }
 
 inline double end_game(unsigned long long grid_me, unsigned long long grid_op){
@@ -598,10 +598,12 @@ void input_params_stdin(){
         cin >> open_weight[i];
     for (i = 0; i < hw2 - 4; i++)
         cin >> out_weight[i];
+    /*
     for (i = 0; i < hw2 - 4; i++){
         for (j = 0; j < hw2; j++)
             cin >> weight[i][j];
     }
+    */
 }
 
 void input_params_file(){
@@ -654,6 +656,7 @@ void input_params_file(){
         }
         out_weight[i] = atof(cbuf);
     }
+    /*
     for (i = 0; i < hw2 - 4; i++){
         for (j = 0; j < hw2; j++){
             if (!fgets(cbuf, 1024, fp)){
@@ -663,6 +666,7 @@ void input_params_file(){
             weight[i][j] = atof(cbuf);
         }
     }
+    */
     fclose(fp);
 }
 

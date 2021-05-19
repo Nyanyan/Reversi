@@ -208,9 +208,9 @@ def normalize_grid(arr):
         arr[i] /= t[i]
     return arr
 
-def moving_avg(arr):
+def moving_avg(arr, s, e):
     for j in range(len(arr[0])):
-        for i in range(max_turn):
+        for i in range(s, e):
             sm = 0
             for k in range(i, i + avg_num):
                 sm += arr[k][j]
@@ -238,16 +238,16 @@ param_base = [0.25, 0.3, 0.0, 0.2, 0.1, 0.05] #[0.30288811933933507, 0.023667040
 grid_base = [68, -12, 53, -8, -62, -33, -7, 26, 8, -18]
 
 
-param = [[[0.0 for _ in range(param_num)] for _ in range(max_turn + avg_num)] for _ in range(population)]
-grid = [[[0.0 for _ in range(grid_param_num)] for _ in range(max_turn + avg_num)] for _ in range(population)]
+param = [[[0.0 for _ in range(param_num)] for _ in range(max_turn + avg_num * 2)] for _ in range(population)]
+grid = [[[0.0 for _ in range(grid_param_num)] for _ in range(max_turn + avg_num * 2)] for _ in range(population)]
 for i in range(population):
     for j in range(max_turn + avg_num):
         for k in range(param_num):
             param[i][j][k] = random()
         for k in range(grid_param_num):
             grid[i][j][k] = random()
-    param[i] = moving_avg(param[i])
-    grid[i] = moving_avg(grid[i])
+    param[i] = moving_avg(param[i], 0, max_turn + avg_num)
+    grid[i] = moving_avg(grid[i], 0, max_turn + avg_num)
     for j in range(max_turn):
         param[i][j] = normalize_weight(param[i][j])
         grid[i][j] = normalize_grid(grid[i][j])
@@ -260,8 +260,8 @@ for i in range(population):
 
 win_rate = [0 for _ in range(population)]
 parents = [-1, -1]
-children = [[[-1 for _ in range(param_num)] for _ in range(max_turn + avg_num)] for _ in range(2)]
-children_grid = [[[-1 for _ in range(grid_param_num)] for _ in range(max_turn + avg_num)] for _ in range(2)]
+children = [[[-1 for _ in range(param_num)] for _ in range(max_turn + avg_num * 2)] for _ in range(2)]
+children_grid = [[[-1 for _ in range(grid_param_num)] for _ in range(max_turn + avg_num * 2)] for _ in range(2)]
 
 for i in range(population):
     for _ in range(match_num):
@@ -280,11 +280,6 @@ while True:
     while parents[1] == parents[0]:
         parents[1] = randint(0, population - 1)
     div1 = randint(1, max_turn + avg_num - 1)
-    div2 = randint(1, max_turn + avg_num - 1)
-    if div1 == div2:
-        continue
-    if div1 > div2:
-        div1, div2 = div2, div1
     for i in range(div1):
         for j in range(param_num):
             children[0][i][j] = param[parents[0]][i][j]
@@ -292,23 +287,30 @@ while True:
         for j in range(grid_param_num):
             children_grid[0][i][j] = grid[parents[0]][i][j]
             children_grid[1][i][j] = grid[parents[1]][i][j]
-    for i in range(div1, div2):
+    for i in range(div1, max_turn + avg_num * 2):
         for j in range(param_num):
             children[0][i][j] = param[parents[1]][i][j]
             children[1][i][j] = param[parents[0]][i][j]
         for j in range(grid_param_num):
             children_grid[0][i][j] = grid[parents[1]][i][j]
             children_grid[1][i][j] = grid[parents[0]][i][j]
-    for i in range(div2, max_turn + avg_num):
-        for j in range(param_num):
-            children[0][i][j] = param[parents[0]][i][j]
-            children[1][i][j] = param[parents[1]][i][j]
-        for j in range(grid_param_num):
-            children_grid[0][i][j] = grid[parents[0]][i][j]
-            children_grid[1][i][j] = grid[parents[1]][i][j]
+    '''
+    x = range(max_turn)
+    y = [param[parents[0]][j][0] for j in range(max_turn)]
+    plt.plot(x, y)
+    y = [param[parents[1]][j][0] - 0.1 for j in range(max_turn)]
+    plt.plot(x, y)
+    y = [children[0][j][0] - 0.2 for j in range(max_turn)]
+    plt.plot(x, y)
     for i in range(2):
-        children[i] = moving_avg(children[i])
-        children_grid[i] = moving_avg(children_grid[i])
+        children[i] = moving_avg(children[i], max(0, div1 - avg_num), div1)
+        children_grid[i] = moving_avg(children_grid[i], max(0, div1 - avg_num), div1)
+    x = range(max_turn)
+    y = [children[0][j][0] - 0.3 for j in range(max_turn)]
+    plt.plot(x, y)
+    print(div1)
+    plt.show()
+    '''
     for i in range(2):
         for j in range(max_turn):
             children[i][j] = normalize_weight(children[i][j])
