@@ -345,7 +345,7 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     double weight_me = 0.0, weight_op = 0.0;
     int me_cnt = 0, op_cnt = 0;
     int confirm_me = 0, confirm_op = 0;
-    int stone_me = 0, stone_op = 0;
+    //int stone_me = 0, stone_op = 0;
     int out_me = 0, out_op = 0;
     unsigned long long mobility, stones;
     int i, j;
@@ -385,10 +385,12 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
     confirm_op += 1 & (grid_op >> (hw - 1));
     confirm_op += 1 & (grid_op >> (hw2 - hw));
     confirm_op += 1 & (grid_op >> (hw2 - 1));
+    /*
     for (i = 0; i < hw2; ++i){
         stone_me += 1 & (grid_me >> i);
         stone_op += 1 & (grid_op >> i);
     }
+    */
     for (i = 0; i < hw2; ++i){
         if (1 & (stones >> i))
             continue;
@@ -409,14 +411,14 @@ inline double evaluate(unsigned long long grid_me, unsigned long long grid_op, i
         out_op += 1 & (grid_op >> (i + hw - 1));
         out_op += 1 & (grid_op >> (i - hw - 1));
     }
-    double weight_proc, canput_proc, confirm_proc, stone_proc, open_proc, out_proc;
+    double weight_proc, canput_proc, confirm_proc, open_proc, out_proc;
     weight_proc = weight_me / me_cnt - weight_op / op_cnt;
     canput_proc = (double)(canput_all - canput) / max(1, canput_all) - (double)canput / max(1, canput_all);
     confirm_proc = (double)confirm_me / max(1, confirm_me + confirm_op) - (double)confirm_op / max(1, confirm_me + confirm_op);
-    stone_proc = 0; //-(double)stone_me / (stone_me + stone_op) + (double)stone_op / (stone_me + stone_op);
+    //stone_proc = 0; //-(double)stone_me / (stone_me + stone_op) + (double)stone_op / (stone_me + stone_op);
     open_proc = max(-1.0, (double)(3 - open_val) / 3);
     out_proc = -(double)out_me / max(1, out_me + out_op) + (double)out_op / max(1, out_me + out_op);
-    return max(-0.999, min(0.999, weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + stone_proc * stone_weight + open_proc * open_weight + out_proc * out_weight));
+    return max(-0.999, min(0.999, weight_proc * weight_weight + canput_proc * canput_weight + confirm_proc * confirm_weight + open_proc * open_weight + out_proc * out_weight));
 }
 
 inline double end_game(unsigned long long grid_me, unsigned long long grid_op){
@@ -594,16 +596,16 @@ int main(){
     int action_count;
     cin >> ai_player;
     cin >> tl;
-    weight_weight_s = 0.25;
-    canput_weight_s = 0.3;
+    weight_weight_s = 0.3;
+    canput_weight_s = 0.45;
     confirm_weight_s = 0.0;
-    stone_weight_s = 0.2;
+    //stone_weight_s = 0.2;
     open_weight_s = 0.1;
     out_weight_s = 0.05;
     weight_weight_e = 0.1;
     canput_weight_e = 0.55;
     confirm_weight_e = 0.3;
-    stone_weight_e = 0.0;
+    //stone_weight_e = 0.0;
     open_weight_e = 0.1;
     out_weight_e = -0.05;
     
@@ -664,7 +666,7 @@ int main(){
             weight_weight = map_double(weight_weight_s, weight_weight_e, game_ratio);
             canput_weight = map_double(canput_weight_s, canput_weight_e, game_ratio);
             confirm_weight = map_double(confirm_weight_s, confirm_weight_e, game_ratio);
-            stone_weight = map_double(stone_weight_s, stone_weight_e, game_ratio);
+            //stone_weight = map_double(stone_weight_s, stone_weight_e, game_ratio);
             open_weight = map_double(open_weight_s, open_weight_e, game_ratio);
             out_weight = map_double(out_weight_s, out_weight_e, game_ratio);
             /*
