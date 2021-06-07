@@ -78,11 +78,6 @@ struct search_param{
     int strt, tl;
 };
 
-struct board{
-    unsigned long long p;
-    unsigned long long o;
-};
-
 struct grid_priority{
     unsigned long long p;
     unsigned long long o;
@@ -107,14 +102,18 @@ search_param search_param;
 	#define	mirror_v(x)	__builtin_bswap64(x)
 #endif
 
-void print_board(board b){
+int tim(){
+    return static_cast<int>(chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch()).count());
+}
+
+void print_board(unsigned long long p, unsigned long long o){
     int i, j, idx;
     for (i = 0; i < hw; i++){
         for (j = 0; j < hw; j++){
             idx = hw2 - i * hw + j;
-            if (1 & (b.p >> idx))
+            if (1 & (p >> idx))
                 cerr << "P ";
-            else if (1 & (b.o >> idx))
+            else if (1 & (o >> idx))
                 cerr << "O ";
             else
                 cerr << ". ";
@@ -122,10 +121,6 @@ void print_board(board b){
         cerr << endl;
     }
     cerr << endl;
-}
-
-int tim(){
-    return static_cast<int>(chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch()).count());
 }
 
 void init(){
@@ -172,58 +167,6 @@ void init(){
         }
         eval_param.weight_se[i] = atof(cbuf);
     }
-    /*
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.weight_weight_s = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.canput_weight_s = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.confirm_weight_s = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.open_weight_s = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.out_weight_s = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.weight_weight_e = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.canput_weight_e = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.confirm_weight_e = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.open_weight_e = atof(cbuf);
-    if (!fgets(cbuf, 1024, fp)){
-        printf("param.txt broken");
-        exit(1);
-    }
-    eval_param.out_weight_e = atof(cbuf);
-    */
     if ((fp = fopen("const.txt", "r")) == NULL){
         printf("const.txt not exist");
         exit(1);
@@ -264,35 +207,35 @@ void init(){
     }
 }
 
-inline unsigned long long check_mobility(const board& b){
+inline unsigned long long check_mobility(const unsigned long long P, const unsigned long long O){
 	unsigned long long moves, mO, flip1, pre1, flip8, pre8;
 	__m128i	PP, mOO, MM, flip, pre;
-	mO = b.o & 0x7e7e7e7e7e7e7e7eULL;
-	PP  = _mm_set_epi64x(mirror_v(b.p), b.p);
+	mO = O & 0x7e7e7e7e7e7e7e7eULL;
+	PP  = _mm_set_epi64x(mirror_v(P), P);
 	mOO = _mm_set_epi64x(mirror_v(mO), mO);
-	flip = _mm_and_si128(mOO, _mm_slli_epi64(PP, 7));				flip1  = mO & (b.p << 1);		flip8  = b.o & (b.p << 8);
-	flip = _mm_or_si128(flip, _mm_and_si128(mOO, _mm_slli_epi64(flip, 7)));		flip1 |= mO & (flip1 << 1);	flip8 |= b.o & (flip8 << 8);
-	pre  = _mm_and_si128(mOO, _mm_slli_epi64(mOO, 7));				pre1   = mO & (mO << 1);	pre8   = b.o & (b.o << 8);
+	flip = _mm_and_si128(mOO, _mm_slli_epi64(PP, 7));				flip1  = mO & (P << 1);		flip8  = O & (P << 8);
+	flip = _mm_or_si128(flip, _mm_and_si128(mOO, _mm_slli_epi64(flip, 7)));		flip1 |= mO & (flip1 << 1);	flip8 |= O & (flip8 << 8);
+	pre  = _mm_and_si128(mOO, _mm_slli_epi64(mOO, 7));				pre1   = mO & (mO << 1);	pre8   = O & (O << 8);
 	flip = _mm_or_si128(flip, _mm_and_si128(pre, _mm_slli_epi64(flip, 14)));	flip1 |= pre1 & (flip1 << 2);	flip8 |= pre8 & (flip8 << 16);
 	flip = _mm_or_si128(flip, _mm_and_si128(pre, _mm_slli_epi64(flip, 14)));	flip1 |= pre1 & (flip1 << 2);	flip8 |= pre8 & (flip8 << 16);
 	MM = _mm_slli_epi64(flip, 7);							moves = flip1 << 1;		moves |= flip8 << 8;
-	flip = _mm_and_si128(mOO, _mm_slli_epi64(PP, 9));				flip1  = mO & (b.p >> 1);		flip8  = b.o & (b.p >> 8);
-	flip = _mm_or_si128(flip, _mm_and_si128(mOO, _mm_slli_epi64(flip, 9)));		flip1 |= mO & (flip1 >> 1);	flip8 |= b.o & (flip8 >> 8);
+	flip = _mm_and_si128(mOO, _mm_slli_epi64(PP, 9));				flip1  = mO & (P >> 1);		flip8  = O & (P >> 8);
+	flip = _mm_or_si128(flip, _mm_and_si128(mOO, _mm_slli_epi64(flip, 9)));		flip1 |= mO & (flip1 >> 1);	flip8 |= O & (flip8 >> 8);
 	pre = _mm_and_si128(mOO, _mm_slli_epi64(mOO, 9));				pre1 >>= 1;			pre8 >>= 8;
 	flip = _mm_or_si128(flip, _mm_and_si128(pre, _mm_slli_epi64(flip, 18)));	flip1 |= pre1 & (flip1 >> 2);	flip8 |= pre8 & (flip8 >> 16);
 	flip = _mm_or_si128(flip, _mm_and_si128(pre, _mm_slli_epi64(flip, 18)));	flip1 |= pre1 & (flip1 >> 2);	flip8 |= pre8 & (flip8 >> 16);
 	MM = _mm_or_si128(MM, _mm_slli_epi64(flip, 9));					moves |= flip1 >> 1;		moves |= flip8 >> 8;
 	moves |= _mm_cvtsi128_si64(MM) | mirror_v(_mm_cvtsi128_si64(_mm_unpackhi_epi64(MM, MM)));
-	return moves & ~(b.p | b.o);
+	return moves & ~(P | O);
 }
 
-inline board move(const board& b, const int& pos){
+inline unsigned long long move(const unsigned long long p, const unsigned long long o, const int& pos){
     __m256i	PP, OO, flip, outflank, mask;
 	__m128i	flip2, OP;
 	const __m256 exp_mask = _mm256_castsi256_ps(_mm256_set1_epi32(0xff800000));
 	const __m256i minusone = _mm256_set1_epi64x(-1);
 
-    OP = _mm_set_epi64x(b.o, b.p);
+    OP = _mm_set_epi64x(o, p);
 	PP = _mm256_broadcastq_epi64(OP);
 	OO = _mm256_permute4x64_epi64(_mm256_castsi128_si256(OP), 0x55);
 
@@ -316,10 +259,7 @@ inline board move(const board& b, const int& pos){
     unsigned long long put, rev;
     put = 1ULL << pos;
     rev = _mm_cvtsi128_si64(flip2);
-    board res;
-    res.o = b.p ^ (put | rev);
-    res.p = b.o ^ rev;
-    return res;
+    return p ^ (put | rev);
 }
 
 inline int check_confirm(const unsigned long long& grid, const int& idx){
@@ -333,7 +273,7 @@ inline int check_confirm(const unsigned long long& grid, const int& idx){
     return res;
 }
 
-inline double evaluate(const board& b, int canput, int open_val){
+inline double evaluate(const unsigned long long p, const unsigned long long o, int canput, int open_val){
     int canput_all = canput;
     double weight_me = 0.0, weight_op = 0.0;
     int me_cnt = 0, op_cnt = 0;
@@ -343,60 +283,60 @@ inline double evaluate(const board& b, int canput, int open_val){
     unsigned long long mobility, stones;
     int i, j;
     for (i = 0; i < hw2; ++i){
-        if (1 & (b.p >> (hw2 - i - 1))){
+        if (1 & (p >> (hw2 - i - 1))){
             weight_me += eval_param.weight[i];
             me_cnt++;
-        } else if (1 & (b.o >> (hw2 - i - 1))){
+        } else if (1 & (o >> (hw2 - i - 1))){
             weight_op += eval_param.weight[i];
             op_cnt++;
         }
     }
-    mobility = check_mobility(b);
+    mobility = check_mobility(p, o);
     for (i = 0; i < hw2; ++i)
         canput_all += 1 & (mobility >> i);
-    stones = b.p | b.o;
+    stones = p | o;
     for (i = 0; i < hw; i += 2){
         if (stones ^ confirm_param.num[i / 2]){
             for (j = 0; j < 2; ++j){
-                confirm_me += max(0, check_confirm(b.p, i + j) - 1);
-                confirm_op += max(0, check_confirm(b.o, i + j) - 1);
+                confirm_me += max(0, check_confirm(p, i + j) - 1);
+                confirm_op += max(0, check_confirm(o, i + j) - 1);
             }
         } else {
             for (j = 1; j < hw - 1; ++j){
-                if (1 & (b.p >> confirm_param.lst[i][j]))
+                if (1 & (p >> confirm_param.lst[i][j]))
                     confirm_me++;
-                else if (1 & (b.o >> confirm_param.lst[i][j]))
+                else if (1 & (o >> confirm_param.lst[i][j]))
                     confirm_op++;
             }
         }
     }
-    confirm_me += 1 & b.p;
-    confirm_me += 1 & (b.p >> hw_m1);
-    confirm_me += 1 & (b.p >> hw2_mhw);
-    confirm_me += 1 & (b.p >> hw2_m1);
-    confirm_op += 1 & b.o;
-    confirm_op += 1 & (b.o >> hw_m1);
-    confirm_op += 1 & (b.o >> hw2_mhw);
-    confirm_op += 1 & (b.o >> hw2_m1);
+    confirm_me += 1 & p;
+    confirm_me += 1 & (p >> hw_m1);
+    confirm_me += 1 & (p >> hw2_mhw);
+    confirm_me += 1 & (p >> hw2_m1);
+    confirm_op += 1 & o;
+    confirm_op += 1 & (o >> hw_m1);
+    confirm_op += 1 & (o >> hw2_mhw);
+    confirm_op += 1 & (o >> hw2_m1);
     for (i = 0; i < hw2; ++i){
         if (1 & (stones >> i))
             continue;
-        out_me += 1 & (b.p >> (i + 1));
-        out_me += 1 & (b.p >> (i - 1));
-        out_me += 1 & (b.p >> (i + hw));
-        out_me += 1 & (b.p >> (i - hw));
-        out_me += 1 & (b.p >> (i + hw_p1));
-        out_me += 1 & (b.p >> (i - hw_m1));
-        out_me += 1 & (b.p >> (i + hw_m1));
-        out_me += 1 & (b.p >> (i - hw_p1));
-        out_op += 1 & (b.o >> (i + 1));
-        out_op += 1 & (b.o >> (i - 1));
-        out_op += 1 & (b.o >> (i + hw));
-        out_op += 1 & (b.o >> (i - hw));
-        out_op += 1 & (b.o >> (i + hw_p1));
-        out_op += 1 & (b.o >> (i - hw_m1));
-        out_op += 1 & (b.o >> (i + hw_m1));
-        out_op += 1 & (b.o >> (i - hw_p1));
+        out_me += 1 & (p >> (i + 1));
+        out_me += 1 & (p >> (i - 1));
+        out_me += 1 & (p >> (i + hw));
+        out_me += 1 & (p >> (i - hw));
+        out_me += 1 & (p >> (i + hw_p1));
+        out_me += 1 & (p >> (i - hw_m1));
+        out_me += 1 & (p >> (i + hw_m1));
+        out_me += 1 & (p >> (i - hw_p1));
+        out_op += 1 & (o >> (i + 1));
+        out_op += 1 & (o >> (i - 1));
+        out_op += 1 & (o >> (i + hw));
+        out_op += 1 & (o >> (i - hw));
+        out_op += 1 & (o >> (i + hw_p1));
+        out_op += 1 & (o >> (i - hw_m1));
+        out_op += 1 & (o >> (i + hw_m1));
+        out_op += 1 & (o >> (i - hw_p1));
     }
     double weight_proc, canput_proc, confirm_proc, open_proc, out_proc;
     weight_proc = weight_me / me_cnt - weight_op / op_cnt;
@@ -414,11 +354,11 @@ inline double evaluate(const board& b, int canput, int open_val){
     ));
 }
 
-inline double end_game(const board& b){
+inline double end_game(const unsigned long long p, const unsigned long long o){
     int res = 0, i;
     for (i = 0; i < hw2; ++i){
-        res += 1 & (b.p >> i);
-        res -= 1 & (b.o >> i);
+        res += 1 & (p >> i);
+        res -= 1 & (o >> i);
     }
     return (double)res;
 }
@@ -452,27 +392,25 @@ inline int pop_count_ull(unsigned long long x){
     return (int)x;
 }
 
-double nega_alpha(board b, const int& depth, double alpha, double beta, const int& skip_cnt, const int& canput, int open_val){
+double nega_alpha(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt, const int& canput, int open_val){
     if (skip_cnt == 2)
-        return end_game(b);
+        return end_game(p, o);
     else if (depth == 0)
-        return evaluate(b, canput, open_val);
+        return evaluate(p, o, canput, open_val);
     double val, v, ub, lb;
     int i, n_canput;
-    unsigned long long mobility = check_mobility(b);
-    unsigned long long x;
-    board n_b;
+    unsigned long long mobility = check_mobility(p, o);
+    unsigned long long np, no, x;
     double priority;
     val = -65.0;
     n_canput = pop_count_ull(mobility);
-    if (n_canput == 0){
-        swap(b.p, b.o);
-        return -nega_alpha(b, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
-    }
+    if (n_canput == 0)
+        return -nega_alpha(o, p, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
     for (i = 0; i < hw2; ++i){
         if (1 & (mobility >> i)){
-            n_b = move(b, i);
-            v = -nega_alpha(n_b, depth - 1, -beta, -alpha, 0, n_canput, calc_open(n_b.o | n_b.p, n_b.o ^ b.p));
+            np = move(p, o, i);
+            no = (np ^ o) & o;
+            v = -nega_alpha(no, np, depth - 1, -beta, -alpha, 0, n_canput, calc_open(np | no, np ^ p));
             if (fabs(v) == 100000000.0)
                 return -100000000.0;
             if (beta <= v)
@@ -485,15 +423,15 @@ double nega_alpha(board b, const int& depth, double alpha, double beta, const in
     return val;
 }
 
-double nega_scout(board b, const int& depth, double alpha, double beta, const int& skip_cnt){
+double nega_scout(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt){
     if (search_param.max_depth > search_param.min_max_depth && tim() - search_param.strt > search_param.tl)
         return -100000000.0;
     if (skip_cnt == 2)
-        return end_game(b);
+        return end_game(p, o);
     double val, v, ub, lb;
     pair<unsigned long long, unsigned long long> grid_all;
-    grid_all.first = b.p;
-    grid_all.second = b.o;
+    grid_all.first = p;
+    grid_all.second = o;
     lb = search_param.memo_lb[grid_all];
     if (lb != 0.0){
         if (lb >= beta)
@@ -507,33 +445,30 @@ double nega_scout(board b, const int& depth, double alpha, double beta, const in
         beta = min(beta, ub);
     }
     int i, n_canput = 0, open_val;
-    unsigned long long mobility = check_mobility(b);
-    board n_b;
+    unsigned long long mobility = check_mobility(p, o);
+    unsigned long long np, no;
     double priority;
     vector<grid_priority> lst;
     for (i = 0; i < hw2; ++i){
         if (1 & (mobility >> i)){
             ++n_canput;
-            n_b = move(b, i);
+            np = move(p, o, i);
+            no = (np ^ o) & o;
             grid_priority tmp;
-            tmp.open_val = calc_open(n_b.o | n_b.p, n_b.o ^ b.p);
-            tmp.p = n_b.p;
-            tmp.o = n_b.o;
+            tmp.open_val = calc_open(np | no, np ^ p);
+            tmp.p = np;
+            tmp.o = no;
             lst.push_back(tmp);
         }
     }
-    if (n_canput == 0){
-        swap(b.p, b.o);
-        return -nega_scout(b, depth, -beta, -alpha, skip_cnt + 1);
-    }
+    if (n_canput == 0)
+        return -nega_scout(o, p, depth, -beta, -alpha, skip_cnt + 1);
     if (n_canput > 1)
         sort(lst.begin(), lst.end(), cmp);
-    n_b.p = lst[0].p;
-    n_b.o = lst[0].o;
     if (depth > simple_threshold)
-        v = -nega_scout(n_b, depth - 1, -beta, -alpha, 0);
+        v = -nega_scout(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0);
     else
-        v = -nega_alpha(n_b, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val);
+        v = -nega_alpha(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val);
     val = v;
     if (fabs(v) == 100000000.0)
         return -100000000.0;
@@ -541,12 +476,10 @@ double nega_scout(board b, const int& depth, double alpha, double beta, const in
         return v;
     alpha = max(alpha, v);
     for (i = 1; i < n_canput; ++i){
-        n_b.p = lst[i].p;
-        n_b.o = lst[i].o;
         if (depth > simple_threshold)
-            v = -nega_scout(n_b, depth - 1, -alpha - window, -alpha, 0);
+            v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0);
         else
-            v = -nega_alpha(n_b, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val);
+            v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val);
         if (fabs(v) == 100000000.0)
             return -100000000.0;
         if (beta <= v)
@@ -554,9 +487,9 @@ double nega_scout(board b, const int& depth, double alpha, double beta, const in
         if (alpha < v){
             alpha = v;
             if (depth > simple_threshold)
-                v = -nega_scout(n_b, depth - 1, -beta, -alpha, 0);
+                v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0);
             else
-                v = -nega_alpha(n_b, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
+                v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
             if (fabs(v) == 100000000.0)
                 return -100000000.0;
             if (beta <= v)
@@ -590,7 +523,7 @@ int main(){
     double score, max_score;
     double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
     unsigned long long in_mobility;
-    board in_b, b;
+    unsigned long long p, o, np, no;
     vector<grid_priority_main> lst;
     pair<unsigned long long, unsigned long long> grid_all;
     int elem;
@@ -611,8 +544,8 @@ int main(){
         outy = -1;
         outx = -1;
         vacant_cnt = 0;
-        in_b.p = 0;
-        in_b.o = 0;
+        p = 0;
+        o = 0;
         in_mobility = 0;
         canput = 0;
         for (i = 0; i < hw2; ++i){
@@ -621,10 +554,10 @@ int main(){
             in_mobility <<= 1;
             in_mobility += (int)(elem == 2);
             canput += (int)(elem == 2);
-            in_b.p <<= 1;
-            in_b.o <<= 1;
-            in_b.p += (int)(elem == ai_player);
-            in_b.o += (int)(elem == 1 - ai_player);
+            p <<= 1;
+            o <<= 1;
+            p += (int)(elem == ai_player);
+            o += (int)(elem == 1 - ai_player);
         }
         if (vacant_cnt > 14)
             search_param.min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
@@ -637,13 +570,12 @@ int main(){
         lst.clear();
         for (i = 0; i < hw2; ++i){
             if (1 & (in_mobility >> i)){
-                b = move(in_b, i);
-                grid_all.first = b.p;
-                grid_all.second = b.o;
+                np = move(p, o, i);
+                no = (np ^ o) & o;
                 grid_priority_main tmp;
-                tmp.priority = -0.1 * calc_open(b.o | b.p, b.o ^ in_b.p);
-                tmp.p = b.p;
-                tmp.o = b.o;
+                tmp.priority = -calc_open(np | no, np ^ p);
+                tmp.p = p;
+                tmp.o = o;
                 tmp.move = i;
                 lst.push_back(tmp);
             }
@@ -664,9 +596,7 @@ int main(){
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
             max_score = -65.0;
             for (i = 0; i < canput; ++i){
-                b.p = lst[i].p;
-                b.o = lst[i].o;
-                score = -nega_scout(b, search_param.max_depth - 1, -65.0, -max_score, 0);
+                score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -65.0, -max_score, 0);
                 if (fabs(score) == 100000000.0){
                     max_score = -100000000.0;
                     break;
