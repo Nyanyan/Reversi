@@ -4,3 +4,4 @@ build
 third_parity
 data
 model.sav
+calc_const.py

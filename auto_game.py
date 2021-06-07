@@ -142,6 +142,8 @@ def match():
         if rv.check_pass() and rv.check_pass():
             break
         rv.output()
+        y = -1
+        x = -1
         if rv.player == ai_player:
             stdin = ''
             for y in range(hw):
