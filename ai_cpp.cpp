@@ -153,7 +153,7 @@ void init(int argc, char* argv[]){
     int i, j;
     for (i = 0; i < 10; i++){
         if (!fgets(cbuf, 1024, fp)){
-            printf("param.txt broken");
+            printf("param file broken");
             exit(1);
         }
         weight_buf[i] = atof(cbuf);
@@ -162,7 +162,7 @@ void init(int argc, char* argv[]){
         eval_param.weight_s[i] = weight_buf[translate[i]];
     for (i = 0; i < 10; i++){
         if (!fgets(cbuf, 1024, fp)){
-            printf("param.txt broken");
+            printf("param file broken");
             exit(1);
         }
         weight_buf[i] = atof(cbuf);
@@ -171,7 +171,7 @@ void init(int argc, char* argv[]){
         eval_param.weight_e[i] = weight_buf[translate[i]];
     for (i = 0; i < 12; i++){
         if (!fgets(cbuf, 1024, fp)){
-            printf("param.txt broken");
+            printf("param file broken");
             exit(1);
         }
         eval_param.weight_se[i] = atof(cbuf);
