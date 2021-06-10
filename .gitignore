@@ -5,3 +5,6 @@ third_party
 data
 model.sav
 calc_const.py
+param_base.txt
+param0.txt
+param1.txt
