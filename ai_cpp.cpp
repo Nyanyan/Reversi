@@ -400,7 +400,7 @@ double nega_alpha(const unsigned long long p, const unsigned long long o, const 
     double val, v, ub, lb;
     int i, n_canput;
     unsigned long long mobility = check_mobility(p, o);
-    unsigned long long np, no, x;
+    unsigned long long np, no;
     double priority;
     val = -65.0;
     n_canput = pop_count_ull(mobility);
@@ -559,11 +559,13 @@ int main(){
             p += (int)(elem == ai_player);
             o += (int)(elem == 1 - ai_player);
         }
+        /*
         if (vacant_cnt > 14)
             search_param.min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
         else
             search_param.min_max_depth = 15;
-        //min_max_depth = 2;
+        */
+        search_param.min_max_depth = 2;
         cerr << "start depth " << search_param.min_max_depth << endl;
         search_param.max_depth = search_param.min_max_depth;
         former_vacant = vacant_cnt;
@@ -574,8 +576,8 @@ int main(){
                 no = (np ^ o) & o;
                 grid_priority_main tmp;
                 tmp.priority = -calc_open(np | no, np ^ p);
-                tmp.p = p;
-                tmp.o = o;
+                tmp.p = np;
+                tmp.o = no;
                 tmp.move = i;
                 lst.push_back(tmp);
             }
@@ -627,7 +629,7 @@ int main(){
                 break;
             }
             search_param.max_depth++;
-            //break;
+            break;
         }
         cout << outy << " " << outx << endl;
     }
