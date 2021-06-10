@@ -26,6 +26,7 @@ using namespace std;
 #define hw2_mhw 56
 #define window 0.00001
 #define simple_threshold 2
+#define inf 1000000000000.0
 
 struct HashPair {
     static size_t m_hash_pair_random;
@@ -48,7 +49,8 @@ struct eval_param{
     double weight_e[hw2];
     double weight[hw2];
     double weight_weight, canput_weight, confirm_weight, stone_weight, open_weight, out_weight;
-    double weight_se[10];
+    double weight_se[12];
+    double open_val_threshold;
     //double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
 };
 
@@ -89,6 +91,7 @@ struct grid_priority_main{
     unsigned long long p;
     unsigned long long o;
     int move;
+    int open_val;
 };
 
 eval_param eval_param;
@@ -111,21 +114,27 @@ void print_board(unsigned long long p, unsigned long long o){
     for (i = 0; i < hw; i++){
         for (j = 0; j < hw; j++){
             idx = hw2 - i * hw + j;
-            if (1 & (p >> idx))
-                cerr << "P ";
-            else if (1 & (o >> idx))
-                cerr << "O ";
-            else
-                cerr << ". ";
+            if (1 & (p >> idx)){
+                //cerr << "P ";
+            } else if (1 & (o >> idx)){
+                //cerr << "O ";
+            } else {
+                //cerr << ". ";
+            }
         }
-        cerr << endl;
+        //cerr << endl;
     }
-    cerr << endl;
+    //cerr << endl;
 }
 
-void init(){
+void init(int argc, char* argv[]){
     FILE *fp;
-    if ((fp = fopen("param.txt", "r")) == NULL){
+    char* file;
+    if (argc > 1)
+        file = argv[1];
+    else
+        file = "param.txt";
+    if ((fp = fopen(file, "r")) == NULL){
         printf("param.txt not exist");
         exit(1);
     }
@@ -160,7 +169,7 @@ void init(){
     }
     for (i = 0; i < hw2; i++)
         eval_param.weight_e[i] = weight_buf[translate[i]];
-    for (i = 0; i < 10; i++){
+    for (i = 0; i < 12; i++){
         if (!fgets(cbuf, 1024, fp)){
             printf("param.txt broken");
             exit(1);
@@ -339,19 +348,17 @@ inline double evaluate(const unsigned long long p, const unsigned long long o, i
         out_op += 1 & (o >> (i - hw_p1));
     }
     double weight_proc, canput_proc, confirm_proc, open_proc, out_proc;
-    weight_proc = weight_me / me_cnt - weight_op / op_cnt;
+    weight_proc = weight_me / max(1, me_cnt) - weight_op / max(1, op_cnt);
     canput_proc = (double)(canput_all - canput) / max(1, canput_all) - (double)canput / max(1, canput_all);
     confirm_proc = (double)confirm_me / max(1, confirm_me + confirm_op) - (double)confirm_op / max(1, confirm_me + confirm_op);
     //stone_proc = 0; //-(double)stone_me / (stone_me + stone_op) + (double)stone_op / (stone_me + stone_op);
-    open_proc = max(-1.0, (double)(3 - open_val) / 3);
+    open_proc = 1.0 - eval_param.open_val_threshold * open_val;
     out_proc = -(double)out_me / max(1, out_me + out_op) + (double)out_op / max(1, out_me + out_op);
-    return max(-0.999, min(0.999, 
-        weight_proc * eval_param.weight_weight + 
+    return weight_proc * eval_param.weight_weight + 
         canput_proc * eval_param.canput_weight + 
         confirm_proc * eval_param.confirm_weight + 
         open_proc * eval_param.open_weight + 
-        out_proc * eval_param.out_weight
-    ));
+        out_proc * eval_param.out_weight;
 }
 
 inline double end_game(const unsigned long long p, const unsigned long long o){
@@ -360,7 +367,7 @@ inline double end_game(const unsigned long long p, const unsigned long long o){
         res += 1 & (p >> i);
         res -= 1 & (o >> i);
     }
-    return (double)res;
+    return (double)res * 100000.0;
 }
 
 inline int calc_open(unsigned long long stones, unsigned long long rev){
@@ -411,8 +418,8 @@ double nega_alpha(const unsigned long long p, const unsigned long long o, const 
             np = move(p, o, i);
             no = (np ^ o) & o;
             v = -nega_alpha(no, np, depth - 1, -beta, -alpha, 0, n_canput, calc_open(np | no, np ^ p));
-            if (fabs(v) == 100000000.0)
-                return -100000000.0;
+            if (fabs(v) == inf)
+                return -inf;
             if (beta <= v)
                 return v;
             alpha = max(alpha, v);
@@ -425,7 +432,7 @@ double nega_alpha(const unsigned long long p, const unsigned long long o, const 
 
 double nega_scout(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt){
     if (search_param.max_depth > search_param.min_max_depth && tim() - search_param.strt > search_param.tl)
-        return -100000000.0;
+        return -inf;
     if (skip_cnt == 2)
         return end_game(p, o);
     double val, v, ub, lb;
@@ -470,8 +477,8 @@ double nega_scout(const unsigned long long p, const unsigned long long o, const 
     else
         v = -nega_alpha(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val);
     val = v;
-    if (fabs(v) == 100000000.0)
-        return -100000000.0;
+    if (fabs(v) == inf)
+        return -inf;
     if (beta <= v)
         return v;
     alpha = max(alpha, v);
@@ -480,8 +487,8 @@ double nega_scout(const unsigned long long p, const unsigned long long o, const 
             v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0);
         else
             v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val);
-        if (fabs(v) == 100000000.0)
-            return -100000000.0;
+        if (fabs(v) == inf)
+            return -inf;
         if (beta <= v)
             return v;
         if (alpha < v){
@@ -490,8 +497,8 @@ double nega_scout(const unsigned long long p, const unsigned long long o, const 
                 v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0);
             else
                 v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
-            if (fabs(v) == 100000000.0)
-                return -100000000.0;
+            if (fabs(v) == inf)
+                return -inf;
             if (beta <= v)
                 return v;
             alpha = max(alpha, v);
@@ -518,7 +525,7 @@ int cmp_main(grid_priority_main p, grid_priority_main q){
     return p.priority > q.priority;
 }
 
-int main(){
+int main(int argc, char* argv[]){
     int ansy, ansx, outy, outx, i, canput, former_depth = 7, former_vacant = hw2 - 4;
     double score, max_score;
     double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
@@ -531,14 +538,14 @@ int main(){
     double game_ratio;
     int vacant_cnt, ai_player;
     
-    init();
+    init(argc, argv);
     cin >> ai_player;
     cin >> search_param.tl;
     
     if (ai_player == 0){
-        cerr << "AI initialized AI is Black" << endl;
+        //cerr << "AI initialized AI is Black" << endl;
     }else{
-        cerr << "AI initialized AI is White" << endl;
+        //cerr << "AI initialized AI is White" << endl;
     }
     while (true){
         outy = -1;
@@ -559,14 +566,14 @@ int main(){
             p += (int)(elem == ai_player);
             o += (int)(elem == 1 - ai_player);
         }
-        /*
+        
         if (vacant_cnt > 14)
             search_param.min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
         else
             search_param.min_max_depth = 15;
-        */
-        search_param.min_max_depth = 2;
-        cerr << "start depth " << search_param.min_max_depth << endl;
+        
+        //search_param.min_max_depth = 2;
+        //cerr << "start depth " << search_param.min_max_depth << endl;
         search_param.max_depth = search_param.min_max_depth;
         former_vacant = vacant_cnt;
         lst.clear();
@@ -575,7 +582,8 @@ int main(){
                 np = move(p, o, i);
                 no = (np ^ o) & o;
                 grid_priority_main tmp;
-                tmp.priority = -calc_open(np | no, np ^ p);
+                tmp.open_val = calc_open(np | no, np ^ p);
+                tmp.priority = -tmp.open_val;
                 tmp.p = np;
                 tmp.o = no;
                 tmp.move = i;
@@ -584,23 +592,27 @@ int main(){
         }
         if (canput > 1)
             sort(lst.begin(), lst.end(), cmp_main);
+        outy = -1;
+        outx = -1;
         search_param.strt = tim();
         while (tim() - search_param.strt < search_param.tl / 2){
             search_param.memo_ub.clear();
             search_param.memo_lb.clear();
             game_ratio = (double)(hw2 - vacant_cnt + search_param.max_depth) / hw2;
-            eval_param.weight_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[5], game_ratio);
-            eval_param.canput_weight = map_double(eval_param.weight_se[1], eval_param.weight_se[6], game_ratio);
-            eval_param.confirm_weight = map_double(eval_param.weight_se[2], eval_param.weight_se[7], game_ratio);
-            eval_param.open_weight = map_double(eval_param.weight_se[3], eval_param.weight_se[8], game_ratio);
-            eval_param.out_weight = map_double(eval_param.weight_se[4], eval_param.weight_se[9], game_ratio);
+            eval_param.weight_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[6], game_ratio);
+            eval_param.canput_weight = map_double(eval_param.weight_se[1], eval_param.weight_se[7], game_ratio);
+            eval_param.confirm_weight = map_double(eval_param.weight_se[2], eval_param.weight_se[8], game_ratio);
+            eval_param.open_weight = map_double(eval_param.weight_se[3], eval_param.weight_se[9], game_ratio);
+            eval_param.out_weight = map_double(eval_param.weight_se[4], eval_param.weight_se[10], game_ratio);
+            eval_param.open_val_threshold = map_double(eval_param.weight_se[5], eval_param.weight_se[11], game_ratio);
             for (i = 0; i < hw2; i++)
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
-            max_score = -65.0;
+            max_score = -6500000.0;
             for (i = 0; i < canput; ++i){
-                score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -65.0, -max_score, 0);
-                if (fabs(score) == 100000000.0){
-                    max_score = -100000000.0;
+                //score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -6500000.0, -max_score, 0);
+                score = -evaluate(lst[i].o, lst[i].p, canput, lst[i].open_val);
+                if (fabs(score) == inf){
+                    max_score = -inf;
                     break;
                 }
                 lst[i].priority = score;
@@ -610,8 +622,8 @@ int main(){
                     ansx = (hw2 - lst[i].move - 1) % hw;
                 }
             }
-            if (max_score == -100000000.0){
-                cerr << "depth " << search_param.max_depth << " timeoout" << endl;
+            if (max_score == -inf){
+                //cerr << "depth " << search_param.max_depth << " timeoout" << endl;
                 break;
             }
             former_depth = search_param.max_depth;
@@ -619,19 +631,20 @@ int main(){
             outx = ansx;
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp_main);
-            cerr << "depth " << search_param.max_depth;
+            //cerr << "depth " << search_param.max_depth;
             for (i = 0; i < 1; ++i){
-                cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
+                //cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
             }
-            cerr << " time " << tim() - search_param.strt << endl;
-            if (vacant_cnt < search_param.max_depth || fabs(max_score) >= 1.0){
-                cerr << "game end" << endl;
+            //cerr << " time " << tim() - search_param.strt << endl;
+            if (vacant_cnt < search_param.max_depth || fabs(max_score) >= 100000.0){
+                //cerr << "game end" << endl;
                 break;
             }
             search_param.max_depth++;
             break;
         }
         cout << outy << " " << outx << endl;
+        //cerr << outy << " " << outx << endl;
     }
     return 0;
 }
