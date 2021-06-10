@@ -115,16 +115,16 @@ void print_board(unsigned long long p, unsigned long long o){
         for (j = 0; j < hw; j++){
             idx = hw2 - i * hw + j;
             if (1 & (p >> idx)){
-                //cerr << "P ";
+                cerr << "P ";
             } else if (1 & (o >> idx)){
-                //cerr << "O ";
+                cerr << "O ";
             } else {
-                //cerr << ". ";
+                cerr << ". ";
             }
         }
-        //cerr << endl;
+        cerr << endl;
     }
-    //cerr << endl;
+    cerr << endl;
 }
 
 void init(int argc, char* argv[]){
@@ -543,9 +543,9 @@ int main(int argc, char* argv[]){
     cin >> search_param.tl;
     
     if (ai_player == 0){
-        //cerr << "AI initialized AI is Black" << endl;
+        cerr << "AI initialized AI is Black" << endl;
     }else{
-        //cerr << "AI initialized AI is White" << endl;
+        cerr << "AI initialized AI is White" << endl;
     }
     while (true){
         outy = -1;
@@ -573,7 +573,7 @@ int main(int argc, char* argv[]){
             search_param.min_max_depth = 15;
         
         //search_param.min_max_depth = 2;
-        //cerr << "start depth " << search_param.min_max_depth << endl;
+        cerr << "start depth " << search_param.min_max_depth << endl;
         search_param.max_depth = search_param.min_max_depth;
         former_vacant = vacant_cnt;
         lst.clear();
@@ -609,8 +609,7 @@ int main(int argc, char* argv[]){
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
             max_score = -6500000.0;
             for (i = 0; i < canput; ++i){
-                //score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -6500000.0, -max_score, 0);
-                score = -evaluate(lst[i].o, lst[i].p, canput, lst[i].open_val);
+                score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -6500000.0, -max_score, 0);
                 if (fabs(score) == inf){
                     max_score = -inf;
                     break;
@@ -623,7 +622,7 @@ int main(int argc, char* argv[]){
                 }
             }
             if (max_score == -inf){
-                //cerr << "depth " << search_param.max_depth << " timeoout" << endl;
+                cerr << "depth " << search_param.max_depth << " timeoout" << endl;
                 break;
             }
             former_depth = search_param.max_depth;
@@ -631,20 +630,18 @@ int main(int argc, char* argv[]){
             outx = ansx;
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp_main);
-            //cerr << "depth " << search_param.max_depth;
+            cerr << "depth " << search_param.max_depth;
             for (i = 0; i < 1; ++i){
-                //cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
+                cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
             }
-            //cerr << " time " << tim() - search_param.strt << endl;
+            cerr << " time " << tim() - search_param.strt << endl;
             if (vacant_cnt < search_param.max_depth || fabs(max_score) >= 100000.0){
-                //cerr << "game end" << endl;
+                cerr << "game end" << endl;
                 break;
             }
             search_param.max_depth++;
-            break;
         }
         cout << outy << " " << outx << endl;
-        //cerr << outy << " " << outx << endl;
     }
     return 0;
 }
