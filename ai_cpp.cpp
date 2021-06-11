@@ -265,8 +265,8 @@ void init(int argc, char* argv[]){
         eval_param.pat_mask_h_o_m[i] = mirror_v(eval_param.pat_mask_h_o[i]);
         eval_param.pat_mask_v_p[i] = transpose(eval_param.pat_mask_h_p[i]);
         eval_param.pat_mask_v_o[i] = transpose(eval_param.pat_mask_h_o[i]);
-        eval_param.pat_mask_v_p_m[i] = mirror_v(eval_param.pat_mask_v_p[i]);
-        eval_param.pat_mask_v_o_m[i] = mirror_v(eval_param.pat_mask_v_o[i]);
+        eval_param.pat_mask_v_p_m[i] = transpose(eval_param.pat_mask_h_p_m[i]);
+        eval_param.pat_mask_v_o_m[i] = transpose(eval_param.pat_mask_h_o_m[i]);
     }
 }
 
@@ -344,7 +344,12 @@ inline double evaluate(const unsigned long long p, const unsigned long long o, i
     int out_me = 0, out_op = 0;
     double pattern_me = 0.0, pattern_op = 0.0;
     unsigned long long mobility, stones;
+    unsigned long long p1, p2, o1, o2;
     int i, j;
+    p1 = p << hw2_mhw;
+    p2 = p >> hw_m1;
+    o1 = o << hw2_mhw;
+    o2 = o >> hw_m1;
     for (i = 0; i < hw2; ++i){
         if (1 & (p >> (hw2 - i - 1))){
             weight_me += eval_param.weight[i];
@@ -374,11 +379,11 @@ inline double evaluate(const unsigned long long p, const unsigned long long o, i
         }
     }
     confirm_me += 1 & p;
-    confirm_me += 1 & (p >> hw_m1);
+    confirm_me += 1 & p2;
     confirm_me += 1 & (p >> hw2_mhw);
     confirm_me += 1 & (p >> hw2_m1);
     confirm_op += 1 & o;
-    confirm_op += 1 & (o >> hw_m1);
+    confirm_op += 1 & o2;
     confirm_op += 1 & (o >> hw2_mhw);
     confirm_op += 1 & (o >> hw2_m1);
     for (i = 0; i < hw2; ++i){
@@ -410,6 +415,14 @@ inline double evaluate(const unsigned long long p, const unsigned long long o, i
             pattern_me += eval_param.weight_pat[i];
         if ((p & eval_param.pat_mask_v_p_m[i]) == eval_param.pat_mask_v_p_m[i] && (o & eval_param.pat_mask_v_o_m[i]) == eval_param.pat_mask_v_o_m[i])
             pattern_me += eval_param.weight_pat[i];
+        if ((p1 & eval_param.pat_mask_h_p[i]) == eval_param.pat_mask_h_p[i] && (o1 & eval_param.pat_mask_h_o[i]) == eval_param.pat_mask_h_o[i])
+            pattern_me += eval_param.weight_pat[i];
+        if ((p1 & eval_param.pat_mask_h_p_m[i]) == eval_param.pat_mask_h_p_m[i] && (o1 & eval_param.pat_mask_h_o_m[i]) == eval_param.pat_mask_h_o_m[i])
+            pattern_me += eval_param.weight_pat[i];
+        if ((p2 & eval_param.pat_mask_v_p[i]) == eval_param.pat_mask_v_p[i] && (o2 & eval_param.pat_mask_v_o[i]) == eval_param.pat_mask_v_o[i])
+            pattern_me += eval_param.weight_pat[i];
+        if ((p2 & eval_param.pat_mask_v_p_m[i]) == eval_param.pat_mask_v_p_m[i] && (o2 & eval_param.pat_mask_v_o_m[i]) == eval_param.pat_mask_v_o_m[i])
+            pattern_me += eval_param.weight_pat[i];
         if ((o & eval_param.pat_mask_h_p[i]) == eval_param.pat_mask_h_p[i] && (p & eval_param.pat_mask_h_o[i]) == eval_param.pat_mask_h_o[i])
             pattern_op += eval_param.weight_pat[i];
         if ((o & eval_param.pat_mask_h_p_m[i]) == eval_param.pat_mask_h_p_m[i] && (p & eval_param.pat_mask_h_o_m[i]) == eval_param.pat_mask_h_o_m[i])
@@ -417,6 +430,14 @@ inline double evaluate(const unsigned long long p, const unsigned long long o, i
         if ((o & eval_param.pat_mask_v_p[i]) == eval_param.pat_mask_v_p[i] && (p & eval_param.pat_mask_v_o[i]) == eval_param.pat_mask_v_o[i])
             pattern_op += eval_param.weight_pat[i];
         if ((o & eval_param.pat_mask_v_p_m[i]) == eval_param.pat_mask_v_p_m[i] && (p & eval_param.pat_mask_v_o_m[i]) == eval_param.pat_mask_v_o_m[i])
+            pattern_op += eval_param.weight_pat[i];
+        if ((o1 & eval_param.pat_mask_h_p[i]) == eval_param.pat_mask_h_p[i] && (p1 & eval_param.pat_mask_h_o[i]) == eval_param.pat_mask_h_o[i])
+            pattern_op += eval_param.weight_pat[i];
+        if ((o1 & eval_param.pat_mask_h_p_m[i]) == eval_param.pat_mask_h_p_m[i] && (p1 & eval_param.pat_mask_h_o_m[i]) == eval_param.pat_mask_h_o_m[i])
+            pattern_op += eval_param.weight_pat[i];
+        if ((o2 & eval_param.pat_mask_v_p[i]) == eval_param.pat_mask_v_p[i] && (p2 & eval_param.pat_mask_v_o[i]) == eval_param.pat_mask_v_o[i])
+            pattern_op += eval_param.weight_pat[i];
+        if ((o2 & eval_param.pat_mask_v_p_m[i]) == eval_param.pat_mask_v_p_m[i] && (p2 & eval_param.pat_mask_v_o_m[i]) == eval_param.pat_mask_v_o_m[i])
             pattern_op += eval_param.weight_pat[i];
     }
     double weight_proc, canput_proc, confirm_proc, open_proc, out_proc, pattern_proc;
@@ -672,12 +693,12 @@ int main(int argc, char* argv[]){
             search_param.memo_ub.clear();
             search_param.memo_lb.clear();
             game_ratio = (double)(hw2 - vacant_cnt + search_param.max_depth) / hw2;
-            eval_param.weight_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[6], game_ratio);
-            eval_param.canput_weight = map_double(eval_param.weight_se[1], eval_param.weight_se[7], game_ratio);
-            eval_param.confirm_weight = map_double(eval_param.weight_se[2], eval_param.weight_se[8], game_ratio);
-            eval_param.open_weight = map_double(eval_param.weight_se[3], eval_param.weight_se[9], game_ratio);
-            eval_param.out_weight = map_double(eval_param.weight_se[4], eval_param.weight_se[10], game_ratio);
-            eval_param.open_val_threshold = map_double(eval_param.weight_se[5], eval_param.weight_se[11], game_ratio);
+            eval_param.weight_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[1], game_ratio);
+            eval_param.canput_weight = map_double(eval_param.weight_se[2], eval_param.weight_se[3], game_ratio);
+            eval_param.confirm_weight = map_double(eval_param.weight_se[4], eval_param.weight_se[5], game_ratio);
+            eval_param.open_weight = map_double(eval_param.weight_se[6], eval_param.weight_se[7], game_ratio);
+            eval_param.out_weight = map_double(eval_param.weight_se[8], eval_param.weight_se[9], game_ratio);
+            eval_param.open_val_threshold = map_double(eval_param.weight_se[10], eval_param.weight_se[11], game_ratio);
             eval_param.pattern_weight = map_double(eval_param.weight_se[12], eval_param.weight_se[13], game_ratio);
             for (i = 0; i < hw2; i++)
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
