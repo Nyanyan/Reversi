@@ -133,7 +133,7 @@ class reversi:
 
 def match():
     ai_player = 1
-    ai = subprocess.Popen('./a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    ai = subprocess.Popen('./b.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdin = str(ai_player) + '\n' + str(tl) + '\n'
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()

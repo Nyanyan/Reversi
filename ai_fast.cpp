@@ -367,7 +367,7 @@ inline double end_game(const unsigned long long p, const unsigned long long o){
         res += 1 & (p >> i);
         res -= 1 & (o >> i);
     }
-    return (double)res * 100000.0;
+    return (double)res * 1000.0;
 }
 
 inline int calc_open(unsigned long long stones, unsigned long long rev){
@@ -566,13 +566,7 @@ int main(int argc, char* argv[]){
             p += (int)(elem == ai_player);
             o += (int)(elem == 1 - ai_player);
         }
-        
-        if (vacant_cnt > 14)
-            search_param.min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
-        else
-            search_param.min_max_depth = 15;
-        
-        //search_param.min_max_depth = 2;
+        search_param.min_max_depth = 2;
         //cerr << "start depth " << search_param.min_max_depth << endl;
         search_param.max_depth = search_param.min_max_depth;
         former_vacant = vacant_cnt;
@@ -598,6 +592,8 @@ int main(int argc, char* argv[]){
         while (tim() - search_param.strt < search_param.tl / 2){
             search_param.memo_ub.clear();
             search_param.memo_lb.clear();
+            if (canput > 1)
+                sort(lst.begin(), lst.end(), cmp_main);
             game_ratio = (double)(hw2 - vacant_cnt + search_param.max_depth) / hw2;
             eval_param.weight_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[6], game_ratio);
             eval_param.canput_weight = map_double(eval_param.weight_se[1], eval_param.weight_se[7], game_ratio);
@@ -607,9 +603,9 @@ int main(int argc, char* argv[]){
             eval_param.open_val_threshold = map_double(eval_param.weight_se[5], eval_param.weight_se[11], game_ratio);
             for (i = 0; i < hw2; i++)
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
-            max_score = -6500000.0;
+            max_score = -65000.0;
             for (i = 0; i < canput; ++i){
-                score = -nega_alpha(lst[i].o, lst[i].p, 1, -6500000.0, -max_score, 0, canput, lst[i].open_val);
+                score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -65000.0, -max_score, 0);
                 if (fabs(score) == inf){
                     max_score = -inf;
                     break;
@@ -635,7 +631,7 @@ int main(int argc, char* argv[]){
                 //cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
             }
             //cerr << " time " << tim() - search_param.strt << endl;
-            if (vacant_cnt < search_param.max_depth || fabs(max_score) >= 100000.0){
+            if (vacant_cnt < search_param.max_depth || fabs(max_score) >= 1000.0){
                 //cerr << "game end" << endl;
                 break;
             }
@@ -643,7 +639,6 @@ int main(int argc, char* argv[]){
             break;
         }
         cout << outy << " " << outx << endl;
-        //cerr << outy << " " << outx << endl;
     }
     return 0;
 }

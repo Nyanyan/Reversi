@@ -598,8 +598,6 @@ int main(int argc, char* argv[]){
         while (tim() - search_param.strt < search_param.tl / 2){
             search_param.memo_ub.clear();
             search_param.memo_lb.clear();
-            if (canput > 1)
-                sort(lst.begin(), lst.end(), cmp_main);
             game_ratio = (double)(hw2 - vacant_cnt + search_param.max_depth) / hw2;
             eval_param.weight_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[6], game_ratio);
             eval_param.canput_weight = map_double(eval_param.weight_se[1], eval_param.weight_se[7], game_ratio);
@@ -641,7 +639,7 @@ int main(int argc, char* argv[]){
                 cerr << "game end" << endl;
                 break;
             }
-            search_param.max_depth++;
+            ++search_param.max_depth;
         }
         cout << outy << " " << outx << endl;
     }
