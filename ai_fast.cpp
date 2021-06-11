@@ -609,8 +609,7 @@ int main(int argc, char* argv[]){
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
             max_score = -6500000.0;
             for (i = 0; i < canput; ++i){
-                //score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -6500000.0, -max_score, 0);
-                score = -evaluate(lst[i].o, lst[i].p, canput, lst[i].open_val);
+                score = -nega_alpha(lst[i].o, lst[i].p, 1, -6500000.0, -max_score, 0, canput, lst[i].open_val);
                 if (fabs(score) == inf){
                     max_score = -inf;
                     break;

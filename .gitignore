@@ -1,10 +1,6 @@
-a.exe
-ai_cython_exe.cp38-win_amd64.pyd
-build
-third_party
 data
-model.sav
-param_base.txt
+a.exe
+third_party
 param0.txt
 param1.txt
 param.txt

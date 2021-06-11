@@ -2,6 +2,7 @@ from random import random, randint
 import subprocess
 import trueskill
 from tqdm import trange
+from time import time
 
 hw = 8
 hw2 = 64
@@ -9,7 +10,6 @@ dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
 population = 100
-match_num = 10
 param_num = 32
 tim = 5
 
@@ -196,12 +196,7 @@ def rate_children(param, rating):
     num = match(param, parents[idx2][0])
     (rating,),(parents[idx2][1],), = env.rate(((rating,), (parents[idx2][1],),), ranks=[num, -num,])
     return rating
-'''
-param_base = []
-with open('param_base.txt', 'r') as f:
-    for _ in range(param_num):
-        param_base.append(float(f.readline()))
-'''
+
 mu = 25.
 sigma = mu / 3.
 beta = sigma / 2.
@@ -213,13 +208,45 @@ env = trueskill.TrueSkill(
     mu=mu, sigma=sigma, beta=beta, tau=tau,
     draw_probability=draw_probability, backend=backend)
 
+def hill_climb(param, tl):
+    strt = time()
+    max_rating = env.create_rating()
+    for _ in range(tim):
+        max_rating = rate_children(param, max_rating)
+    while time() - strt < tl:
+        f_param = [i for i in param]
+        param[randint(20, param_num - 1)] += random() * 0.1 - 0.05
+        rating = env.create_rating()
+        for _ in range(tim):
+            rating = rate_children(param, rating)
+        if env.expose(max_rating) < env.expose(rating):
+            max_rating = rating
+        else:
+            param = [i for i in f_param]
+    return param, max_rating
+
+
+param_base = []
+with open('param_base.txt', 'r') as f:
+    for _ in range(param_num):
+        param_base.append(float(f.readline()))
+
+parents = []
+for _ in range(population):
+    param = []
+    for i in range(20):
+        param.append(param_base[i])
+    for i in range(20, param_num):
+        param.append(random())
+    parents.append([param, env.create_rating()])
+'''
 parents = []
 for _ in range(population):
     param = []
     for i in range(param_num):
         param.append(random())
     parents.append([param, env.create_rating()])
-
+'''
 for i in trange(population * tim):
     rate(i % population)
 
@@ -239,11 +266,8 @@ while True:
     for i in range(dv, param_num):
         param1.append(parents[idx2][0][i])
         param2.append(parents[idx1][0][i])
-    children.append([param1, env.create_rating()])
-    children.append([param2, env.create_rating()])
-    for _ in range(tim):
-        for i in range(2, 4):
-            children[i][1] = rate_children(children[i][0], children[i][1])
+    children.append([i for i in hill_climb(param1, 5.0)])
+    children.append([i for i in hill_climb(param2, 5.0)])
     children.sort(key=lambda x: env.expose(x[1]), reverse=True)
     parents[idx1] = children[0]
     parents[idx2] = children[1]
