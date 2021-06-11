@@ -9,7 +9,9 @@ $ python main.py
 
 ## How to start (person vs AI)
 
-## Create parameters
+### Create parameters
+
+#### Create your own parameters
 
 To compile ```ai_fast.cpp```, type
 
@@ -25,9 +27,13 @@ python adjust_params.py
 
 This program runs forever. To stop it, please use ```CTRL+C```.
 
-```params.txt``` is made.
+```param.txt``` is made.
 
-## Compile
+#### Use default parameters
+
+Rename ```param_base.txt``` to ```param.txt```.
+
+### Compile
 
 To compile `ai_cpp.cpp`, type
 
@@ -35,7 +41,7 @@ To compile `ai_cpp.cpp`, type
 $ python compile.py ai_cpp.cpp
 ```
 
-## Execute
+### Execute
 
 open ```main.py``` and check that ```ai_mode``` is True.
 ```ai_player``` is ```1``` when AI is white, ```0``` when AI is black.
