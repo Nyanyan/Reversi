@@ -237,7 +237,7 @@ for _ in range(population):
     for i in range(20):
         param.append(param_base[i])
     for i in range(20, param_num):
-        param.append(random())
+        param.append(param_base[i] + random() * 0.4 - 0.2)
     parents.append([param, env.create_rating()])
 '''
 parents = []
@@ -259,7 +259,7 @@ while True:
     children = [parents[idx1], parents[idx2]]
     param1 = []
     param2 = []
-    dv = randint(1, param_num - 2)
+    dv = randint(21, param_num - 2)
     for i in range(dv):
         param1.append(parents[idx1][0][i])
         param2.append(parents[idx2][0][i])
