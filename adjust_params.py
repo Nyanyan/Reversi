@@ -9,8 +9,8 @@ hw2 = 64
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
-population = 100
-param_num = 32
+population = 1000
+param_num = 46
 tim = 5
 
 def empty(grid, y, x):
@@ -237,7 +237,7 @@ for _ in range(population):
     for i in range(20):
         param.append(param_base[i])
     for i in range(20, param_num):
-        param.append(param_base[i] + random() * 0.4 - 0.2)
+        param.append(param_base[i] + random() * 0.2 - 0.1)
     parents.append([param, env.create_rating()])
 '''
 parents = []
