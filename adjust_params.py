@@ -9,7 +9,7 @@ hw2 = 64
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
-population = 10
+population = 100
 param_num = 46
 tim = 5
 
@@ -232,7 +232,7 @@ def hill_climb(param, tl):
         max_rating = rate_children(param, max_rating)
     while time() - strt < tl:
         f_param = [i for i in param]
-        param[randint(0, param_num - 1)] += random() * 0.02 - 0.01
+        param[randint(0, param_num - 1)] += random() * 0.06 - 0.03
         rating = env.create_rating()
         for _ in range(tim):
             rating = rate_children(param, rating)
@@ -285,7 +285,7 @@ while True:
     children = [parents[idx1], parents[idx2]]
     param1 = []
     param2 = []
-    dv = randint(21, param_num - 2)
+    dv = randint(1, param_num - 2)
     for i in range(dv):
         param1.append(parents[idx1][0][i])
         param2.append(parents[idx2][0][i])
