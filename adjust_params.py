@@ -139,62 +139,79 @@ class reversi:
             return -1
 
 def match(param0, param1):
-    with open('param0.txt', 'w') as f:
-        for i in range(param_num):
-            f.write(str(param0[i]) + '\n')
-    with open('param1.txt', 'w') as f:
-        for i in range(param_num):
-            f.write(str(param1[i]) + '\n')
-    res = 0
-    for players in [[0, 1], [1, 0]]:
-        ai = [subprocess.Popen(('./a.exe param' + str(i) + '.txt').split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for i in range(2)]
-        for i in range(2):
-            stdin = str(players[i]) + '\n' + str(100) + '\n'
-            ai[i].stdin.write(stdin.encode('utf-8'))
-            ai[i].stdin.flush()
-        rv = reversi()
-        while True:
-            if rv.check_pass() and rv.check_pass():
-                break
-            #rv.output()
-            y = -1
-            x = -1
-            stdin = ''
-            for y in range(hw):
-                for x in range(hw):
-                    stdin += str(rv.grid[y][x]) + ' '
-                stdin += '\n'
-            ai[players.index(rv.player)].stdin.write(stdin.encode('utf-8'))
-            ai[players.index(rv.player)].stdin.flush()
-            y, x = [int(i) for i in ai[players.index(rv.player)].stdout.readline().decode().strip().split()]
-            if rv.move(y, x):
-                print(stdin)
-            if rv.end():
-                break
-        rv.check_pass()
+    while True:
+        try:
+            with open('param0.txt', 'w') as f:
+                for i in range(param_num):
+                    f.write(str(param0[i]) + '\n')
+            break
+        except:
+            continue
+    while True:
+        try:
+            with open('param1.txt', 'w') as f:
+                for i in range(param_num):
+                    f.write(str(param1[i]) + '\n')
+            break
+        except:
+            continue
+    res0 = -1
+    res1 = -1
+    ai = [subprocess.Popen(('./a.exe param' + str(i) + '.txt').split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for i in range(2)]
+    for i in range(2):
+        stdin = str(i) + '\n' + str(100) + '\n'
+        ai[i].stdin.write(stdin.encode('utf-8'))
+        ai[i].stdin.flush()
+    rv = reversi()
+    while True:
+        if rv.check_pass() and rv.check_pass():
+            break
         #rv.output()
-        winner = rv.judge()
-        if winner == players[0]:
-            res += 1
-        elif winner == -1:
-            res += 0
-        else:
-            res -= 1
-        for i in range(2):
-            ai[i].kill()
-    return res
+        y = -1
+        x = -1
+        stdin = ''
+        for y in range(hw):
+            for x in range(hw):
+                stdin += str(rv.grid[y][x]) + ' '
+            stdin += '\n'
+        ai[rv.player].stdin.write(stdin.encode('utf-8'))
+        ai[rv.player].stdin.flush()
+        y, x = [int(i) for i in ai[rv.player].stdout.readline().decode().strip().split()]
+        if rv.move(y, x):
+            print(stdin)
+        if rv.end():
+            break
+    rv.check_pass()
+    #rv.output()
+    winner = rv.judge()
+    if winner == 0:
+        res0 = 0
+        res1 = 1
+    elif winner == -1:
+        res0 = 0
+        res1 = 0
+    else:
+        res0 = 1
+        res1 = 0
+    for i in range(2):
+        ai[i].kill()
+    return res0, res1
 
 def rate(idx1):
     idx2 = idx1
     while idx1 == idx2:
         idx2 = randint(0, population - 1)
-    num = match(parents[idx1][0], parents[idx2][0])
-    (parents[idx1][1],),(parents[idx2][1],), = env.rate(((parents[idx1][1],), (parents[idx2][1],),), ranks=[num, -num,])
+    r1, r2 = match(parents[idx1][0], parents[idx2][0])
+    (parents[idx1][1],),(parents[idx2][1],), = env.rate(((parents[idx1][1],), (parents[idx2][1],),), ranks=[r1, r2,])
+    r2, r1 = match(parents[idx2][0], parents[idx1][0])
+    (parents[idx1][1],),(parents[idx2][1],), = env.rate(((parents[idx1][1],), (parents[idx2][1],),), ranks=[r1, r2,])
 
 def rate_children(param, rating):
     idx2 = randint(0, population - 1)
-    num = match(param, parents[idx2][0])
-    (rating,),(parents[idx2][1],), = env.rate(((rating,), (parents[idx2][1],),), ranks=[num, -num,])
+    r1, r2 = match(param, parents[idx2][0])
+    (rating,),(parents[idx2][1],), = env.rate(((rating,), (parents[idx2][1],),), ranks=[r1, r2,])
+    r2, r1 = match(parents[idx2][0], param)
+    (rating,),_, = env.rate(((rating,), (parents[idx2][1],),), ranks=[r1, r2,])
     return rating
 
 mu = 25.
@@ -215,7 +232,7 @@ def hill_climb(param, tl):
         max_rating = rate_children(param, max_rating)
     while time() - strt < tl:
         f_param = [i for i in param]
-        param[randint(0, param_num - 1)] += random() * 0.1 - 0.05
+        param[randint(0, param_num - 1)] += random() * 0.02 - 0.01
         rating = env.create_rating()
         for _ in range(tim):
             rating = rate_children(param, rating)
@@ -232,14 +249,21 @@ with open('param_base.txt', 'r') as f:
         param_base.append(float(f.readline()))
 
 parents = []
-for _ in range(population):
+for _ in range(1):
+    param = []
+    for i in range(param_num):
+        param.append(param_base[i])
+    parents.append([param, env.create_rating()])
+for _ in range(1, population):
     param = []
     '''
     for i in range(20):
         param.append(param_base[i])
+    for i in range(20, param_num):
+        param.append(param_base[i] + random() * 0.2 - 0.1)
     '''
     for i in range(param_num):
-        param.append(param_base[i] + random() * 0.2 - 0.1)
+        param.append(random())
     parents.append([param, env.create_rating()])
 '''
 parents = []
@@ -261,7 +285,7 @@ while True:
     children = [parents[idx1], parents[idx2]]
     param1 = []
     param2 = []
-    dv = randint(1, param_num - 2)
+    dv = randint(21, param_num - 2)
     for i in range(dv):
         param1.append(parents[idx1][0][i])
         param2.append(parents[idx2][0][i])

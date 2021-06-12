@@ -147,7 +147,7 @@ void print_board(unsigned long long p, unsigned long long o){
 
 void init(int argc, char* argv[]){
     FILE *fp;
-    char* file;
+    const char* file;
     if (argc > 1)
         file = argv[1];
     else
@@ -208,6 +208,7 @@ void init(int argc, char* argv[]){
         }
         eval_param.pat_mask_h_o[i] = atof(cbuf);
     }
+    fclose(fp);
     if ((fp = fopen("const.txt", "r")) == NULL){
         printf("const.txt not exist");
         exit(1);
@@ -260,6 +261,7 @@ void init(int argc, char* argv[]){
         }
         eval_param.pat_mask_h_o[i] = stoull(cbuf);
     }
+    fclose(fp);
     for (i = 0; i < pattern_num; i++){
         eval_param.pat_mask_h_p_m[i] = mirror_v(eval_param.pat_mask_h_p[i]);
         eval_param.pat_mask_h_o_m[i] = mirror_v(eval_param.pat_mask_h_o[i]);
