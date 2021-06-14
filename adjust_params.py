@@ -9,7 +9,7 @@ hw2 = 64
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
-population = 100
+population = 500
 param_num = 46
 tim = 5
 
@@ -211,7 +211,7 @@ def rate_children(param, rating):
     r1, r2 = match(param, parents[idx2][0])
     (rating,),(parents[idx2][1],), = env.rate(((rating,), (parents[idx2][1],),), ranks=[r1, r2,])
     r2, r1 = match(parents[idx2][0], param)
-    (rating,),_, = env.rate(((rating,), (parents[idx2][1],),), ranks=[r1, r2,])
+    (rating,),(parents[idx2][1],), = env.rate(((rating,), (parents[idx2][1],),), ranks=[r1, r2,])
     return rating
 
 mu = 25.
@@ -256,14 +256,8 @@ for _ in range(1):
     parents.append([param, env.create_rating()])
 for _ in range(1, population):
     param = []
-    '''
-    for i in range(20):
-        param.append(param_base[i])
-    for i in range(20, param_num):
-        param.append(param_base[i] + random() * 0.2 - 0.1)
-    '''
     for i in range(param_num):
-        param.append(random())
+        param.append(param_base[i] + random() * 0.6 - 0.3)
     parents.append([param, env.create_rating()])
 '''
 parents = []
@@ -282,7 +276,7 @@ while True:
     idx2 = idx1
     while idx1 == idx2:
         idx2 = randint(0, population - 1)
-    children = [parents[idx1], parents[idx2]]
+    children = [[i for i in hill_climb(parents[idx1][0], 5.0)], [i for i in hill_climb(parents[idx2][0], 5.0)]]
     param1 = []
     param2 = []
     dv = randint(1, param_num - 2)

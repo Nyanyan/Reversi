@@ -15,8 +15,22 @@
 #include <random>
 #include <time.h>
 #include <immintrin.h>
+#include <queue>
 
 using namespace std;
+
+int xorx=123456789, xory=362436069, xorz=521288629, xorw=88675123;
+double myrandom(){
+    int t = (xorx^(xorx<<11));
+    xorx = xory;
+    xory = xorz;
+    xorz = xorw;
+    xorw = xorw=(xorw^(xorw>>19))^(t^(t>>8));
+    return (double)(xorw) / 2147483648.0;
+}
+int randint(int fr, int to){
+    return fr + (int)(myrandom() * (to - fr + 1));
+}
 
 #define hw 8
 #define hw_m1 7
@@ -28,6 +42,8 @@ using namespace std;
 #define simple_threshold 2
 #define inf 1000000000000.0
 #define pattern_num 6
+#define bias (1.0 * 1.41421356)
+#define expand_threshold 10
 
 struct HashPair {
     static size_t m_hash_pair_random;
@@ -76,26 +92,28 @@ struct move_param{
     V4DI rmask_v4[hw2];
 };
 
+struct grid_eval{
+    int n;
+    int m;
+    double val;
+    bool seen;
+};
+
+struct grid_node{
+    unsigned long long p, o;
+    double priority;
+};
+
 struct search_param{
-    unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo1, memo2; 
-    unordered_map<pair<unsigned long long, unsigned long long>, double, HashPair> memo_lb, memo_ub;
-    int max_depth;
-    int min_max_depth;
+    unordered_map<pair<unsigned long long, unsigned long long>, grid_eval, HashPair> win_rate;
+    int playout_cnt;
     int strt, tl;
 };
 
 struct grid_priority{
-    unsigned long long p;
-    unsigned long long o;
-    int open_val;
-};
-
-struct grid_priority_main{
     double priority;
     unsigned long long p;
     unsigned long long o;
-    int move;
-    int open_val;
 };
 
 eval_param eval_param;
@@ -457,13 +475,19 @@ inline double evaluate(const unsigned long long p, const unsigned long long o, i
         pattern_proc * eval_param.pattern_weight;
 }
 
-inline double end_game(const unsigned long long p, const unsigned long long o){
+inline int end_game(const unsigned long long p, const unsigned long long o){
     int res = 0, i;
     for (i = 0; i < hw2; ++i){
         res += 1 & (p >> i);
         res -= 1 & (o >> i);
     }
-    return (double)res * 1000.0;
+    //return (double)res * 1000.0;
+    if (res > 0)
+        return 1;
+    else if (res == 0)
+        return 0;
+    else
+        return -1;
 }
 
 inline int calc_open(unsigned long long stones, unsigned long long rev){
@@ -484,7 +508,7 @@ inline int calc_open(unsigned long long stones, unsigned long long rev){
 }
 
 int cmp(grid_priority p, grid_priority q){
-    return p.open_val < q.open_val;
+    return p.priority > q.priority;
 }
 
 inline int pop_count_ull(unsigned long long x){
@@ -495,130 +519,117 @@ inline int pop_count_ull(unsigned long long x){
     return (int)x;
 }
 
-double nega_alpha(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt, const int& canput, int open_val){
-    if (skip_cnt == 2)
-        return end_game(p, o);
-    else if (depth == 0)
-        return evaluate(p, o, canput, open_val);
-    double val, v, ub, lb;
-    int i, n_canput;
-    unsigned long long mobility = check_mobility(p, o);
+void expand(const unsigned long long p, const unsigned long long o, const unsigned long long mobility){
     unsigned long long np, no;
-    double priority;
-    val = -65.0;
-    n_canput = pop_count_ull(mobility);
-    if (n_canput == 0)
-        return -nega_alpha(o, p, depth, -beta, -alpha, skip_cnt + 1, 0, 0);
+    int i;
+    pair<unsigned long long, unsigned long long> grid;
     for (i = 0; i < hw2; ++i){
         if (1 & (mobility >> i)){
             np = move(p, o, i);
             no = (np ^ o) & o;
-            v = -nega_alpha(no, np, depth - 1, -beta, -alpha, 0, n_canput, calc_open(np | no, np ^ p));
-            if (fabs(v) == inf)
-                return -inf;
-            if (beta <= v)
-                return v;
-            alpha = max(alpha, v);
-        if (val < v)
-            val = v;
+            grid.first = no;
+            grid.second = np;
+            search_param.win_rate[grid].seen = true;
+            search_param.win_rate[grid].n = 0;
+            search_param.win_rate[grid].m = 0;
+            //search_param.win_rate[grid].val = -evaluate(no, np, n_canput, calc_open(np | no, np ^ p));
         }
     }
-    return val;
 }
 
-double nega_scout(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt){
-    if (search_param.max_depth > search_param.min_max_depth && tim() - search_param.strt > search_param.tl)
-        return -inf;
+int playout(const unsigned long long p, const unsigned long long o, const int skip_cnt){
     if (skip_cnt == 2)
-        return end_game(p, o);
-    double val, v, ub, lb;
-    pair<unsigned long long, unsigned long long> grid_all;
-    grid_all.first = p;
-    grid_all.second = o;
-    lb = search_param.memo_lb[grid_all];
-    if (lb != 0.0){
-        if (lb >= beta)
-            return lb;
-        alpha = max(alpha, lb);
-    }
-    ub = search_param.memo_ub[grid_all];
-    if (ub != 0.0){
-        if (alpha >= ub || ub == lb)
-            return ub;
-        beta = min(beta, ub);
-    }
-    int i, n_canput = 0, open_val;
+        return -end_game(p, o);
     unsigned long long mobility = check_mobility(p, o);
+    int n_canput = pop_count_ull(mobility);
+    if (n_canput == 0)
+        return -playout(o, p, skip_cnt + 1);
     unsigned long long np, no;
-    double priority;
+    int i;
     vector<grid_priority> lst;
     for (i = 0; i < hw2; ++i){
         if (1 & (mobility >> i)){
-            ++n_canput;
             np = move(p, o, i);
             no = (np ^ o) & o;
             grid_priority tmp;
-            tmp.open_val = calc_open(np | no, np ^ p);
             tmp.p = np;
             tmp.o = no;
+            tmp.priority = -evaluate(no, np, n_canput, calc_open(np | no, np ^ p)) + myrandom() * 0.2 - 0.1;
             lst.push_back(tmp);
         }
     }
-    if (n_canput == 0)
-        return -nega_scout(o, p, depth, -beta, -alpha, skip_cnt + 1);
-    if (n_canput > 1)
-        sort(lst.begin(), lst.end(), cmp);
-    if (depth > simple_threshold)
-        v = -nega_scout(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0);
-    else
-        v = -nega_alpha(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val);
-    val = v;
-    if (fabs(v) == inf)
-        return -inf;
-    if (beta <= v)
-        return v;
-    alpha = max(alpha, v);
-    for (i = 1; i < n_canput; ++i){
-        if (depth > simple_threshold)
-            v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0);
-        else
-            v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val);
-        if (fabs(v) == inf)
-            return -inf;
-        if (beta <= v)
-            return v;
-        if (alpha < v){
-            alpha = v;
-            if (depth > simple_threshold)
-                v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0);
-            else
-                v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
-            if (fabs(v) == inf)
-                return -inf;
-            if (beta <= v)
-                return v;
-            alpha = max(alpha, v);
+    double max_score = -inf;
+    for (i = 0; i < n_canput; i++){
+        if (lst[i].priority > max_score){
+            max_score = lst[i].priority;
+            no = lst[i].o;
+            np = lst[i].p;
         }
-        if (val < v)
-            val = v;
     }
-    if (val <= alpha)
-        search_param.memo_ub[grid_all] = val;
-    else if (val >= beta)
-        search_param.memo_lb[grid_all] = val;
-    else {
-        search_param.memo_ub[grid_all] = val;
-        search_param.memo_lb[grid_all] = val;
+    return -playout(no, np, 0);
+}
+
+int mcts(const unsigned long long p, const unsigned long long o, const int skip_cnt){
+    pair<unsigned long long, unsigned long long> grid_now;
+    int res;
+    grid_now.first = p;
+    grid_now.second = o;
+    ++search_param.win_rate[grid_now].n;
+    if (skip_cnt == 2){
+        res = -end_game(p, o);
+        search_param.win_rate[grid_now].m += res;
+        return res;
     }
-    return val;
+    pair<unsigned long long, unsigned long long> grid_new;
+    unsigned long long mobility = check_mobility(p, o);
+    int n_canput = pop_count_ull(mobility);
+    if (n_canput == 0){
+        res = -playout(o, p, skip_cnt + 1);
+        search_param.win_rate[grid_now].m += res;
+        return res;
+    }
+    if (search_param.win_rate[grid_now].n == expand_threshold)
+        expand(p, o, mobility);
+    unsigned long long np, no;
+    vector<grid_priority> lst;
+    int i;
+    for (i = 0; i < hw2; ++i){
+        if (1 & (mobility >> i)){
+            np = move(p, o, i);
+            no = (np ^ o) & o;
+            grid_new.first = no;
+            grid_new.second = np;
+            grid_priority tmp;
+            tmp.p = np;
+            tmp.o = no;
+            if (search_param.win_rate[grid_new].seen){
+                if (search_param.win_rate[grid_new].n > 0)
+                    tmp.priority = (double)search_param.win_rate[grid_new].m / search_param.win_rate[grid_new].n + bias * sqrt(log((double)search_param.win_rate[grid_now].n) / (double)search_param.win_rate[grid_new].n); //bias * search_param.win_rate[grid].val;
+                else
+                    tmp.priority = inf;
+            } else
+                tmp.priority = myrandom();
+            lst.push_back(tmp);
+        }
+    }
+    double max_priority = -inf;
+    for (i = 0; i < n_canput; ++i){
+        if (lst[i].priority > max_priority){
+            max_priority = lst[i].priority;
+            grid_new.first = lst[i].o;
+            grid_new.second = lst[i].p;
+        }
+    }
+    if (search_param.win_rate[grid_new].seen)
+        res = -mcts(grid_new.first, grid_new.second, 0);
+    else
+        res = -playout(grid_new.first, grid_new.second, 0);
+    search_param.win_rate[grid_now].m += res;
+    return res;
 }
 
 double map_double(double s, double e, double x){
     return s + (e - s) * x;
-}
-
-int cmp_main(grid_priority_main p, grid_priority_main q){
-    return p.priority > q.priority;
 }
 
 int main(int argc, char* argv[]){
@@ -627,8 +638,7 @@ int main(int argc, char* argv[]){
     double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
     unsigned long long in_mobility;
     unsigned long long p, o, np, no;
-    vector<grid_priority_main> lst;
-    pair<unsigned long long, unsigned long long> grid_all;
+    pair<unsigned long long, unsigned long long> grid;
     int elem;
     int action_count;
     double game_ratio;
@@ -662,82 +672,49 @@ int main(int argc, char* argv[]){
             p += (int)(elem == ai_player);
             o += (int)(elem == 1 - ai_player);
         }
-        
-        if (vacant_cnt > 14)
-            search_param.min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
-        else
-            search_param.min_max_depth = 15;
-        
-        //search_param.min_max_depth = 2;
-        cerr << "start depth " << search_param.min_max_depth << endl;
-        search_param.max_depth = search_param.min_max_depth;
         former_vacant = vacant_cnt;
-        lst.clear();
-        for (i = 0; i < hw2; ++i){
-            if (1 & (in_mobility >> i)){
-                np = move(p, o, i);
-                no = (np ^ o) & o;
-                grid_priority_main tmp;
-                tmp.open_val = calc_open(np | no, np ^ p);
-                tmp.priority = -tmp.open_val;
-                tmp.p = np;
-                tmp.o = no;
-                tmp.move = i;
-                lst.push_back(tmp);
-            }
-        }
-        if (canput > 1)
-            sort(lst.begin(), lst.end(), cmp_main);
         outy = -1;
         outx = -1;
         search_param.strt = tim();
-        while (tim() - search_param.strt < search_param.tl / 2){
-            search_param.memo_ub.clear();
-            search_param.memo_lb.clear();
-            game_ratio = (double)(hw2 - vacant_cnt + search_param.max_depth) / hw2;
-            eval_param.weight_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[1], game_ratio);
-            eval_param.canput_weight = map_double(eval_param.weight_se[2], eval_param.weight_se[3], game_ratio);
-            eval_param.confirm_weight = map_double(eval_param.weight_se[4], eval_param.weight_se[5], game_ratio);
-            eval_param.open_weight = map_double(eval_param.weight_se[6], eval_param.weight_se[7], game_ratio);
-            eval_param.out_weight = map_double(eval_param.weight_se[8], eval_param.weight_se[9], game_ratio);
-            eval_param.open_val_threshold = map_double(eval_param.weight_se[10], eval_param.weight_se[11], game_ratio);
-            eval_param.pattern_weight = map_double(eval_param.weight_se[12], eval_param.weight_se[13], game_ratio);
-            for (i = 0; i < hw2; i++)
-                eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
-            max_score = -65000.0;
-            for (i = 0; i < canput; ++i){
-                score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -65000.0, -max_score, 0);
-                if (fabs(score) == inf){
-                    max_score = -inf;
-                    break;
-                }
-                lst[i].priority = score;
+        game_ratio = (double)(hw2 - vacant_cnt) / hw2;
+        eval_param.weight_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[1], game_ratio);
+        eval_param.canput_weight = map_double(eval_param.weight_se[2], eval_param.weight_se[3], game_ratio);
+        eval_param.confirm_weight = map_double(eval_param.weight_se[4], eval_param.weight_se[5], game_ratio);
+        eval_param.open_weight = map_double(eval_param.weight_se[6], eval_param.weight_se[7], game_ratio);
+        eval_param.out_weight = map_double(eval_param.weight_se[8], eval_param.weight_se[9], game_ratio);
+        eval_param.open_val_threshold = map_double(eval_param.weight_se[10], eval_param.weight_se[11], game_ratio);
+        eval_param.pattern_weight = map_double(eval_param.weight_se[12], eval_param.weight_se[13], game_ratio);
+        for (i = 0; i < hw2; i++)
+            eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
+        search_param.playout_cnt = 0;
+        search_param.win_rate.clear();
+        search_param.win_rate[make_pair(p, o)].seen = true;
+        expand(p, o, in_mobility);
+        while (tim() - search_param.strt < search_param.tl){
+            ++search_param.playout_cnt;
+            mcts(p, o, 0);
+        }
+        max_score = -inf;
+        for (i = 0; i < hw2; i++){
+            if (1 & (in_mobility >> i)){
+                np = move(p, o, i);
+                no = (np ^ o) & o;
+                grid.first = no;
+                grid.second = np;
+                score = (double)search_param.win_rate[grid].m / max(1, search_param.win_rate[grid].n);
+                //cerr << search_param.win_rate[grid].n << " " << score << "  ";
+                cerr << search_param.win_rate[grid].n << " ";
                 if (score > max_score){
                     max_score = score;
-                    ansy = (hw2 - lst[i].move - 1) / hw;
-                    ansx = (hw2 - lst[i].move - 1) % hw;
+                    ansy = (hw2 - i - 1) / hw;
+                    ansx = (hw2 - i - 1) % hw;
                 }
             }
-            if (max_score == -inf){
-                cerr << "depth " << search_param.max_depth << " timeoout" << endl;
-                break;
-            }
-            former_depth = search_param.max_depth;
-            outy = ansy;
-            outx = ansx;
-            if (canput > 1)
-                sort(lst.begin(), lst.end(), cmp_main);
-            cerr << "depth " << search_param.max_depth;
-            for (i = 0; i < 1; ++i){
-                cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
-            }
-            cerr << " time " << tim() - search_param.strt << endl;
-            if (vacant_cnt < search_param.max_depth || fabs(max_score) >= 1000.0){
-                cerr << "game end" << endl;
-                break;
-            }
-            ++search_param.max_depth;
         }
+        cerr << endl;
+        outy = ansy;
+        outx = ansx;
+        cerr << ansy << ansx << " " << max_score << " " << search_param.playout_cnt << " time " << tim() - search_param.strt << endl;
         cout << outy << " " << outx << endl;
     }
     return 0;
