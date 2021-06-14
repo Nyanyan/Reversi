@@ -9,7 +9,7 @@ hw2 = 64
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
-population = 500
+population = 10
 param_num = 46
 tim = 5
 
@@ -176,9 +176,18 @@ def match(param0, param1):
             stdin += '\n'
         ai[rv.player].stdin.write(stdin.encode('utf-8'))
         ai[rv.player].stdin.flush()
+        #print(stdin)
+        #print(rv.player)
+        s = time()
         y, x = [int(i) for i in ai[rv.player].stdout.readline().decode().strip().split()]
+        if (time() - s > 0.2):
+            print(stdin)
+            print(rv.player)
+            print(y, x)
         if rv.move(y, x):
             print(stdin)
+            print(rv.player)
+            print(y, x)
         if rv.end():
             break
     rv.check_pass()
@@ -232,7 +241,7 @@ def hill_climb(param, tl):
         max_rating = rate_children(param, max_rating)
     while time() - strt < tl:
         f_param = [i for i in param]
-        param[randint(0, param_num - 1)] += random() * 0.06 - 0.03
+        param[randint(20, 33)] += random() * 0.06 - 0.03
         rating = env.create_rating()
         for _ in range(tim):
             rating = rate_children(param, rating)
@@ -256,8 +265,12 @@ for _ in range(1):
     parents.append([param, env.create_rating()])
 for _ in range(1, population):
     param = []
-    for i in range(param_num):
-        param.append(param_base[i] + random() * 0.6 - 0.3)
+    for i in range(20):
+        param.append(param_base[i])
+    for i in range(20, 34):
+        param.append(param_base[i] + random() * 0.5 - 0.25)
+    for i in range(34, param_num):
+        param.append(param_base[i])
     parents.append([param, env.create_rating()])
 '''
 parents = []
@@ -279,7 +292,7 @@ while True:
     children = [[i for i in hill_climb(parents[idx1][0], 5.0)], [i for i in hill_climb(parents[idx2][0], 5.0)]]
     param1 = []
     param2 = []
-    dv = randint(1, param_num - 2)
+    dv = randint(21, 32)
     for i in range(dv):
         param1.append(parents[idx1][0][i])
         param2.append(parents[idx2][0][i])
