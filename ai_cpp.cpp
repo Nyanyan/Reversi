@@ -52,10 +52,6 @@ struct eval_param{
     double cnt_weight, weight_weight, canput_weight, pot_canput_weight, confirm_weight, pattern_weight, center_weight;
     double weight_se[14];
     double open_val_threshold;
-    double weight_pat_s[pattern_num];
-    double weight_pat_e[pattern_num];
-    double weight_pat[pattern_num];
-    unsigned long long pat_mask_h_p[pattern_num], pat_mask_h_o[pattern_num], pat_mask_h_p_m[pattern_num], pat_mask_h_o_m[pattern_num], pat_mask_v_p[pattern_num], pat_mask_v_o[pattern_num], pat_mask_v_p_m[pattern_num], pat_mask_v_o_m[pattern_num];
     double avg_canput[hw2];
     /*= {
         0.00, 0.00, 0.00, 0.00, 4.00, 3.00, 4.00, 2.00,
@@ -68,6 +64,8 @@ struct eval_param{
         3.39, 3.11, 2.66, 2.30, 1.98, 1.53, 1.78, 0.67
     };
     */
+    int translate_arr[8][8];
+    double pattern_data[6561];
 };
 
 struct confirm_param{
@@ -214,20 +212,6 @@ void init(int argc, char* argv[]){
         }
         eval_param.weight_se[i] = atof(cbuf);
     }
-    for (i = 0; i < pattern_num; i++){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("param file broken");
-            exit(1);
-        }
-        eval_param.weight_pat_s[i] = atof(cbuf);
-    }
-    for (i = 0; i < pattern_num; i++){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("param file broken");
-            exit(1);
-        }
-        eval_param.weight_pat_e[i] = atof(cbuf);
-    }
     fclose(fp);
     if ((fp = fopen("const.txt", "r")) == NULL){
         printf("const.txt not exist");
@@ -267,20 +251,6 @@ void init(int argc, char* argv[]){
             move_param.rmask_v4[i].ull[j] = stoull(cbuf);
         }
     }
-    for (i = 0; i < pattern_num; i++){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("const.txt broken");
-            exit(1);
-        }
-        eval_param.pat_mask_h_p[i] = stoull(cbuf);
-    }
-    for (i = 0; i < pattern_num; i++){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("const.txt broken");
-            exit(1);
-        }
-        eval_param.pat_mask_h_o[i] = stoull(cbuf);
-    }
     for (i = 0; i < hw2; i++){
         if (!fgets(cbuf, 1024, fp)){
             printf("const.txt broken");
@@ -288,14 +258,26 @@ void init(int argc, char* argv[]){
         }
         eval_param.avg_canput[i] = atof(cbuf);
     }
+    for (i = 0; i < hw; i++){
+        for (j = 0; j < hw; j++){
+            if (!fgets(cbuf, 1024, fp)){
+                printf("const.txt broken");
+                exit(1);
+            }
+            eval_param.translate_arr[i][j] = atoi(cbuf);
+        }
+    }
     fclose(fp);
-    for (i = 0; i < pattern_num; i++){
-        eval_param.pat_mask_h_p_m[i] = mirror_v(eval_param.pat_mask_h_p[i]);
-        eval_param.pat_mask_h_o_m[i] = mirror_v(eval_param.pat_mask_h_o[i]);
-        eval_param.pat_mask_v_p[i] = transpose(eval_param.pat_mask_h_p[i]);
-        eval_param.pat_mask_v_o[i] = transpose(eval_param.pat_mask_h_o[i]);
-        eval_param.pat_mask_v_p_m[i] = transpose(eval_param.pat_mask_h_p_m[i]);
-        eval_param.pat_mask_v_o_m[i] = transpose(eval_param.pat_mask_h_o_m[i]);
+    if ((fp = fopen("pattern_param.txt", "r")) == NULL){
+        printf("pattern_param.txt not exist");
+        exit(1);
+    }
+    for (i = 0; i < 6561; ++i){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("pattern_param.txt broken");
+            exit(1);
+        }
+        eval_param.pattern_data[i] = atof(cbuf);
     }
 }
 
@@ -365,6 +347,23 @@ inline int check_confirm(const unsigned long long& grid, const int& idx){
     return res;
 }
 
+inline double pattern_eval(const unsigned long long p, const unsigned long long o){
+    int i, j, num;
+    double res = 0.0;
+    for (i = 0; i < 8; ++i){
+        num = 0;
+        for (j = 0; j < 8; ++j){
+            num *= 3;
+            if (1 & (p >> eval_param.translate_arr[i][j]))
+                ++num;
+            else if (1 & (o >> eval_param.translate_arr[i][j]))
+                num += 2;
+        }
+        res += eval_param.pattern_data[num];
+    }
+    return res;
+}
+
 inline double evaluate(const unsigned long long p, const unsigned long long o){
     int p_cnt = pop_count_ull(p), o_cnt = pop_count_ull(o);
     int canput = 0;
@@ -372,7 +371,6 @@ inline double evaluate(const unsigned long long p, const unsigned long long o){
     double weight_me = 0.0, weight_op = 0.0;
     int me_cnt = 0, op_cnt = 0;
     int confirm_me = 0, confirm_op = 0;
-    double pattern_me = 0.0, pattern_op = 0.0;
     double center_p = 0.0, center_o = 0.0;
     double gy = 0.0, gx = 0.0;
     unsigned long long stones;
@@ -452,40 +450,7 @@ inline double evaluate(const unsigned long long p, const unsigned long long o){
     confirm_op += 1 & o2;
     confirm_op += 1 & (o >> hw2_mhw);
     confirm_op += 1 & (o >> hw2_m1);
-    for (i = 0; i < pattern_num; ++i){
-        if ((p & eval_param.pat_mask_h_p[i]) == eval_param.pat_mask_h_p[i] && (o & eval_param.pat_mask_h_o[i]) == eval_param.pat_mask_h_o[i])
-            pattern_me += eval_param.weight_pat[i];
-        if ((p & eval_param.pat_mask_h_p_m[i]) == eval_param.pat_mask_h_p_m[i] && (o & eval_param.pat_mask_h_o_m[i]) == eval_param.pat_mask_h_o_m[i])
-            pattern_me += eval_param.weight_pat[i];
-        if ((p & eval_param.pat_mask_v_p[i]) == eval_param.pat_mask_v_p[i] && (o & eval_param.pat_mask_v_o[i]) == eval_param.pat_mask_v_o[i])
-            pattern_me += eval_param.weight_pat[i];
-        if ((p & eval_param.pat_mask_v_p_m[i]) == eval_param.pat_mask_v_p_m[i] && (o & eval_param.pat_mask_v_o_m[i]) == eval_param.pat_mask_v_o_m[i])
-            pattern_me += eval_param.weight_pat[i];
-        if ((p1 & eval_param.pat_mask_h_p[i]) == eval_param.pat_mask_h_p[i] && (o1 & eval_param.pat_mask_h_o[i]) == eval_param.pat_mask_h_o[i])
-            pattern_me += eval_param.weight_pat[i];
-        if ((p1 & eval_param.pat_mask_h_p_m[i]) == eval_param.pat_mask_h_p_m[i] && (o1 & eval_param.pat_mask_h_o_m[i]) == eval_param.pat_mask_h_o_m[i])
-            pattern_me += eval_param.weight_pat[i];
-        if ((p2 & eval_param.pat_mask_v_p[i]) == eval_param.pat_mask_v_p[i] && (o2 & eval_param.pat_mask_v_o[i]) == eval_param.pat_mask_v_o[i])
-            pattern_me += eval_param.weight_pat[i];
-        if ((p2 & eval_param.pat_mask_v_p_m[i]) == eval_param.pat_mask_v_p_m[i] && (o2 & eval_param.pat_mask_v_o_m[i]) == eval_param.pat_mask_v_o_m[i])
-            pattern_me += eval_param.weight_pat[i];
-        if ((o & eval_param.pat_mask_h_p[i]) == eval_param.pat_mask_h_p[i] && (p & eval_param.pat_mask_h_o[i]) == eval_param.pat_mask_h_o[i])
-            pattern_op += eval_param.weight_pat[i];
-        if ((o & eval_param.pat_mask_h_p_m[i]) == eval_param.pat_mask_h_p_m[i] && (p & eval_param.pat_mask_h_o_m[i]) == eval_param.pat_mask_h_o_m[i])
-            pattern_op += eval_param.weight_pat[i];
-        if ((o & eval_param.pat_mask_v_p[i]) == eval_param.pat_mask_v_p[i] && (p & eval_param.pat_mask_v_o[i]) == eval_param.pat_mask_v_o[i])
-            pattern_op += eval_param.weight_pat[i];
-        if ((o & eval_param.pat_mask_v_p_m[i]) == eval_param.pat_mask_v_p_m[i] && (p & eval_param.pat_mask_v_o_m[i]) == eval_param.pat_mask_v_o_m[i])
-            pattern_op += eval_param.weight_pat[i];
-        if ((o1 & eval_param.pat_mask_h_p[i]) == eval_param.pat_mask_h_p[i] && (p1 & eval_param.pat_mask_h_o[i]) == eval_param.pat_mask_h_o[i])
-            pattern_op += eval_param.weight_pat[i];
-        if ((o1 & eval_param.pat_mask_h_p_m[i]) == eval_param.pat_mask_h_p_m[i] && (p1 & eval_param.pat_mask_h_o_m[i]) == eval_param.pat_mask_h_o_m[i])
-            pattern_op += eval_param.weight_pat[i];
-        if ((o2 & eval_param.pat_mask_v_p[i]) == eval_param.pat_mask_v_p[i] && (p2 & eval_param.pat_mask_v_o[i]) == eval_param.pat_mask_v_o[i])
-            pattern_op += eval_param.weight_pat[i];
-        if ((o2 & eval_param.pat_mask_v_p_m[i]) == eval_param.pat_mask_v_p_m[i] && (p2 & eval_param.pat_mask_v_o_m[i]) == eval_param.pat_mask_v_o_m[i])
-            pattern_op += eval_param.weight_pat[i];
-    }
+    
     for (i = 0; i < hw2; i++){
         if (stones >> i){
             gy += (i >> 3);
@@ -507,7 +472,7 @@ inline double evaluate(const unsigned long long p, const unsigned long long o){
     canput_proc = ((double)canput - eval_param.avg_canput[p_cnt + o_cnt]) / max(1.0, (double)canput + eval_param.avg_canput[p_cnt + o_cnt]);
     pot_canput_proc = (double)(pot_canput_p - pot_canput_o) / max(1, pot_canput_p + pot_canput_o);
     confirm_proc = (double)(confirm_me - confirm_op) / max(1, confirm_me + confirm_op);
-    pattern_proc = (pattern_me - pattern_op) / max(1.0, abs(pattern_me) + abs(pattern_op));
+    pattern_proc = pattern_eval(p, o);
     center_proc = (center_o - center_p) / max(1.0, center_o + center_p);
     //cerr << pattern_proc << endl;
     //cerr << cnt_proc << " " << weight_proc << " " << canput_proc << " " << pot_canput_proc << " " << confirm_proc << " " << pattern_proc;// << center_proc << endl;
@@ -551,11 +516,15 @@ int cmp(grid_priority p, grid_priority q){
     return p.open_val < q.open_val;
 }
 
-double nega_alpha(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt, const int& canput, int open_val){
+double nega_alpha(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt, const int& canput, int open_val, bool isp){
     if (skip_cnt == 2)
         return end_game(p, o);
-    else if (depth == 0)
-        return evaluate(p, o);
+    else if (depth == 0){
+        if (isp)
+            return evaluate(p, o);
+        else
+            return -evaluate(o, p);
+    }
     double val, v, ub, lb;
     int i, n_canput;
     unsigned long long mobility = check_mobility(p, o);
@@ -564,12 +533,12 @@ double nega_alpha(const unsigned long long p, const unsigned long long o, const 
     val = -65.0;
     n_canput = pop_count_ull(mobility);
     if (n_canput == 0)
-        return -nega_alpha(o, p, depth - 1, -beta, -alpha, skip_cnt + 1, 0, 0);
+        return -nega_alpha(o, p, depth, -beta, -alpha, skip_cnt + 1, 0, 0, !isp);
     for (i = 0; i < hw2; ++i){
         if (1 & (mobility >> i)){
             np = move(p, o, i);
             no = (np ^ o) & o;
-            v = -nega_alpha(no, np, depth - 1, -beta, -alpha, 0, n_canput, calc_open(np | no, np ^ p));
+            v = -nega_alpha(no, np, depth - 1, -beta, -alpha, 0, n_canput, calc_open(np | no, np ^ p), !isp);
             if (fabs(v) == inf)
                 return -inf;
             if (beta <= v)
@@ -582,13 +551,11 @@ double nega_alpha(const unsigned long long p, const unsigned long long o, const 
     return val;
 }
 
-double nega_scout(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt){
+double nega_scout(const unsigned long long p, const unsigned long long o, const int& depth, double alpha, double beta, const int& skip_cnt, bool isp){
     if (search_param.max_depth > search_param.min_max_depth && tim() - search_param.strt > search_param.tl)
         return -inf;
     if (skip_cnt == 2)
         return end_game(p, o);
-    else if (depth == 0)
-        return evaluate(p, o);
     double val, v, ub, lb;
     pair<unsigned long long, unsigned long long> grid_all;
     grid_all.first = p;
@@ -623,13 +590,13 @@ double nega_scout(const unsigned long long p, const unsigned long long o, const 
         }
     }
     if (n_canput == 0)
-        return -nega_scout(o, p, depth - 1, -beta, -alpha, skip_cnt + 1);
+        return -nega_scout(o, p, depth, -beta, -alpha, skip_cnt + 1, !isp);
     if (n_canput > 1)
         sort(lst.begin(), lst.end(), cmp);
     if (depth > simple_threshold)
-        v = -nega_scout(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0);
+        v = -nega_scout(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0, !isp);
     else
-        v = -nega_alpha(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val);
+        v = -nega_alpha(lst[0].o, lst[0].p, depth - 1, -beta, -alpha, 0, n_canput, lst[0].open_val, !isp);
     val = v;
     if (fabs(v) == inf)
         return -inf;
@@ -638,9 +605,9 @@ double nega_scout(const unsigned long long p, const unsigned long long o, const 
     alpha = max(alpha, v);
     for (i = 1; i < n_canput; ++i){
         if (depth > simple_threshold)
-            v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0);
+            v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0, !isp);
         else
-            v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val);
+            v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -alpha - window, -alpha, 0, n_canput, lst[i].open_val, !isp);
         if (fabs(v) == inf)
             return -inf;
         if (beta <= v)
@@ -648,9 +615,9 @@ double nega_scout(const unsigned long long p, const unsigned long long o, const 
         if (alpha < v){
             alpha = v;
             if (depth > simple_threshold)
-                v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0);
+                v = -nega_scout(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0, !isp);
             else
-                v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val);
+                v = -nega_alpha(lst[i].o, lst[i].p, depth - 1, -beta, -alpha, 0, n_canput, lst[i].open_val, !isp);
             if (fabs(v) == inf)
                 return -inf;
             if (beta <= v)
@@ -764,7 +731,7 @@ int main(int argc, char* argv[]){
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
-                score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -65000.0, -max_score, 0);
+                score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -65000.0, -max_score, 0, true);
                 if (fabs(score) == inf){
                     max_score = -inf;
                     break;

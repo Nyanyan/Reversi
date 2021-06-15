@@ -1,17 +1,23 @@
-from random import random, randint
+# distutils: language = c++
+#cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
+from libcpp.unordered_map cimport unordered_map
+from random import random
 import subprocess
-import trueskill
-from tqdm import trange
 from time import time
+from tqdm import trange
 
-hw = 8
-hw2 = 64
+DEF param_num = 46
+
+cdef unordered_map[int, int] win_num
+cdef unordered_map[int, int] seen_num
+cdef unordered_map[int, double] win_rate
+cdef double[param_num] param_base
+
+
+DEF hw = 8
+DEF hw2 = 64
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
-
-population = 50
-param_num = 34
-tim = 20
 
 def empty(grid, y, x):
     return grid[y][x] == -1 or grid[y][x] == 2
@@ -138,7 +144,54 @@ class reversi:
             #print('Draw!', self.nums[0], '-', self.nums[1])
             return -1
 
-def match(param0, param1):
+cdef int[8][8] translate_arr = [
+    [63, 62, 61, 60, 59, 58, 57, 54],
+    [56, 57, 58, 59, 60, 61, 62, 49],
+    [7, 15, 23, 31, 39, 47, 55, 14],
+    [63, 55, 47, 39, 31, 23, 15, 54],
+    [0, 1, 2, 3, 4, 5, 6, 9],
+    [7, 6, 5, 4, 3, 2, 1, 14],
+    [0, 8, 16, 24, 32, 40, 48, 9],
+    [56, 48, 40, 32, 24, 16, 8, 49]
+]
+
+cdef list translate_p(list grid):
+    cdef list res = []
+    cdef int i, j, tmp, tmp2
+    for i in range(8):
+        tmp = 0
+        for j in range(8):
+            tmp *= 3
+            tmp2 = grid[translate_arr[i][j] // hw][translate_arr[i][j] % hw]
+            if tmp2 == 0:
+                tmp += 1
+            elif tmp2 == 1:
+                tmp += 2
+        res.append(tmp)
+    return res
+
+cdef list translate_o(list grid):
+    cdef list res = []
+    cdef int i, j, tmp, tmp2
+    for i in range(8):
+        tmp = 0
+        for j in range(8):
+            tmp *= 3
+            tmp2 = grid[translate_arr[i][j] // hw][translate_arr[i][j] % hw]
+            if tmp2 == 1:
+                tmp += 1
+            elif tmp2 == 0:
+                tmp += 2
+        res.append(tmp)
+    return res
+
+cdef void collect():
+    cdef double[param_num] param0, param1
+    cdef list seen_p = [], seen_o = []
+    for i in range(param_num):
+        param0[i] = param_base[i] + random() * 0.5 - 0.25
+    for i in range(param_num):
+        param1[i] = param_base[i] + random() * 0.5 - 0.25
     while True:
         try:
             with open('param0.txt', 'w') as f:
@@ -155,8 +208,6 @@ def match(param0, param1):
             break
         except:
             continue
-    res0 = -1
-    res1 = -1
     ai = [subprocess.Popen(('./a.exe param' + str(i) + '.txt').split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for i in range(2)]
     for i in range(2):
         stdin = str(i) + '\n' + str(100) + '\n'
@@ -178,165 +229,93 @@ def match(param0, param1):
         ai[rv.player].stdin.flush()
         #print(stdin)
         #print(rv.player)
-        s = time()
         y, x = [int(i) for i in ai[rv.player].stdout.readline().decode().strip().split()]
-        if (time() - s > 0.2):
-            print(stdin)
-            print(rv.player)
-            print(y, x)
         if rv.move(y, x):
             print(stdin)
             print(rv.player)
             print(y, x)
+        seen_p.extend(translate_p(rv.grid))
+        seen_o.extend(translate_o(rv.grid))
         if rv.end():
             break
     rv.check_pass()
     #rv.output()
     winner = rv.judge()
     if winner == 0:
-        res0 = 0
-        res1 = 1
-    elif winner == -1:
-        res0 = 0
-        res1 = 0
+        for t in range(len(seen_p)):
+            i = seen_p[t]
+            if seen_num.find(i) == seen_num.end():
+                seen_num[i] = 1
+                win_num[i] = 1
+            else:
+                seen_num[i] += 1
+                win_num[i] += 1
+            win_rate[i] = <double>win_num[i] / seen_num[i]
+        for t in range(len(seen_o)):
+            i = seen_o[t]
+            if seen_num.find(i) == seen_num.end():
+                seen_num[i] = 1
+                win_num[i] = -1
+            else:
+                seen_num[i] += 1
+                win_num[i] -= 1
+            win_rate[i] = <double>win_num[i] / seen_num[i]
+    elif winner == 1:
+        for t in range(len(seen_p)):
+            i = seen_p[t]
+            if seen_num.find(i) == seen_num.end():
+                seen_num[i] = 1
+                win_num[i] = -1
+            else:
+                seen_num[i] += 1
+                win_num[i] -= 1
+            win_rate[i] = <double>win_num[i] / seen_num[i]
+        for t in range(len(seen_o)):
+            i = seen_o[t]
+            if seen_num.find(i) == seen_num.end():
+                seen_num[i] = 1
+                win_num[i] = 1
+            else:
+                seen_num[i] += 1
+                win_num[i] += 1
+            win_rate[i] = <double>win_num[i] / seen_num[i]
     else:
-        res0 = 1
-        res1 = 0
+        for t in range(len(seen_p)):
+            i = seen_p[t]
+            if seen_num.find(i) == seen_num.end():
+                seen_num[i] = 1
+                win_num[i] = 0
+            else:
+                seen_num[i] += 1
+            win_rate[i] = <double>win_num[i] / seen_num[i]
+        for t in range(len(seen_o)):
+            i = seen_o[t]
+            if seen_num.find(i) == seen_num.end():
+                seen_num[i] = 1
+                win_num[i] = 0
+            else:
+                seen_num[i] += 1
+            win_rate[i] = <double>win_num[i] / seen_num[i]
     for i in range(2):
         ai[i].kill()
-    return res0, res1
-'''
-def rate(idx1):
-    idx2 = randint(0, population - 1)
-    r1, r2 = match(parents[idx1][0], diversity[idx2][0])
-    (parents[idx1][1],),(diversity[idx2][1],), = env.rate(((parents[idx1][1],), (diversity[idx2][1],),), ranks=[r1, r2,])
-    r2, r1 = match(diversity[idx2][0], parents[idx1][0])
-    (parents[idx1][1],),(diversity[idx2][1],), = env.rate(((parents[idx1][1],), (diversity[idx2][1],),), ranks=[r1, r2,])
-'''
-def rate_children(param, rating):
-    idx2 = randint(0, population - 1)
-    r1, r2 = match(param, diversity[idx2][0])
-    (rating,),(diversity[idx2][1],), = env.rate(((rating,), (diversity[idx2][1],),), ranks=[r1, r2,])
-    r2, r1 = match(diversity[idx2][0], param)
-    (rating,),(diversity[idx2][1],), = env.rate(((rating,), (diversity[idx2][1],),), ranks=[r1, r2,])
-    return rating
 
-mu = 25.
-sigma = mu / 3.
-beta = sigma / 2.
-tau = sigma / 100.
-draw_probability = 0.1
-backend = None
+cdef void output():
+    cdef int i
+    with open('pattern_param.txt', 'w') as f:
+        for i in range(3 ** 8):
+            if seen_num.find(i) == seen_num.end():
+                f.write('0\n')
+            else:
+                f.write(str(win_rate[i] / 8.0) + '\n')
 
-env = trueskill.TrueSkill(
-    mu=mu, sigma=sigma, beta=beta, tau=tau,
-    draw_probability=draw_probability, backend=backend)
-
-def hill_climb(param, tl):
-    strt = time()
-    max_rating = env.create_rating()
-    for _ in range(tim):
-        max_rating = rate_children(param, max_rating)
-    while time() - strt < tl:
-        f_param = [i for i in param]
-        param[randint(20, 33)] += random() * 0.06 - 0.03
-        rating = env.create_rating()
-        for _ in range(tim):
-            rating = rate_children(param, rating)
-        if env.expose(max_rating) < env.expose(rating):
-            max_rating = rating
-        else:
-            param = [i for i in f_param]
-    return param, max_rating
-
-
-param_base = []
-with open('param_base.txt', 'r') as f:
-    for _ in range(param_num):
-        param_base.append(float(f.readline()))
-'''
-parents = []
-for _ in range(1):
-    param = []
-    for i in range(param_num):
-        param.append(param_base[i])
-    parents.append([param, env.create_rating()])
-for _ in range(1, population):
-    param = []
-    for i in range(20):
-        param.append(param_base[i])
-    for i in range(20, 34):
-        param.append(param_base[i] + random() * 0.5 - 0.25)
-    for i in range(34, param_num):
-        param.append(param_base[i])
-    parents.append([param, env.create_rating()])
-'''
-diversity = []
-for _ in range(population):
-    param = []
-    for i in range(20):
-        param.append(param_base[i])
-    for i in range(20, 34):
-        param.append(param_base[i] + random() * 0.5 - 0.25)
-    for i in range(34, param_num):
-        param.append(param_base[i])
-    diversity.append([param, env.create_rating()])
-'''
-parents = []
-for _ in range(population):
-    param = []
-    for i in range(param_num):
-        param.append(random())
-    parents.append([param, env.create_rating()])
-'''
-'''
-for i in trange(population * tim):
-    rate(i % population)
-'''
-cnt = 0
-max_rating = rate_children(param_base, env.create_rating())
-while True:
-    f_param = [i for i in param_base]
-    param_base[randint(0, param_num - 1)] += random() * 0.1 - 0.05
-    rating = env.create_rating()
-    for _ in range(tim):
-        rating = rate_children(param_base, rating)
-    if env.expose(max_rating) < env.expose(rating):
-        max_rating = rating
-        with open('param.txt', 'w') as f:
-            for i in range(param_num):
-                f.write(str(param_base[i]) + '\n')
-    else:
-        param = [i for i in f_param]
-    print(cnt, env.expose(max_rating))
-    cnt += 1
-
-'''
-while True:
-    idx1 = randint(0, population - 1)
-    idx2 = idx1
-    while idx1 == idx2:
-        idx2 = randint(0, population - 1)
-    children = [[i for i in hill_climb(parents[idx1][0], 5.0)], [i for i in hill_climb(parents[idx2][0], 5.0)]]
-    param1 = []
-    param2 = []
-    dv = randint(21, 32)
-    for i in range(dv):
-        param1.append(parents[idx1][0][i])
-        param2.append(parents[idx2][0][i])
-    for i in range(dv, param_num):
-        param1.append(parents[idx2][0][i])
-        param2.append(parents[idx1][0][i])
-    children.append([i for i in hill_climb(param1, 5.0)])
-    children.append([i for i in hill_climb(param2, 5.0)])
-    children.sort(key=lambda x: env.expose(x[1]), reverse=True)
-    parents[idx1] = children[0]
-    parents[idx2] = children[1]
-    arr = [env.expose(parents[i][1]) for i in range(population)]
-    idx = arr.index(max(arr))
-    print(cnt, arr[idx])
-    with open('param.txt', 'w') as f:
+cdef void main():
+    global param_base, win_rate
+    cdef int i
+    with open('param_base.txt', 'r') as f:
         for i in range(param_num):
-            f.write(str(parents[idx][0][i]) + '\n')
-    cnt += 1
-'''
+            param_base[i] = float(f.readline())
+    for _ in trange(10000):
+        collect()
+    output()
+
+main()
