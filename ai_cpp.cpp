@@ -28,7 +28,7 @@ using namespace std;
 #define simple_threshold 3
 #define inf 100000000.0
 #define pattern_num 6
-#define param_num 20
+#define param_num 30
 
 struct HashPair {
     static size_t m_hash_pair_random;
@@ -47,13 +47,12 @@ struct HashPair {
 size_t HashPair::m_hash_pair_random = (size_t) random_device()();
 
 struct eval_param{
-    double weight_s[hw2];
-    double weight_e[hw2];
+    double weight_s[hw2], weight_m[hw2], weight_e[hw2];
     double weight[hw2];
     double cnt_weight, weight_weight, canput_weight, pot_canput_weight, confirm_weight, pattern_weight, center_weight;
     double pattern_bias, cnt_bias;
     double shift_bias;
-    double weight_se[param_num];
+    double weight_sme[param_num];
     double open_val_threshold;
     double avg_canput[hw2];
     /*= {
@@ -209,13 +208,22 @@ void init(int argc, char* argv[]){
         weight_buf[i] = atof(cbuf);
     }
     for (i = 0; i < hw2; i++)
+        eval_param.weight_m[i] = weight_buf[translate[i]];
+    for (i = 0; i < 10; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("param file broken");
+            exit(1);
+        }
+        weight_buf[i] = atof(cbuf);
+    }
+    for (i = 0; i < hw2; i++)
         eval_param.weight_e[i] = weight_buf[translate[i]];
     for (i = 0; i < param_num; i++){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
             exit(1);
         }
-        eval_param.weight_se[i] = atof(cbuf);
+        eval_param.weight_sme[i] = atof(cbuf);
     }
     fclose(fp);
     if ((fp = fopen("const.txt", "r")) == NULL){
@@ -673,8 +681,13 @@ double nega_scout(const unsigned long long p, const unsigned long long o, const 
     return val;
 }
 
-double map_double(double s, double e, double x){
-    return s + (e - s) * x;
+double map_double(double y1, double y2, double y3, double x){
+    double a, b, c;
+    double x1 = 4.0, x2 = 32.0, x3 = 64.0;
+    a = ((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) / ((x1 - x2) * (x1 - x3) * (x2 - x3));
+    b = (y1 - y2) / (x1 - x2) - a * (x1 + x2);
+    c = y1 - a * x1 * x1 - b * x1;
+    return a * x * x + b * x + c;
 }
 
 int cmp_main(grid_priority_main p, grid_priority_main q){
@@ -752,18 +765,18 @@ int main(int argc, char* argv[]){
             search_param.memo_ub.clear();
             search_param.memo_lb.clear();
             game_ratio = (double)(hw2 - vacant_cnt + search_param.max_depth) / hw2;
-            eval_param.cnt_weight = map_double(eval_param.weight_se[0], eval_param.weight_se[1], game_ratio);
-            eval_param.weight_weight = map_double(eval_param.weight_se[2], eval_param.weight_se[3], game_ratio);
-            eval_param.canput_weight = map_double(eval_param.weight_se[4], eval_param.weight_se[5], game_ratio);
-            eval_param.pot_canput_weight = map_double(eval_param.weight_se[6], eval_param.weight_se[7], game_ratio);
-            eval_param.confirm_weight = map_double(eval_param.weight_se[8], eval_param.weight_se[9], game_ratio);
-            eval_param.pattern_weight = map_double(eval_param.weight_se[10], eval_param.weight_se[11], game_ratio);
-            eval_param.center_weight = map_double(eval_param.weight_se[12], eval_param.weight_se[13], game_ratio);
-            eval_param.pattern_bias = map_double(eval_param.weight_se[14], eval_param.weight_se[15], game_ratio);
-            eval_param.cnt_bias = map_double(eval_param.weight_se[16], eval_param.weight_se[17], game_ratio);
-            eval_param.shift_bias = map_double(eval_param.weight_se[18], eval_param.weight_se[19], game_ratio);
+            eval_param.cnt_weight = map_double(eval_param.weight_sme[0], eval_param.weight_sme[1], eval_param.weight_sme[2], game_ratio);
+            eval_param.weight_weight = map_double(eval_param.weight_sme[3], eval_param.weight_sme[4], eval_param.weight_sme[5], game_ratio);
+            eval_param.canput_weight = map_double(eval_param.weight_sme[6], eval_param.weight_sme[7], eval_param.weight_sme[8], game_ratio);
+            eval_param.pot_canput_weight = map_double(eval_param.weight_sme[9], eval_param.weight_sme[10], eval_param.weight_sme[11], game_ratio);
+            eval_param.confirm_weight = map_double(eval_param.weight_sme[12], eval_param.weight_sme[13], eval_param.weight_sme[14], game_ratio);
+            eval_param.pattern_weight = map_double(eval_param.weight_sme[15], eval_param.weight_sme[16], eval_param.weight_sme[17], game_ratio);
+            eval_param.center_weight = map_double(eval_param.weight_sme[18], eval_param.weight_sme[19], eval_param.weight_sme[20], game_ratio);
+            eval_param.pattern_bias = map_double(eval_param.weight_sme[21], eval_param.weight_sme[22], eval_param.weight_sme[23], game_ratio);
+            eval_param.cnt_bias = map_double(eval_param.weight_sme[24], eval_param.weight_sme[25], eval_param.weight_sme[26], game_ratio);
+            eval_param.shift_bias = map_double(eval_param.weight_sme[27], eval_param.weight_sme[28], eval_param.weight_sme[29], game_ratio);
             for (i = 0; i < hw2; i++)
-                eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
+                eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_m[i], eval_param.weight_e[i], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -65000.0, -max_score, 0, true);

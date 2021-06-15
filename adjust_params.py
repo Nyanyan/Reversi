@@ -10,8 +10,8 @@ dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
 population = 10
-param_num = 40
-change_param = list(set(range(param_num)) - set([38, 39]))
+param_num = 60
+change_param = list(set(range(param_num)) - set([57, 58, 59]))
 tim = 10
 
 def empty(grid, y, x):
