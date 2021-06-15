@@ -11,7 +11,7 @@ dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
 population = 10
 param_num = 60
-change_param = list(set(range(param_num)) - set([57, 58, 59]))
+change_param = list(set(range(param_num)) - set([57, 58, 59]) - set(range(30)))
 tim = 10
 
 def empty(grid, y, x):
@@ -322,7 +322,7 @@ while True:
         else:
             param_base = [f_param[i] for i in range(param_num)]
         print(cnt, max_float_rating, max_rating, rating)
-        if max_rating > tim * 2 * 0.6:
+        if max_rating > tim * 2 * 0.5:
             break
         cnt += 1
     with open('param_base.txt', 'w') as f:
