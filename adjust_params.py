@@ -9,9 +9,9 @@ hw2 = 64
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
-population = 50
+population = 10
 param_num = 34
-tim = 20
+tim = 10
 
 def empty(grid, y, x):
     return grid[y][x] == -1 or grid[y][x] == 2
@@ -213,12 +213,20 @@ def rate(idx1):
     r2, r1 = match(diversity[idx2][0], parents[idx1][0])
     (parents[idx1][1],),(diversity[idx2][1],), = env.rate(((parents[idx1][1],), (diversity[idx2][1],),), ranks=[r1, r2,])
 '''
-def rate_children(param, rating):
-    idx2 = randint(0, population - 1)
-    r1, r2 = match(param, diversity[idx2][0])
-    (rating,),(diversity[idx2][1],), = env.rate(((rating,), (diversity[idx2][1],),), ranks=[r1, r2,])
-    r2, r1 = match(diversity[idx2][0], param)
-    (rating,),(diversity[idx2][1],), = env.rate(((rating,), (diversity[idx2][1],),), ranks=[r1, r2,])
+def rate_children(param, rating, idx2):
+    #idx2 = randint(0, population - 1)
+    r1, r2 = match(param, diversity[idx2])
+    if r1 < r2:
+        rating += 1
+    elif r1 > r2:
+        rating -= 1
+    #(rating,),(diversity[idx2][1],), = env.rate(((rating,), (diversity[idx2][1],),), ranks=[r1, r2,])
+    r2, r1 = match(diversity[idx2], param)
+    if r1 < r2:
+        rating += 1
+    elif r1 > r2:
+        rating -= 1
+    #(rating,),(diversity[idx2][1],), = env.rate(((rating,), (diversity[idx2][1],),), ranks=[r1, r2,])
     return rating
 
 mu = 25.
@@ -235,14 +243,14 @@ env = trueskill.TrueSkill(
 def hill_climb(param, tl):
     strt = time()
     max_rating = env.create_rating()
-    for _ in range(tim):
-        max_rating = rate_children(param, max_rating)
+    for i in range(tim):
+        max_rating = rate_children(param, max_rating, i)
     while time() - strt < tl:
         f_param = [i for i in param]
         param[randint(20, 33)] += random() * 0.06 - 0.03
         rating = env.create_rating()
-        for _ in range(tim):
-            rating = rate_children(param, rating)
+        for i in range(tim):
+            rating = rate_children(param, rating, i)
         if env.expose(max_rating) < env.expose(rating):
             max_rating = rating
         else:
@@ -280,7 +288,7 @@ for _ in range(population):
         param.append(param_base[i] + random() * 0.5 - 0.25)
     for i in range(34, param_num):
         param.append(param_base[i])
-    diversity.append([param, env.create_rating()])
+    diversity.append(param)
 '''
 parents = []
 for _ in range(population):
@@ -294,21 +302,26 @@ for i in trange(population * tim):
     rate(i % population)
 '''
 cnt = 0
-max_rating = rate_children(param_base, env.create_rating())
+max_rating = 0 #env.create_rating()
+for i in range(tim):
+    max_rating = rate_children(param_base, max_rating, i)
+max_param = [i for i in param_base]
+max_float_rating = max_rating
 while True:
-    f_param = [i for i in param_base]
-    param_base[randint(0, param_num - 1)] += random() * 0.1 - 0.05
-    rating = env.create_rating()
-    for _ in range(tim):
-        rating = rate_children(param_base, rating)
-    if env.expose(max_rating) < env.expose(rating):
+    f_param = [param_base[i] for i in range(param_num)]
+    param_base[randint(0, param_num - 1)] += random() * 0.2 - 0.1
+    rating = 0 #env.create_rating()
+    for i in range(tim):
+        rating = rate_children(param_base, rating, i)
+    if max_float_rating <= rating:
         max_rating = rating
+        max_float_rating = rating
         with open('param.txt', 'w') as f:
             for i in range(param_num):
                 f.write(str(param_base[i]) + '\n')
     else:
-        param = [i for i in f_param]
-    print(cnt, env.expose(max_rating))
+        param_base = [f_param[i] for i in range(param_num)]
+    print(cnt, max_float_rating, max_rating, rating)
     cnt += 1
 
 '''
