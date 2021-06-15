@@ -504,9 +504,9 @@ inline double evaluate(const unsigned long long p, const unsigned long long o){
     gx /= max(1, p_cnt + o_cnt);
     for (i = 0; i < hw2; i++){
         if (p >> i)
-            center_p += pow(gy - (i >> 3), 2) + pow(gx - (i & 0b111), 2);
+            center_p += abs(gy - (i >> 3)) + abs(gx - (i & 0b111));
         else if (o >> i)
-            center_o += pow(gy - (i >> 3), 2) + pow(gx - (i & 0b111), 2);
+            center_o += abs(gy - (i >> 3)) + abs(gx - (i & 0b111));
     }
     ////cerr << pattern_me << " " << pattern_op << endl;
     double cnt_proc, weight_proc, canput_proc, pot_canput_proc, confirm_proc, pattern_proc, center_proc;
