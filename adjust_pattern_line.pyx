@@ -6,7 +6,7 @@ import subprocess
 from time import time
 from tqdm import trange
 
-DEF param_num = 46
+DEF param_num = 34
 
 cdef unordered_map[int, int] win_num
 cdef unordered_map[int, int] seen_num
@@ -301,7 +301,7 @@ cdef void collect():
 
 cdef void output():
     cdef int i
-    with open('pattern_param.txt', 'w') as f:
+    with open('param_line.txt', 'w') as f:
         for i in range(3 ** 8):
             if seen_num.find(i) == seen_num.end():
                 f.write('0\n')

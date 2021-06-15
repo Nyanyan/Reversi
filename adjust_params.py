@@ -10,7 +10,8 @@ dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
 population = 10
-param_num = 34
+param_num = 40
+change_param = list(set(range(param_num)) - set([38, 39]))
 tim = 10
 
 def empty(grid, y, x):
@@ -257,11 +258,6 @@ def hill_climb(param, tl):
             param = [i for i in f_param]
     return param, max_rating
 
-
-param_base = []
-with open('param_base.txt', 'r') as f:
-    for _ in range(param_num):
-        param_base.append(float(f.readline()))
 '''
 parents = []
 for _ in range(1):
@@ -279,50 +275,59 @@ for _ in range(1, population):
         param.append(param_base[i])
     parents.append([param, env.create_rating()])
 '''
-diversity = []
-for _ in range(population):
-    param = []
-    for i in range(20):
-        param.append(param_base[i])
-    for i in range(20, 34):
-        param.append(param_base[i] + random() * 0.5 - 0.25)
-    for i in range(34, param_num):
-        param.append(param_base[i])
-    diversity.append(param)
-'''
-parents = []
-for _ in range(population):
-    param = []
-    for i in range(param_num):
-        param.append(random())
-    parents.append([param, env.create_rating()])
-'''
-'''
-for i in trange(population * tim):
-    rate(i % population)
-'''
-cnt = 0
-max_rating = 0 #env.create_rating()
-for i in range(tim):
-    max_rating = rate_children(param_base, max_rating, i)
-max_param = [i for i in param_base]
-max_float_rating = max_rating
 while True:
-    f_param = [param_base[i] for i in range(param_num)]
-    param_base[randint(0, param_num - 1)] += random() * 0.2 - 0.1
-    rating = 0 #env.create_rating()
+    param_base = []
+    with open('param_base.txt', 'r') as f:
+        for _ in range(param_num):
+            param_base.append(float(f.readline()))
+    diversity = []
+    for _ in range(population):
+        param = []
+        for i in range(param_num):
+            if i in change_param:
+                param.append(param_base[i] + random() * 0.5 - 0.25)
+            else:
+                param.append(param_base[i])
+        diversity.append(param)
+    '''
+    parents = []
+    for _ in range(population):
+        param = []
+        for i in range(param_num):
+            param.append(random())
+        parents.append([param, env.create_rating()])
+    '''
+    '''
+    for i in trange(population * tim):
+        rate(i % population)
+    '''
+    cnt = 0
+    max_rating = 0 #env.create_rating()
     for i in range(tim):
-        rating = rate_children(param_base, rating, i)
-    if max_float_rating <= rating:
-        max_rating = rating
-        max_float_rating = rating
-        with open('param.txt', 'w') as f:
-            for i in range(param_num):
-                f.write(str(param_base[i]) + '\n')
-    else:
-        param_base = [f_param[i] for i in range(param_num)]
-    print(cnt, max_float_rating, max_rating, rating)
-    cnt += 1
+        max_rating = rate_children(param_base, max_rating, i)
+    max_param = [i for i in param_base]
+    max_float_rating = max_rating
+    while True:
+        f_param = [param_base[i] for i in range(param_num)]
+        param_base[change_param[randint(0, len(change_param) - 1)]] += random() * 0.2 - 0.1
+        rating = 0 #env.create_rating()
+        for i in range(tim):
+            rating = rate_children(param_base, rating, i)
+        if max_float_rating <= rating:
+            max_rating = rating
+            max_float_rating = rating
+            with open('param.txt', 'w') as f:
+                for i in range(param_num):
+                    f.write(str(param_base[i]) + '\n')
+        else:
+            param_base = [f_param[i] for i in range(param_num)]
+        print(cnt, max_float_rating, max_rating, rating)
+        if max_rating > tim * 2 * 0.6:
+            break
+        cnt += 1
+    with open('param_base.txt', 'w') as f:
+        for i in range(param_num):
+            f.write(str(param_base[i]) + '\n')
 
 '''
 while True:

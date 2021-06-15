@@ -11,3 +11,5 @@ create_param_arr.py
 ai_cython_exe.cp38-win_amd64.pyd
 adjust_pattern.cpp
 a.txt
+adjust_pattern_line.cpp
+adjust_pattern_corner.cpp

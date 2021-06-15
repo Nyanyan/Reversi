@@ -28,6 +28,7 @@ using namespace std;
 #define simple_threshold 3
 #define inf 100000000.0
 #define pattern_num 6
+#define param_num 20
 
 struct HashPair {
     static size_t m_hash_pair_random;
@@ -50,7 +51,9 @@ struct eval_param{
     double weight_e[hw2];
     double weight[hw2];
     double cnt_weight, weight_weight, canput_weight, pot_canput_weight, confirm_weight, pattern_weight, center_weight;
-    double weight_se[14];
+    double pattern_bias, cnt_bias;
+    double shift_bias;
+    double weight_se[param_num];
     double open_val_threshold;
     double avg_canput[hw2];
     /*= {
@@ -64,8 +67,10 @@ struct eval_param{
         3.39, 3.11, 2.66, 2.30, 1.98, 1.53, 1.78, 0.67
     };
     */
-    int translate_arr[8][8];
-    double pattern_data[6561];
+    int translate_line_arr[8][8];
+    int translate_corner_arr[4][6];
+    double pattern_line_data[6561];
+    double pattern_corner_data[729];
 };
 
 struct confirm_param{
@@ -205,7 +210,7 @@ void init(int argc, char* argv[]){
     }
     for (i = 0; i < hw2; i++)
         eval_param.weight_e[i] = weight_buf[translate[i]];
-    for (i = 0; i < 14; i++){
+    for (i = 0; i < param_num; i++){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
             exit(1);
@@ -258,27 +263,49 @@ void init(int argc, char* argv[]){
         }
         eval_param.avg_canput[i] = atof(cbuf);
     }
-    for (i = 0; i < hw; i++){
-        for (j = 0; j < hw; j++){
+    for (i = 0; i < 8; i++){
+        for (j = 0; j < 8; j++){
             if (!fgets(cbuf, 1024, fp)){
                 printf("const.txt broken");
                 exit(1);
             }
-            eval_param.translate_arr[i][j] = atoi(cbuf);
+            eval_param.translate_line_arr[i][j] = atoi(cbuf);
+        }
+    }
+    for (i = 0; i < 4; i++){
+        for (j = 0; j < 6; j++){
+            if (!fgets(cbuf, 1024, fp)){
+                printf("const.txt broken");
+                exit(1);
+            }
+            eval_param.translate_corner_arr[i][j] = atoi(cbuf);
         }
     }
     fclose(fp);
-    if ((fp = fopen("pattern_param.txt", "r")) == NULL){
-        printf("pattern_param.txt not exist");
+    if ((fp = fopen("param_line.txt", "r")) == NULL){
+        printf("param_line.txt not exist");
         exit(1);
     }
     for (i = 0; i < 6561; ++i){
         if (!fgets(cbuf, 1024, fp)){
-            printf("pattern_param.txt broken");
+            printf("param_line.txt broken");
             exit(1);
         }
-        eval_param.pattern_data[i] = atof(cbuf);
+        eval_param.pattern_line_data[i] = atof(cbuf);
     }
+    fclose(fp);
+    if ((fp = fopen("param_corner.txt", "r")) == NULL){
+        printf("param_corner.txt not exist");
+        exit(1);
+    }
+    for (i = 0; i < 729; ++i){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("param_corner.txt broken");
+            exit(1);
+        }
+        eval_param.pattern_corner_data[i] = atof(cbuf);
+    }
+    fclose(fp);
 }
 
 inline unsigned long long check_mobility(const unsigned long long P, const unsigned long long O){
@@ -354,12 +381,24 @@ inline double pattern_eval(const unsigned long long p, const unsigned long long 
         num = 0;
         for (j = 0; j < 8; ++j){
             num *= 3;
-            if (1 & (p >> eval_param.translate_arr[i][j]))
+            if (1 & (p >> eval_param.translate_line_arr[i][j]))
                 ++num;
-            else if (1 & (o >> eval_param.translate_arr[i][j]))
+            else if (1 & (o >> eval_param.translate_line_arr[i][j]))
                 num += 2;
         }
-        res += eval_param.pattern_data[num];
+        res += eval_param.pattern_line_data[num];
+    }
+    res *= eval_param.pattern_bias;
+    for (i = 0; i < 4; ++i){
+        num = 0;
+        for (j = 0; j < 6; ++j){
+            num *= 3;
+            if (1 & (p >> eval_param.translate_corner_arr[i][j]))
+                ++num;
+            else if (1 & (o >> eval_param.translate_corner_arr[i][j]))
+                num += 2;
+        }
+        res += eval_param.pattern_corner_data[num];
     }
     return res;
 }
@@ -369,7 +408,6 @@ inline double evaluate(const unsigned long long p, const unsigned long long o){
     int canput = 0;
     int pot_canput_p = 0, pot_canput_o = 0;
     double weight_me = 0.0, weight_op = 0.0;
-    int me_cnt = 0, op_cnt = 0;
     int confirm_me = 0, confirm_op = 0;
     double center_p = 0.0, center_o = 0.0;
     double gy = 0.0, gx = 0.0;
@@ -381,13 +419,10 @@ inline double evaluate(const unsigned long long p, const unsigned long long o){
     o1 = o << hw2_mhw;
     o2 = o >> hw_m1;
     for (i = 0; i < hw2; ++i){
-        if (1 & (p >> i)){
+        if (1 & (p >> i))
             weight_me += eval_param.weight[i];
-            me_cnt++;
-        } else if (1 & (o >> i)){
+        else if (1 & (o >> i))
             weight_op += eval_param.weight[i];
-            op_cnt++;
-        }
     }
     canput = pop_count_ull(check_mobility(p, o));
     stones = p | o;
@@ -467,8 +502,8 @@ inline double evaluate(const unsigned long long p, const unsigned long long o){
     }
     //cerr << pattern_me << " " << pattern_op << endl;
     double cnt_proc, weight_proc, canput_proc, pot_canput_proc, confirm_proc, pattern_proc, center_proc;
-    cnt_proc = (double)(p_cnt - o_cnt) / max(1, p_cnt + o_cnt);
-    weight_proc = weight_me / max(1, me_cnt) - weight_op / max(1, op_cnt);
+    cnt_proc = ((double)p_cnt * eval_param.cnt_bias - (double)o_cnt) / max(1.0, (double)p_cnt * eval_param.cnt_bias + (double)o_cnt);
+    weight_proc = weight_me / max(1, p_cnt) - weight_op / max(1, o_cnt);
     canput_proc = ((double)canput - eval_param.avg_canput[p_cnt + o_cnt]) / max(1.0, (double)canput + eval_param.avg_canput[p_cnt + o_cnt]);
     pot_canput_proc = (double)(pot_canput_p - pot_canput_o) / max(1, pot_canput_p + pot_canput_o);
     confirm_proc = (double)(confirm_me - confirm_op) / max(1, confirm_me + confirm_op);
@@ -521,9 +556,9 @@ double nega_alpha(const unsigned long long p, const unsigned long long o, const 
         return end_game(p, o);
     else if (depth == 0){
         if (isp)
-            return evaluate(p, o);
+            return evaluate(p, o) - eval_param.shift_bias;
         else
-            return -evaluate(o, p);
+            return -evaluate(o, p) - eval_param.shift_bias;
     }
     double val, v, ub, lb;
     int i, n_canput;
@@ -649,7 +684,6 @@ int cmp_main(grid_priority_main p, grid_priority_main q){
 int main(int argc, char* argv[]){
     int ansy, ansx, outy, outx, i, canput, former_depth = 7, former_vacant = hw2 - 4;
     double score, max_score;
-    double weight_weight_s, canput_weight_s, confirm_weight_s, stone_weight_s, open_weight_s, out_weight_s, weight_weight_e, canput_weight_e, confirm_weight_e, stone_weight_e, open_weight_e, out_weight_e;
     unsigned long long in_mobility;
     unsigned long long p, o, np, no;
     vector<grid_priority_main> lst;
@@ -687,12 +721,10 @@ int main(int argc, char* argv[]){
             p += (int)(elem == ai_player);
             o += (int)(elem == 1 - ai_player);
         }
-        
         if (vacant_cnt > 14)
             search_param.min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
         else
             search_param.min_max_depth = 15;
-        
         //search_param.min_max_depth = 2;
         cerr << "start depth " << search_param.min_max_depth << endl;
         search_param.max_depth = search_param.min_max_depth;
@@ -727,6 +759,9 @@ int main(int argc, char* argv[]){
             eval_param.confirm_weight = map_double(eval_param.weight_se[8], eval_param.weight_se[9], game_ratio);
             eval_param.pattern_weight = map_double(eval_param.weight_se[10], eval_param.weight_se[11], game_ratio);
             eval_param.center_weight = map_double(eval_param.weight_se[12], eval_param.weight_se[13], game_ratio);
+            eval_param.pattern_bias = map_double(eval_param.weight_se[14], eval_param.weight_se[15], game_ratio);
+            eval_param.cnt_bias = map_double(eval_param.weight_se[16], eval_param.weight_se[17], game_ratio);
+            eval_param.shift_bias = map_double(eval_param.weight_se[18], eval_param.weight_se[19], game_ratio);
             for (i = 0; i < hw2; i++)
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_e[i], game_ratio);
             max_score = -65000.0;
