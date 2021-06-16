@@ -1,21 +1,80 @@
-# distutils: language = c++
-#cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
-from libcpp.unordered_map cimport unordered_map
 from random import random
 import subprocess
 from time import time
 from tqdm import trange
 
-DEF param_num = 34
+param_num = 60
 
-cdef unordered_map[int, int] win_num
-cdef unordered_map[int, int] seen_num
-cdef unordered_map[int, double] win_rate
-cdef double[param_num] param_base
+param_base = [-1 for _ in range(param_num)]
+
+win_num_corner = [0 for _ in range(3 ** 6)]
+seen_num_corner = [0 for _ in range(3 ** 6)]
+win_num_cross = [0 for _ in range(3 ** 6)]
+seen_num_cross = [0 for _ in range(3 ** 6)]
+win_num_edge = [0 for _ in range(3 ** 6)]
+seen_num_edge = [0 for _ in range(3 ** 6)]
+win_num_inside = [0 for _ in range(3 ** 6)]
+seen_num_inside = [0 for _ in range(3 ** 6)]
+
+translate_corner = [
+    [61, 62, 63, 54, 55, 47],
+    [47, 55, 63, 54, 62, 61],
+    [58, 57, 56, 49, 48, 40],
+    [40, 48, 56, 49, 57, 58],
+    [5, 6, 7, 14, 15, 23],
+    [23, 15, 7, 14, 6, 5],
+    [2, 1, 0, 9, 8, 16],
+    [16, 8, 0, 9, 1, 2]
+]
+
+translate_cross = [
+    [7, 14, 21, 28, 6, 15],
+    [7, 14, 21, 28, 15, 6],
+    [0, 9, 18, 27, 1, 8],
+    [0, 9, 18, 27, 8, 1],
+    [56, 49, 42, 35, 48, 57],
+    [56, 49, 42, 35, 57, 48],
+    [63, 54, 45, 36, 55, 62],
+    [63, 54, 45, 36, 62, 55],
+]
+
+translate_edge = [
+    [63, 62, 61, 60, 59, 54],
+    [63, 55, 47, 39, 31, 54],
+    [56, 57, 58, 59, 60, 49],
+    [56, 48, 40, 32, 24, 49],
+    [0, 1, 2, 3, 4, 9],
+    [0, 8, 16, 24, 32, 9],
+    [7, 6, 5, 4, 3, 14],
+    [7, 15, 23, 31, 39, 14]
+]
+
+translate_inside = [
+    [26, 34, 42, 43, 44, 49],
+    [44, 43, 42, 34, 26, 49],
+    [34, 26, 18, 19, 20, 9],
+    [20, 19, 18, 26, 34, 9],
+    [19, 20, 21, 29, 37, 14],
+    [37, 29, 21, 20, 19, 14],
+    [29, 37, 45, 44, 43, 54],
+    [43, 44, 45, 37, 29, 54]
+]
+
+'''
+def print_arr(arr):
+    for i in arr:
+        for j in i:
+            print(j)
+
+print_arr(translate_corner)
+print_arr(translate_cross)
+print_arr(translate_edge)
+print_arr(translate_inside)
+'''
 
 
-DEF hw = 8
-DEF hw2 = 64
+hw = 8
+hw2 = 64
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
@@ -144,25 +203,13 @@ class reversi:
             #print('Draw!', self.nums[0], '-', self.nums[1])
             return -1
 
-cdef int[8][8] translate_arr = [
-    [63, 62, 61, 60, 59, 58, 57, 54],
-    [56, 57, 58, 59, 60, 61, 62, 49],
-    [7, 15, 23, 31, 39, 47, 55, 14],
-    [63, 55, 47, 39, 31, 23, 15, 54],
-    [0, 1, 2, 3, 4, 5, 6, 9],
-    [7, 6, 5, 4, 3, 2, 1, 14],
-    [0, 8, 16, 24, 32, 40, 48, 9],
-    [56, 48, 40, 32, 24, 16, 8, 49]
-]
-
-cdef list translate_p(list grid):
-    cdef list res = []
-    cdef int i, j, tmp, tmp2
-    for i in range(8):
+def translate_p(grid, translate):
+    res = []
+    for i in range(len(translate)):
         tmp = 0
-        for j in range(8):
+        for j in range(len(translate[i])):
             tmp *= 3
-            tmp2 = grid[translate_arr[i][j] // hw][translate_arr[i][j] % hw]
+            tmp2 = grid[translate[i][j] // hw][translate[i][j] % hw]
             if tmp2 == 0:
                 tmp += 1
             elif tmp2 == 1:
@@ -170,14 +217,13 @@ cdef list translate_p(list grid):
         res.append(tmp)
     return res
 
-cdef list translate_o(list grid):
-    cdef list res = []
-    cdef int i, j, tmp, tmp2
-    for i in range(8):
+def translate_o(grid, translate):
+    res = []
+    for i in range(len(translate)):
         tmp = 0
-        for j in range(8):
+        for j in range(len(translate[i])):
             tmp *= 3
-            tmp2 = grid[translate_arr[i][j] // hw][translate_arr[i][j] % hw]
+            tmp2 = grid[translate[i][j] // hw][translate[i][j] % hw]
             if tmp2 == 1:
                 tmp += 1
             elif tmp2 == 0:
@@ -185,9 +231,10 @@ cdef list translate_o(list grid):
         res.append(tmp)
     return res
 
-cdef void collect():
-    cdef double[param_num] param0, param1
-    cdef list seen_p = [], seen_o = []
+def collect():
+    grids = []
+    param0 = [-1 for _ in range(param_num)]
+    param1 = [-1 for _ in range(param_num)]
     for i in range(param_num):
         param0[i] = param_base[i] + random() * 0.5 - 0.25
     for i in range(param_num):
@@ -214,6 +261,7 @@ cdef void collect():
         ai[i].stdin.write(stdin.encode('utf-8'))
         ai[i].stdin.flush()
     rv = reversi()
+    turn = 0
     while True:
         if rv.check_pass() and rv.check_pass():
             break
@@ -234,88 +282,100 @@ cdef void collect():
             print(stdin)
             print(rv.player)
             print(y, x)
-        seen_p.extend(translate_p(rv.grid))
-        seen_o.extend(translate_o(rv.grid))
+        grids.append([[i for i in j] for j in rv.grid])
         if rv.end():
             break
+        turn += 1
     rv.check_pass()
     #rv.output()
     winner = rv.judge()
     if winner == 0:
-        for t in range(len(seen_p)):
-            i = seen_p[t]
-            if seen_num.find(i) == seen_num.end():
-                seen_num[i] = 1
-                win_num[i] = 1
-            else:
-                seen_num[i] += 1
-                win_num[i] += 1
-            win_rate[i] = <double>win_num[i] / seen_num[i]
-        for t in range(len(seen_o)):
-            i = seen_o[t]
-            if seen_num.find(i) == seen_num.end():
-                seen_num[i] = 1
-                win_num[i] = -1
-            else:
-                seen_num[i] += 1
-                win_num[i] -= 1
-            win_rate[i] = <double>win_num[i] / seen_num[i]
+        for grid in grids:
+            for i in translate_p(grid, translate_corner):
+                seen_num_corner[i] += 1
+                win_num_corner[i] += 1
+            for i in translate_o(grid, translate_corner):
+                seen_num_corner[i] += 1
+                win_num_corner[i] -= 1
+            for i in translate_p(grid, translate_cross):
+                seen_num_cross[i] += 1
+                win_num_cross[i] += 1
+            for i in translate_o(grid, translate_cross):
+                seen_num_cross[i] += 1
+                win_num_cross[i] -= 1
+            for i in translate_p(grid, translate_edge):
+                seen_num_edge[i] += 1
+                win_num_edge[i] += 1
+            for i in translate_o(grid, translate_edge):
+                seen_num_edge[i] += 1
+                win_num_edge[i] -= 1
+            for i in translate_p(grid, translate_inside):
+                seen_num_inside[i] += 1
+                win_num_inside[i] += 1
+            for i in translate_o(grid, translate_inside):
+                seen_num_inside[i] += 1
+                win_num_inside[i] -= 1
     elif winner == 1:
-        for t in range(len(seen_p)):
-            i = seen_p[t]
-            if seen_num.find(i) == seen_num.end():
-                seen_num[i] = 1
-                win_num[i] = -1
-            else:
-                seen_num[i] += 1
-                win_num[i] -= 1
-            win_rate[i] = <double>win_num[i] / seen_num[i]
-        for t in range(len(seen_o)):
-            i = seen_o[t]
-            if seen_num.find(i) == seen_num.end():
-                seen_num[i] = 1
-                win_num[i] = 1
-            else:
-                seen_num[i] += 1
-                win_num[i] += 1
-            win_rate[i] = <double>win_num[i] / seen_num[i]
+        for grid in grids:
+            for i in translate_p(grid, translate_corner):
+                seen_num_corner[i] += 1
+                win_num_corner[i] -= 1
+            for i in translate_o(grid, translate_corner):
+                seen_num_corner[i] += 1
+                win_num_corner[i] += 1
+            for i in translate_p(grid, translate_cross):
+                seen_num_cross[i] += 1
+                win_num_cross[i] -= 1
+            for i in translate_o(grid, translate_cross):
+                seen_num_cross[i] += 1
+                win_num_cross[i] += 1
+            for i in translate_p(grid, translate_edge):
+                seen_num_edge[i] += 1
+                win_num_edge[i] -= 1
+            for i in translate_o(grid, translate_edge):
+                seen_num_edge[i] += 1
+                win_num_edge[i] += 1
+            for i in translate_p(grid, translate_inside):
+                seen_num_inside[i] += 1
+                win_num_inside[i] -= 1
+            for i in translate_o(grid, translate_inside):
+                seen_num_inside[i] += 1
+                win_num_inside[i] += 1
     else:
-        for t in range(len(seen_p)):
-            i = seen_p[t]
-            if seen_num.find(i) == seen_num.end():
-                seen_num[i] = 1
-                win_num[i] = 0
-            else:
-                seen_num[i] += 1
-            win_rate[i] = <double>win_num[i] / seen_num[i]
-        for t in range(len(seen_o)):
-            i = seen_o[t]
-            if seen_num.find(i) == seen_num.end():
-                seen_num[i] = 1
-                win_num[i] = 0
-            else:
-                seen_num[i] += 1
-            win_rate[i] = <double>win_num[i] / seen_num[i]
+        for grid in grids:
+            for i in translate_p(grid, translate_corner):
+                seen_num_corner[i] += 1
+            for i in translate_o(grid, translate_corner):
+                seen_num_corner[i] += 1
+            for i in translate_p(grid, translate_cross):
+                seen_num_cross[i] += 1
+            for i in translate_o(grid, translate_cross):
+                seen_num_cross[i] += 1
+            for i in translate_p(grid, translate_edge):
+                seen_num_edge[i] += 1
+            for i in translate_o(grid, translate_edge):
+                seen_num_edge[i] += 1
+            for i in translate_p(grid, translate_inside):
+                seen_num_inside[i] += 1
+            for i in translate_o(grid, translate_inside):
+                seen_num_inside[i] += 1
     for i in range(2):
         ai[i].kill()
 
-cdef void output():
-    cdef int i
-    with open('param_line.txt', 'w') as f:
-        for i in range(3 ** 8):
-            if seen_num.find(i) == seen_num.end():
-                f.write('0\n')
-            else:
-                f.write(str(win_rate[i] / 8.0) + '\n')
+def output():
+    with open('param_pattern.txt', 'w') as f:
+        for i in range(3 ** 6):
+            f.write(str(win_num_corner[i] / max(1, seen_num_corner[i]) / len(seen_num_corner)) + '\n')
+        for i in range(3 ** 6):
+            f.write(str(win_num_cross[i] / max(1, seen_num_cross[i]) / len(seen_num_cross)) + '\n')
+        for i in range(3 ** 6):
+            f.write(str(win_num_edge[i] / max(1, seen_num_edge[i]) / len(seen_num_edge)) + '\n')
+        for i in range(3 ** 6):
+            f.write(str(win_num_inside[i] / max(1, seen_num_inside[i]) / len(seen_num_inside)) + '\n')
 
-cdef void main():
-    global param_base, win_rate
-    cdef int i
-    with open('param_base.txt', 'r') as f:
-        for i in range(param_num):
-            param_base[i] = float(f.readline())
-    for _ in trange(10000):
-        collect()
-    output()
-
-main()
+with open('param_base.txt', 'r') as f:
+    for i in range(param_num):
+        param_base[i] = float(f.readline())
+for _ in trange(100):
+    collect()
+output()
