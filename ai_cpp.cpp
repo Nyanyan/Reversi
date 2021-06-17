@@ -15,6 +15,7 @@
 #include <random>
 #include <time.h>
 #include <immintrin.h>
+//#include <bitset>
 
 using namespace std;
 
@@ -27,9 +28,9 @@ using namespace std;
 #define window 0.00001
 #define simple_threshold 3
 #define inf 100000000.0
-#define param_num 36
+#define param_num 12
 #define board_index_num 38
-#define pattern_num 38
+#define pattern_num 20
 
 struct HashPair{
     static size_t m_hash_pair_random;
@@ -48,9 +49,14 @@ struct HashPair{
 size_t HashPair::m_hash_pair_random = (size_t) random_device()();
 
 struct board_param{
-    int trans[6561][hw];
+    unsigned long long trans[board_index_num][6561][hw];
     bool legal[6561][hw];
     int put[hw2][board_index_num];
+    int board_translate[board_index_num][8];
+    int board_rev_translate[hw2][4];
+    int pattern_space[board_index_num];
+    int reverse[6561];
+    int pow3[10];
 };
 
 struct eval_param{
@@ -71,16 +77,11 @@ struct eval_param{
         3.39, 3.11, 2.66, 2.30, 1.98, 1.53, 1.78, 0.67
     };
     */
-    int pattern_space[pattern_num], pattern_variation[pattern_num];
-    int translate_arr[pattern_num][4][8];
+    double pattern_space[pattern_num];
     double pattern_data[pattern_num][6561];
+    int pattern_same[board_index_num];
     int canput[6561];
     int cnt_p[6561], cnt_o[6561];
-};
-
-struct confirm_param{
-    int lst[hw][hw];
-    unsigned long long num[4];
 };
 
 typedef union {
@@ -118,29 +119,8 @@ struct board_priority{
 
 board_param board_param;
 eval_param eval_param;
-confirm_param confirm_param;
 move_param move_param;
 search_param search_param;
-
-#ifdef _MSC_VER
-	#define	mirror_v(x)	_byteswap_uint64(x)
-#else
-	#define	mirror_v(x)	__builtin_bswap64(x)
-#endif
-
-unsigned long long transpose(unsigned long long x) {
-    unsigned long long t;
-    const unsigned long long k1 = 0xaa00aa00aa00aa00;
-    const unsigned long long k2 = 0xcccc0000cccc0000;
-    const unsigned long long k4 = 0xf0f0f0f00f0f0f0f;
-    t  =       x ^ (x << 36) ;
-    x ^= k4 & (t ^ (x >> 36));
-    t  = k2 & (x ^ (x << 18));
-    x ^=       t ^ (t >> 18) ;
-    t  = k1 & (x ^ (x <<  9));
-    x ^=       t ^ (t >>  9) ;
-    return x;
-}
 
 inline int pop_count_ull(unsigned long long x){
     x = x - ((x >> 1) & 0x5555555555555555);
@@ -154,96 +134,71 @@ int tim(){
     return static_cast<int>(chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch()).count());
 }
 
-void print_board(unsigned long long p, unsigned long long o){
-    int i, j, idx;
+void print_board(int* board){
+    int i, j, idx, tmp;
     for (i = 0; i < hw; i++){
+        tmp = board[i];
+        string s = "";
         for (j = 0; j < hw; j++){
-            idx = hw2 - i * hw + j;
-            if (1 & (p >> idx)){
-                cerr << "P ";
-            } else if (1 & (o >> idx)){
-                cerr << "O ";
-            } else {
-                cerr << ". ";
-            }
+            if (tmp % 3 == 0)
+                s += ".";
+            else if (tmp % 3 == 1)
+                s += "P";
+            else
+                s += "O";
+            tmp /= 3;
         }
+        for (j = hw_m1; j >= 0; --j)
+            cerr << s[j] << " ";
         cerr << endl;
     }
     cerr << endl;
 }
 
-inline unsigned long long check_mobility(const int p, const int o){
-	int p1 = p << 1;
-    int p_rev = 0, o_rev = 0;;
-    int i, j;
-    for (i = 0; i < hw; ++i){
-        p_rev |= (1 & (p >> i)) << (hw_m1 - i);
-        o_rev |= (1 & (o >> i)) << (hw_m1 - i);
-    }
-    int p2 = p_rev << 1;
-    return (~(p1 | o) & (p1 + o)) | (~(p2 | o_rev) & (p2 + o_rev));
-}
-
-inline int move(const int& p, const int& o, const int& place){
-    int wh, put, m1, m2, m3, m4, m5, m6, rev;
-    put = 1 << place;
-    rev = 0;
-    wh = o & 0b01111110;
-    m1 = put >> 1;
-    if( (m1 & wh) != 0 ) {
-        if( ((m2 = m1 >> 1) & wh) == 0  ) {
-            if( (m2 & p) != 0 )
-                rev |= m1;
-        } else if( ((m3 = m2 >> 1) & wh) == 0 ) {
-            if( (m3 & p) != 0 )
-                rev |= m1 | m2;
-        } else if( ((m4 = m3 >> 1) & wh) == 0 ) {
-            if( (m4 & p) != 0 )
-                rev |= m1 | m2 | m3;
-        } else if( ((m5 = m4 >> 1) & wh) == 0 ) {
-            if( (m5 & p) != 0 )
-                rev |= m1 | m2 | m3 | m4;
-        } else if( ((m6 = m5 >> 1) & wh) == 0 ) {
-            if( (m6 & p) != 0 )
-                rev |= m1 | m2 | m3 | m4 | m5;
-        } else {
-            if( ((m6 >> 1) & p) != 0 )
-                rev |= m1 | m2 | m3 | m4 | m5 | m6;
-        }
-    }
-    m1 = put << 1;
-    if( (m1 & wh) != 0 ) {
-        if( ((m2 = m1 << 1) & wh) == 0  ) {
-            if( (m2 & p) != 0 )
-                rev |= m1;
-        } else if( ((m3 = m2 << 1) & wh) == 0 ) {
-            if( (m3 & p) != 0 )
-                rev |= m1 | m2;
-        } else if( ((m4 = m3 << 1) & wh) == 0 ) {
-            if( (m4 & p) != 0 )
-                rev |= m1 | m2 | m3;
-        } else if( ((m5 = m4 << 1) & wh) == 0 ) {
-            if( (m5 & p) != 0 )
-                rev |= m1 | m2 | m3 | m4;
-        } else if( ((m6 = m5 << 1) & wh) == 0 ) {
-            if( (m6 & p) != 0 )
-                rev |= m1 | m2 | m3 | m4 | m5;
-        } else {
-            if( ((m6 << 1) & p) != 0 )
-                rev |= m1 | m2 | m3 | m4 | m5 | m6;
-        }
-    }
-    int np = p ^ (put | rev);
-    int no = o ^ rev;
+int reverse_line(int a) {
     int res = 0;
-    for (int i = 0; i < hw; ++i){
-        res *= 3;
-        if (1 & (np >> (hw_m1 - i)))
-            res += 2;
-        else if (1 & (no >> (hw_m1 - i)))
-            ++res;
+    for (int i = 0; i < hw; i++) {
+        res <<= 1;
+        res |= 1 & (a >> i);
     }
     return res;
+}
+
+inline unsigned long long check_mobility(const int p, const int o){
+	int p1 = p << 1;
+    int res = ~(p1 | o) & (p1 + o);
+    int p_rev = reverse_line(p), o_rev = reverse_line(o);
+    int p2 = p_rev << 1;
+    res |= reverse_line(~(p2 | o_rev) & (p2 + o_rev));
+    res &= ~(p | o);
+    // cerr << bitset<8>(p) << " " << bitset<8>(o) << " " << bitset<8>(res) << endl;
+    return res;
+}
+
+int trans(int pt, int k) {
+    if (k == 0)
+        return pt >> 1;
+    else
+        return pt << 1;
+}
+
+int move_line(int p, int o, const int place) {
+    int rev = 0;
+    int rev2, mask, tmp;
+    int pt = 1 << place;
+    for (int k = 0; k < 2; k++) {
+        rev2 = 0;
+        mask = trans(pt, k);
+        while (mask && (mask & o)) {
+            rev2 |= mask;
+            tmp = mask;
+            mask = trans(tmp, k);
+            if (mask & p)
+                rev |= rev2;
+        }
+    }
+    // cerr << bitset<8>(p) << " " << bitset<8>(o) << " " << bitset<8>(rev | pt) << endl;
+    return rev | pt;
 }
 
 int create_p(int idx){
@@ -272,11 +227,11 @@ int board_reverse(int idx){
     int p = create_p(idx);
     int o = create_o(idx);
     int res = 0;
-    for (int i = 0; i < hw; ++i){
+    for (int i = hw_m1; i >= 0; --i){
         res *= 3;
-        if (1 & (p >> (hw_m1 - i)))
+        if (1 & (p >> i))
             res += 2;
-        else if (1 & (o >> (hw_m1 - i)))
+        else if (1 & (o >> i))
             ++res;
     }
     return res;
@@ -305,7 +260,7 @@ void init(int argc, char* argv[]){
         0, 1, 2, 3, 3, 2, 1, 0
     };
     double weight_buf[10];
-    int i, j, k;
+    int i, j, k, l;
     for (i = 0; i < 10; i++){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
@@ -345,22 +300,6 @@ void init(int argc, char* argv[]){
         printf("const.txt not exist");
         exit(1);
     }
-    for (i = 0; i < hw; i++){
-        for (j = 0; j < hw; j++){
-            if (!fgets(cbuf, 1024, fp)){
-                printf("const.txt broken");
-                exit(1);
-            }
-            confirm_param.lst[i][j] = atoi(cbuf);
-        }
-    }
-    for (i = 0; i < 4; i++){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("const.txt broken");
-            exit(1);
-        }
-        confirm_param.num[i] = stoull(cbuf);
-    }
     for (i = 0; i < hw2; i++){
         for (j = 0; j < 4; j++){
             if (!fgets(cbuf, 1024, fp)){
@@ -386,41 +325,51 @@ void init(int argc, char* argv[]){
         }
         eval_param.avg_canput[i] = atof(cbuf);
     }
-    for (i = 0; i < pattern_num; i++){
+    for (i = 0; i < board_index_num; i++){
         if (!fgets(cbuf, 1024, fp)){
             printf("const.txt broken");
             exit(1);
         }
-        eval_param.pattern_space[i] = atoi(cbuf);
+        board_param.pattern_space[i] = atoi(cbuf);
     }
-    for (i = 0; i < pattern_num; i++){
+    for (i = 0; i < board_index_num; i++){
+        for (j = 0; j < board_param.pattern_space[i]; j++){
+            if (!fgets(cbuf, 1024, fp)){
+                printf("const.txt broken");
+                exit(1);
+            }
+            board_param.board_translate[i][j] = atoi(cbuf);
+        }
+    }
+    for (i = 0; i < board_index_num; i++){
         if (!fgets(cbuf, 1024, fp)){
             printf("const.txt broken");
             exit(1);
         }
-        eval_param.pattern_variation[i] = atoi(cbuf);
+        eval_param.pattern_same[i] = atoi(cbuf);
     }
-    for (i = 0; i < pattern_num; i++){
-        for (j = 0; j < eval_param.pattern_space[i]; j++){
-            for (k = 0; k < eval_param.pattern_variation[i]; k++){
-                if (!fgets(cbuf, 1024, fp)){
-                    printf("const.txt broken");
-                    exit(1);
-                }
-                eval_param.translate_arr[i][j][k] = atoi(cbuf);
+    fclose(fp);
+    int idx;
+    for (i = 0; i < hw2; i++){
+        idx = 0;
+        for (j = 0; j < board_index_num; j++){
+            for (k = 0; k < board_param.pattern_space[j]; k++){
+                if (board_param.board_translate[j][k] == i)
+                    board_param.board_rev_translate[i][idx++] = j;
             }
         }
     }
     for (i = 0; i < hw2; i++){
         for (j = 0; j < board_index_num; j++){
-            if (!fgets(cbuf, 1024, fp)){
-                printf("const.txt broken");
-                exit(1);
+            board_param.put[i][j] = -1;
+            for (k = 0; k < board_param.pattern_space[j]; k++){
+                if (board_param.board_translate[j][k] == i)
+                    board_param.put[i][j] = k;
             }
-            board_param.put[i][j] = atoi(cbuf);
         }
     }
-    fclose(fp);
+    for (i = 0; i < board_index_num; i++)
+        eval_param.pattern_space[eval_param.pattern_same[i]] = board_param.pattern_space[i];
     if ((fp = fopen("param_pattern.txt", "r")) == NULL){
         printf("param_pattern.txt not exist");
         exit(1);
@@ -435,37 +384,50 @@ void init(int argc, char* argv[]){
         }
     }
     fclose(fp);
-    int p, o, canput, canput_num;
+    int p, o, mobility, canput_num, rev;
     for (i = 0; i < 6561; ++i){
-        p = create_p(i);
-        o = create_o(i);
+        board_param.reverse[i] = board_reverse(i);
+        p = reverse_line(create_p(i));
+        o = reverse_line(create_o(i));
         eval_param.cnt_p[i] = 0;
         eval_param.cnt_o[i] = 0;
         for (j = 0; j < hw; ++j){
             eval_param.cnt_p[i] += 1 & (p >> j);
             eval_param.cnt_o[i] += 1 & (o >> j);
         }
-        canput = check_mobility(p, o);
+        mobility = check_mobility(p, o);
         canput_num = 0;
         for (j = 0; j < hw; ++j){
-            if (1 & (canput >> j)){
+            if (1 & (mobility >> j)){
+                rev = move_line(p, o, j);
                 canput_num += 1;
-                board_param.trans[i][j] = move(p, o, j);
                 board_param.legal[i][j] = true;
-            } else {
-                board_param.trans[i][j] = board_reverse(i);
+                for (k = 0; k < board_index_num; ++k){
+                    board_param.trans[k][i][j] = 0;
+                    for (l = 0; l < board_param.pattern_space[k]; ++l)
+                        board_param.trans[k][i][j] |= (unsigned long long)(1 & (rev >> l)) << (board_param.board_translate[k][l] / hw * hw + hw_m1 - board_param.board_translate[k][l] % hw);
+                    /*
+                    if (k == 20){
+                        cerr << k << endl;
+                        for (l = 0; l < hw; ++l)
+                            cerr << bitset<8>(reverse_line((int)(0b11111111 & board_param.trans[k][i][j] >> (hw2_mhw - l * hw)))) << endl;
+                    }
+                    */
+                }
+            } else
                 board_param.legal[i][j] = false;
-            }
         }
         eval_param.canput[i] = canput_num;
     }
+    for (i = 0; i < 10; ++i)
+        board_param.pow3[i] = (int)pow(3, i);
 }
 
 inline double pattern_eval(const int *board){
     int i;
     double res = 0.0, tmp_res;
-    for (i = 0; i < pattern_num; ++i)
-        res += eval_param.pattern_data[i][board[i]];
+    for (i = 0; i < board_index_num; ++i)
+        res += eval_param.pattern_data[eval_param.pattern_same[i]][board[i]];
     return res;
 }
 
@@ -506,11 +468,29 @@ inline double end_game(const int *board){
     return (double)res * 1000.0;
 }
 
+void move(int *board, int *res, int coord){
+    int i, j, tmp;
+    unsigned long long rev = 0;
+    for (i = 0; i < board_index_num; ++i){
+        if (board_param.put[coord][i] != -1){
+            rev |= board_param.trans[i][board[i]][board_param.put[coord][i]];
+            res[i] = board_param.reverse[board[i]];
+        }
+    }
+    for (i = 0; i < board_index_num; ++i){
+        for (j = 0; j < board_param.pattern_space[i]; ++j){
+            if (1 & (rev >> board_param.board_translate[i][j]))
+                res[i] += board_param.pow3[j] * (2 - (res[i] / board_param.pow3[j]) % 3);
+        }
+    }
+}
+
 int cmp(board_priority p, board_priority q){
     return p.priority > q.priority;
 }
 
-double nega_alpha(const int *board, const int& depth, double alpha, double beta, const int& skip_cnt){
+double nega_alpha(int *board, const int& depth, double alpha, double beta, const int& skip_cnt){
+    print_board(board);
     if (skip_cnt == 2)
         return end_game(board);
     else if (depth == 0){
@@ -520,13 +500,12 @@ double nega_alpha(const int *board, const int& depth, double alpha, double beta,
     int i, j, k, put;
     double val = -inf, v;
     int n_board[board_index_num];
-    for (i = 0; i < hw; ++i){
-        for (j = 0; j < hw; ++j){
-            if (board_param.legal[board[i]][j]){
+    for (j = 0; j < hw2; ++j){
+        for (i = 0; i < board_index_num; ++i){
+            if (board_param.legal[board[i]][board_param.put[j][i]]){
                 is_pass = false;
                 put = i * hw + j;
-                for (k = 0; k < board_index_num; ++k)
-                    n_board[k] = board_param.trans[board[k]][board_param.put[put][k]];
+                move(board, n_board, j);
                 v = -nega_alpha(n_board, depth - 1, -beta, -alpha, 0);
                 if (fabs(v) == inf)
                     return -inf;
@@ -535,18 +514,19 @@ double nega_alpha(const int *board, const int& depth, double alpha, double beta,
                 alpha = max(alpha, v);
                 if (val < v)
                     val = v;
+                break;
             }
         }
     }
     if (is_pass){
         for (i = 0; i < board_index_num; ++i)
-            n_board[i] = board_param.trans[board[i]][board_param.put[0][i]];
+            n_board[i] = board_param.reverse[board[i]];
         return -nega_alpha(n_board, depth - 1, -beta, -alpha, skip_cnt + 1);
     }
     return val;
 }
 
-double nega_scout(const int *board, const int& depth, double alpha, double beta, const int& skip_cnt){
+double nega_scout(int *board, const int& depth, double alpha, double beta, const int& skip_cnt){
     if (search_param.max_depth > search_param.min_max_depth && tim() - search_param.strt > search_param.tl)
         return -inf;
     if (skip_cnt == 2)
@@ -568,27 +548,26 @@ double nega_scout(const int *board, const int& depth, double alpha, double beta,
     if (alpha >= beta)
         return alpha;
     */
-    int i, j, k, put, canput = 0;
+    int i, j, k, canput = 0;
     double val = -inf, v;
     vector<board_priority> lst;
-    for (i = 0; i < hw; ++i){
-        for (j = 0; j < hw; ++j){
-            if (board_param.legal[board[i]][j]){
+    for (j = 0; j < hw2; ++j){
+        for (i = 0; i < board_index_num; ++i){
+            if (board_param.legal[board[i]][board_param.put[j][i]]){
                 ++canput;
-                put = i * hw + j;
                 int n_board[board_index_num];
                 board_priority tmp;
-                for (k = 0; k < board_index_num; ++k)
-                    tmp.b[k] = board_param.trans[board[k]][board_param.put[put][k]];
+                move(board, tmp.b, j);
                 tmp.priority = evaluate(tmp.b);
                 lst.push_back(tmp);
+                break;
             }
         }
     }
     if (canput == 0){
         int n_board[board_index_num];
         for (i = 0; i < board_index_num; ++i)
-            n_board[i] = board_param.trans[board[i]][board_param.put[0][i]];
+            n_board[i] = board_param.reverse[board[i]];
         return -nega_scout(n_board, depth - 1, -beta, -alpha, skip_cnt + 1);
     }
     if (canput > 1)
@@ -662,13 +641,15 @@ int main(int argc, char* argv[]){
     double score, max_score;
     unsigned long long in_mobility;
     unsigned long long p, o;
-    int b[board_index_num];
+    int board[board_index_num];
     int put;
     vector<board_priority_move> lst;
     int elem;
     int action_count;
     double game_ratio;
     int vacant_cnt, ai_player;
+    int board_tmp;
+    int y, x;
     
     init(argc, argv);
     cin >> ai_player;
@@ -692,31 +673,43 @@ int main(int argc, char* argv[]){
             vacant_cnt += (int)(elem == -1 || elem == 2);
             in_mobility <<= 1;
             in_mobility += (int)(elem == 2);
-            canput += (int)(elem == 2);
+            //canput += (int)(elem == 2);
             p <<= 1;
             o <<= 1;
             p += (int)(elem == ai_player);
             o += (int)(elem == 1 - ai_player);
         }
+        for (i = 0; i < board_index_num; ++i){
+            board_tmp = 0;
+            for (j = 0; j < board_param.pattern_space[i]; ++j){
+                board_tmp *= 3;
+                if (1 & (p >> (hw2_m1 - board_param.board_translate[i][j])))
+                    ++board_tmp;
+                else if (1 & (o >> (hw2_m1 - board_param.board_translate[i][j])))
+                    board_tmp += 2;
+            }
+            board[i] = board_tmp;
+        }
+        print_board(board);
         if (vacant_cnt > 14)
             search_param.min_max_depth = max(5, former_depth + vacant_cnt - former_vacant);
         else
             search_param.min_max_depth = 15;
-        //search_param.min_max_depth = 2;
+        search_param.min_max_depth = 2;
         cerr << "start depth " << search_param.min_max_depth << endl;
         search_param.max_depth = search_param.min_max_depth;
         former_vacant = vacant_cnt;
         lst.clear();
-        for (i = 0; i < hw; ++i){
-            for (j = 0; j < hw; ++j){
-                if (board_param.legal[b[i]][j]){
-                    //++canput;
-                    put = i * hw + j;
+        for (i = 0; i < board_index_num; ++i){
+            for (j = 0; j < board_param.pattern_space[i]; ++j){
+                if (board_param.legal[board[i]][j]){
+                    cerr << "legal: " << board_param.board_translate[i][j] << endl;
+                    ++canput;
                     board_priority_move tmp;
-                    for (k = 0; k < board_index_num; ++k)
-                        tmp.b[k] = board_param.trans[b[k]][board_param.put[put][k]];
+                    move(board, tmp.b, board_param.board_translate[i][j]);
                     tmp.priority = evaluate(tmp.b);
-                    tmp.move = put;
+                    tmp.move = board_param.board_translate[i][j];
+                    print_board(tmp.b);
                     lst.push_back(tmp);
                 }
             }
@@ -734,6 +727,7 @@ int main(int argc, char* argv[]){
             eval_param.pattern_weight = map_double(eval_param.weight_sme[0], eval_param.weight_sme[1], eval_param.weight_sme[2], game_ratio);
             eval_param.cnt_weight = map_double(eval_param.weight_sme[3], eval_param.weight_sme[4], eval_param.weight_sme[5], game_ratio);
             eval_param.canput_weight = map_double(eval_param.weight_sme[6], eval_param.weight_sme[7], eval_param.weight_sme[8], game_ratio);
+            eval_param.cnt_bias = map_double(eval_param.weight_sme[9], eval_param.weight_sme[10], eval_param.weight_sme[11], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].b, search_param.max_depth - 1, -65000.0, -max_score, 0);
@@ -759,7 +753,7 @@ int main(int argc, char* argv[]){
                 sort(lst.begin(), lst.end(), cmp_main);
             cerr << "depth " << search_param.max_depth;
             for (i = 0; i < 1; ++i){
-                cerr << "  " << ((hw2 - lst[i].move - 1) / hw) << ((hw2 - lst[i].move - 1) % hw) << " " << lst[i].priority;
+                cerr << "  " << (lst[i].move / hw) << (lst[i].move % hw) << " " << lst[i].priority;
             }
             cerr << " time " << tim() - search_param.strt << endl;
             if (vacant_cnt < search_param.max_depth || fabs(max_score) >= 1000.0){
@@ -767,6 +761,7 @@ int main(int argc, char* argv[]){
                 break;
             }
             ++search_param.max_depth;
+            break;
         }
         cout << outy << " " << outx << endl;
     }

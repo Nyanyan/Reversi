@@ -4,7 +4,8 @@ from time import time
 from tqdm import trange
 
 param_num = 66
-pattern_num = 3
+pattern_num = 20
+index_num = 38
 
 '''
     [
@@ -19,12 +20,40 @@ pattern_num = 3
     ],
 '''
 
+translate_raw = [
+    [0, 1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14, 15], [16, 17, 18, 19, 20, 21, 22, 23], [24, 25, 26, 27, 28, 29, 30, 31], [32, 33, 34, 35, 36, 37, 38, 39], [40, 41, 42, 43, 44, 45, 46, 47], [48, 49, 50, 51, 52, 53, 54, 55], [56, 57, 58, 59, 60, 61, 62, 63], 
+    [0, 8, 16, 24, 32, 40, 48, 56], [1, 9, 17, 25, 33, 41, 49, 57], [2, 10, 18, 26, 34, 42, 50, 58], [3, 11, 19, 27, 35, 43, 51, 59], [4, 12, 20, 28, 36, 44, 52, 60], [5, 13, 21, 29, 37, 45, 53, 61], [6, 14, 22, 30, 38, 46, 54, 62], [7, 15, 23, 31, 39, 47, 55, 63], 
+    [5, 14, 23], [4, 13, 22, 31], [3, 12, 21, 30, 39], [2, 11, 20, 29, 38, 47], [1, 10, 19, 28, 37, 46, 55], [0, 9, 18, 27, 36, 45, 54, 63], [8, 17, 26, 35, 44, 53, 62], [16, 25, 34, 43, 52, 61], [24, 33, 42, 51, 60], [32, 41, 50, 59], [40, 49, 58], 
+    [2, 9, 16], [3, 10, 17, 24], [4, 11, 18, 25, 32], [5, 12, 19, 26, 33, 40], [6, 13, 20, 27, 34, 41, 48], [7, 14, 21, 28, 35, 42, 49, 56], [15, 22, 29, 36, 43, 50, 57], [23, 30, 37, 44, 51, 58], [31, 38, 45, 52, 59], [39, 46, 53, 60], [47, 54, 61]
+]
+same_param = [0, 1, 2, 3, 3, 2, 1, 0, 4, 5, 6, 7, 7, 6, 5, 4, 8, 9, 10, 11, 12, 13, 12, 11, 10, 9, 8, 14, 15, 16, 17, 18, 19, 18, 17, 16, 15, 14]
+translate = [[] for _ in range(pattern_num)]
+each_param_num = [0 for _ in range(pattern_num)]
+for i in range(index_num):
+    translate[same_param[i]].append(translate_raw[i])
+    translate[same_param[i]].append(list(reversed(translate_raw[i])))
+    each_param_num[same_param[i]] = 3 ** len(translate_raw[i])
+'''
+translate = []
+each_param_num = []
+with open('a.txt', 'r') as f:
+    for i in range(index_num):
+        each_param_num.append(int(f.readline()))
+    for i in range(index_num):
+        translate.append([])
+        for j in range(each_param_num[i]):
+            translate[i].append(int(f.readline()))
+
+print('translate =', translate)
+print('each_param_num =', each_param_num)
+'''
+'''
 translate = [
     [
         [0, 1, 2, 3, 4, 5, 6, 7],
-        [7, 6, 5, 4, 3, 2, 1, 0],
-        [56, 57, 58, 59, 60, 61, 62, 63],
+        [7, 15, 23, 31, 39, 47, 55, 63],
         [63, 62, 61, 60, 59, 58, 57, 56],
+        [56, 48, 40, 32, 24, 16, 8, 0]
     ],
     [
         [8, 9, 10, 11, 12, 13, 14, 15],
@@ -41,19 +70,12 @@ translate = [
         [56, 49, 42, 35, 28, 21, 14, 7]
     ],
 ]
-
-each_param_num = [3 ** len(translate[i][0]) for i in range(pattern_num)]
+'''
 
 param_base = [-1 for _ in range(param_num)]
 
-win_num = [[[0 for _ in range(each_param_num[i])] for i in range(pattern_num)] for _ in range(2)]
-seen_num = [[[0 for _ in range(each_param_num[i])] for i in range(pattern_num)] for _ in range(2)]
-
-
-for i in translate:
-    for j in i:
-        for k in j:
-            print(k)
+win_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
+seen_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 
 
 hw = 8
@@ -215,7 +237,7 @@ def translate_o(grid, arr):
     return res
 
 def collect():
-    grids = [[], []]
+    grids = []
     param0 = [-1 for _ in range(param_num)]
     param1 = [-1 for _ in range(param_num)]
     for i in range(param_num):
@@ -265,10 +287,7 @@ def collect():
             print(stdin)
             print(rv.player)
             print(y, x)
-        if turn < 30:
-            grids[0].append([[i for i in j] for j in rv.grid])
-        else:
-            grids[1].append([[i for i in j] for j in rv.grid])
+        grids.append([[i for i in j] for j in rv.grid])
         if rv.end():
             break
         turn += 1
@@ -276,46 +295,42 @@ def collect():
     #rv.output()
     winner = rv.judge()
     if winner == 0:
-        for ii in range(2):
-            for grid in grids[ii]:
-                for i in range(pattern_num):
-                    for j in translate_p(grid, translate[i]):
-                        seen_num[ii][i][j] += 1
-                        win_num[ii][i][j] += 0.75
-                    for j in translate_o(grid, translate[i]):
-                        seen_num[ii][i][j] += 1
-                        win_num[ii][i][j] -= 1
+        for grid in grids:
+            for i in range(pattern_num):
+                for j in translate_p(grid, translate[i]):
+                    seen_num[i][j] += 1
+                    win_num[i][j] += 1
+                for j in translate_o(grid, translate[i]):
+                    seen_num[i][j] += 1
+                    win_num[i][j] -= 1
     elif winner == 1:
-        for ii in range(2):
-            for grid in grids[ii]:
-                for i in range(pattern_num):
-                    for j in translate_p(grid, translate[i]):
-                        seen_num[ii][i][j] += 1
-                        win_num[ii][i][j] -= 1
-                    for j in translate_o(grid, translate[i]):
-                        seen_num[ii][i][j] += 1
-                        win_num[ii][i][j] += 0.75
+        for grid in grids:
+            for i in range(pattern_num):
+                for j in translate_p(grid, translate[i]):
+                    seen_num[i][j] += 1
+                    win_num[i][j] -= 1
+                for j in translate_o(grid, translate[i]):
+                    seen_num[i][j] += 1
+                    win_num[i][j] += 1
     else:
-        for ii in range(2):
-            for grid in grids[ii]:
-                for i in range(pattern_num):
-                    for j in translate_p(grid, translate[i]):
-                        seen_num[ii][i][j] += 1
-                    for j in translate_o(grid, translate[i]):
-                        seen_num[ii][i][j] += 1
+        for grid in grids:
+            for i in range(pattern_num):
+                for j in translate_p(grid, translate[i]):
+                    seen_num[i][j] += 1
+                for j in translate_o(grid, translate[i]):
+                    seen_num[i][j] += 1
     for i in range(2):
         ai[i].kill()
 
 def output():
     with open('param_pattern.txt', 'w') as f:
-        for ii in range(2):
-            for i in range(pattern_num):
-                for j in range(len(seen_num[ii][i])):
-                    f.write(str(win_num[ii][i][j] / max(1, seen_num[ii][i][j])) + '\n')
+        for i in range(pattern_num):
+            for j in range(len(seen_num[i])):
+                f.write(str(win_num[i][j] / max(1, seen_num[i][j])) + '\n')
 
 with open('param_base.txt', 'r') as f:
     for i in range(param_num):
         param_base[i] = float(f.readline())
-for _ in trange(1000):
+for _ in trange(100):
     collect()
 output()
