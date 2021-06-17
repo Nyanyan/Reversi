@@ -11,7 +11,7 @@ dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
 population = 10
 param_num = 66
-change_param = list(set(range(param_num)) - set([57, 58, 59]) - set(range(30)))
+change_param = list(set(range(param_num)) - set([65, 64, 63]) - set(range(30))) # list(set(range(51, 78)) | set([45, 46, 47]))
 tim = 10
 
 def empty(grid, y, x):
@@ -285,7 +285,7 @@ while True:
         param = []
         for i in range(param_num):
             if i in change_param:
-                param.append(param_base[i] + random() * 0.5 - 0.25)
+                param.append(param_base[i] + random() * 0.6 - 0.3)
             else:
                 param.append(param_base[i])
         diversity.append(param)
@@ -309,7 +309,7 @@ while True:
     max_float_rating = max_rating
     while True:
         f_param = [param_base[i] for i in range(param_num)]
-        param_base[change_param[randint(0, len(change_param) - 1)]] += random() * 0.2 - 0.1
+        param_base[change_param[randint(0, len(change_param) - 1)]] += random() * 1.0 - 0.5
         rating = 0 #env.create_rating()
         for i in range(tim):
             rating = rate_children(param_base, rating, i)

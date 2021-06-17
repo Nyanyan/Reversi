@@ -3,74 +3,50 @@ import subprocess
 from time import time
 from tqdm import trange
 
-param_num = 60
+param_num = 66
+pattern_num = 3
+
+translate = [
+    [
+        [63, 62, 61, 60, 59, 58, 57, 54],
+        [56, 57, 58, 59, 60, 61, 62, 49],
+        [56, 48, 40, 32, 24, 16, 8, 49],
+        [0, 8, 16, 24, 32, 40, 48, 9],
+        [0, 1, 2, 3, 4, 5, 6, 9],
+        [7, 6, 5, 4, 3, 2, 1, 14],
+        [7, 15, 23, 31, 39, 47, 55, 14],
+        [63, 55, 47, 39, 31, 23, 15, 54]
+    ],
+    [
+        [0, 9, 18, 27, 36, 45, 54, 63],
+        [63, 54, 45, 36, 27, 18, 9, 0],
+        [7, 14, 21, 28, 35, 42, 49, 56],
+        [56, 49, 42, 35, 28, 21, 14, 7]
+    ],
+    [
+        [39, 47, 55, 63, 54, 62, 61, 60],
+        [60, 61, 62, 63, 54, 55, 47, 39],
+        [59, 58, 57, 56, 49, 48, 40, 32],
+        [32, 40, 48, 56, 49, 57, 58, 59],
+        [24, 16, 8, 0, 9, 1, 2, 3],
+        [3, 2, 1, 0, 9, 8, 16, 24],
+        [4, 5, 6, 7, 14, 15, 23, 31],
+        [31, 23, 15, 7, 14, 6, 5, 4]
+    ]
+]
+
+each_param_num = [3 ** len(translate[i][0]) for i in range(pattern_num)]
 
 param_base = [-1 for _ in range(param_num)]
 
-win_num_corner = [0 for _ in range(3 ** 6)]
-seen_num_corner = [0 for _ in range(3 ** 6)]
-win_num_cross = [0 for _ in range(3 ** 6)]
-seen_num_cross = [0 for _ in range(3 ** 6)]
-win_num_edge = [0 for _ in range(3 ** 6)]
-seen_num_edge = [0 for _ in range(3 ** 6)]
-win_num_inside = [0 for _ in range(3 ** 6)]
-seen_num_inside = [0 for _ in range(3 ** 6)]
+win_num = [[[0 for _ in range(each_param_num[i])] for i in range(pattern_num)] for _ in range(2)]
+seen_num = [[[0 for _ in range(each_param_num[i])] for i in range(pattern_num)] for _ in range(2)]
 
-translate_corner = [
-    [61, 62, 63, 54, 55, 47],
-    [47, 55, 63, 54, 62, 61],
-    [58, 57, 56, 49, 48, 40],
-    [40, 48, 56, 49, 57, 58],
-    [5, 6, 7, 14, 15, 23],
-    [23, 15, 7, 14, 6, 5],
-    [2, 1, 0, 9, 8, 16],
-    [16, 8, 0, 9, 1, 2]
-]
 
-translate_cross = [
-    [7, 14, 21, 28, 6, 15],
-    [7, 14, 21, 28, 15, 6],
-    [0, 9, 18, 27, 1, 8],
-    [0, 9, 18, 27, 8, 1],
-    [56, 49, 42, 35, 48, 57],
-    [56, 49, 42, 35, 57, 48],
-    [63, 54, 45, 36, 55, 62],
-    [63, 54, 45, 36, 62, 55],
-]
-
-translate_edge = [
-    [63, 62, 61, 60, 59, 54],
-    [63, 55, 47, 39, 31, 54],
-    [56, 57, 58, 59, 60, 49],
-    [56, 48, 40, 32, 24, 49],
-    [0, 1, 2, 3, 4, 9],
-    [0, 8, 16, 24, 32, 9],
-    [7, 6, 5, 4, 3, 14],
-    [7, 15, 23, 31, 39, 14]
-]
-
-translate_inside = [
-    [26, 34, 42, 43, 44, 49],
-    [44, 43, 42, 34, 26, 49],
-    [34, 26, 18, 19, 20, 9],
-    [20, 19, 18, 26, 34, 9],
-    [19, 20, 21, 29, 37, 14],
-    [37, 29, 21, 20, 19, 14],
-    [29, 37, 45, 44, 43, 54],
-    [43, 44, 45, 37, 29, 54]
-]
-
-'''
-def print_arr(arr):
-    for i in arr:
-        for j in i:
-            print(j)
-
-print_arr(translate_corner)
-print_arr(translate_cross)
-print_arr(translate_edge)
-print_arr(translate_inside)
-'''
+for i in translate:
+    for j in i:
+        for k in j:
+            print(k)
 
 
 hw = 8
@@ -203,13 +179,13 @@ class reversi:
             #print('Draw!', self.nums[0], '-', self.nums[1])
             return -1
 
-def translate_p(grid, translate):
+def translate_p(grid, arr):
     res = []
-    for i in range(len(translate)):
+    for i in range(len(arr)):
         tmp = 0
-        for j in range(len(translate[i])):
+        for j in range(len(arr[i])):
             tmp *= 3
-            tmp2 = grid[translate[i][j] // hw][translate[i][j] % hw]
+            tmp2 = grid[arr[i][j] // hw][arr[i][j] % hw]
             if tmp2 == 0:
                 tmp += 1
             elif tmp2 == 1:
@@ -217,13 +193,13 @@ def translate_p(grid, translate):
         res.append(tmp)
     return res
 
-def translate_o(grid, translate):
+def translate_o(grid, arr):
     res = []
-    for i in range(len(translate)):
+    for i in range(len(arr)):
         tmp = 0
-        for j in range(len(translate[i])):
+        for j in range(len(arr[i])):
             tmp *= 3
-            tmp2 = grid[translate[i][j] // hw][translate[i][j] % hw]
+            tmp2 = grid[arr[i][j] // hw][arr[i][j] % hw]
             if tmp2 == 1:
                 tmp += 1
             elif tmp2 == 0:
@@ -232,7 +208,7 @@ def translate_o(grid, translate):
     return res
 
 def collect():
-    grids = []
+    grids = [[], []]
     param0 = [-1 for _ in range(param_num)]
     param1 = [-1 for _ in range(param_num)]
     for i in range(param_num):
@@ -282,7 +258,10 @@ def collect():
             print(stdin)
             print(rv.player)
             print(y, x)
-        grids.append([[i for i in j] for j in rv.grid])
+        if turn < 30:
+            grids[0].append([[i for i in j] for j in rv.grid])
+        else:
+            grids[1].append([[i for i in j] for j in rv.grid])
         if rv.end():
             break
         turn += 1
@@ -290,92 +269,46 @@ def collect():
     #rv.output()
     winner = rv.judge()
     if winner == 0:
-        for grid in grids:
-            for i in translate_p(grid, translate_corner):
-                seen_num_corner[i] += 1
-                win_num_corner[i] += 1
-            for i in translate_o(grid, translate_corner):
-                seen_num_corner[i] += 1
-                win_num_corner[i] -= 1
-            for i in translate_p(grid, translate_cross):
-                seen_num_cross[i] += 1
-                win_num_cross[i] += 1
-            for i in translate_o(grid, translate_cross):
-                seen_num_cross[i] += 1
-                win_num_cross[i] -= 1
-            for i in translate_p(grid, translate_edge):
-                seen_num_edge[i] += 1
-                win_num_edge[i] += 1
-            for i in translate_o(grid, translate_edge):
-                seen_num_edge[i] += 1
-                win_num_edge[i] -= 1
-            for i in translate_p(grid, translate_inside):
-                seen_num_inside[i] += 1
-                win_num_inside[i] += 1
-            for i in translate_o(grid, translate_inside):
-                seen_num_inside[i] += 1
-                win_num_inside[i] -= 1
+        for ii in range(2):
+            for grid in grids[ii]:
+                for i in range(pattern_num):
+                    for j in translate_p(grid, translate[i]):
+                        seen_num[ii][i][j] += 1
+                        win_num[ii][i][j] += 0.75
+                    for j in translate_o(grid, translate[i]):
+                        seen_num[ii][i][j] += 1
+                        win_num[ii][i][j] -= 1
     elif winner == 1:
-        for grid in grids:
-            for i in translate_p(grid, translate_corner):
-                seen_num_corner[i] += 1
-                win_num_corner[i] -= 1
-            for i in translate_o(grid, translate_corner):
-                seen_num_corner[i] += 1
-                win_num_corner[i] += 1
-            for i in translate_p(grid, translate_cross):
-                seen_num_cross[i] += 1
-                win_num_cross[i] -= 1
-            for i in translate_o(grid, translate_cross):
-                seen_num_cross[i] += 1
-                win_num_cross[i] += 1
-            for i in translate_p(grid, translate_edge):
-                seen_num_edge[i] += 1
-                win_num_edge[i] -= 1
-            for i in translate_o(grid, translate_edge):
-                seen_num_edge[i] += 1
-                win_num_edge[i] += 1
-            for i in translate_p(grid, translate_inside):
-                seen_num_inside[i] += 1
-                win_num_inside[i] -= 1
-            for i in translate_o(grid, translate_inside):
-                seen_num_inside[i] += 1
-                win_num_inside[i] += 1
+        for ii in range(2):
+            for grid in grids[ii]:
+                for i in range(pattern_num):
+                    for j in translate_p(grid, translate[i]):
+                        seen_num[ii][i][j] += 1
+                        win_num[ii][i][j] -= 1
+                    for j in translate_o(grid, translate[i]):
+                        seen_num[ii][i][j] += 1
+                        win_num[ii][i][j] += 0.75
     else:
-        for grid in grids:
-            for i in translate_p(grid, translate_corner):
-                seen_num_corner[i] += 1
-            for i in translate_o(grid, translate_corner):
-                seen_num_corner[i] += 1
-            for i in translate_p(grid, translate_cross):
-                seen_num_cross[i] += 1
-            for i in translate_o(grid, translate_cross):
-                seen_num_cross[i] += 1
-            for i in translate_p(grid, translate_edge):
-                seen_num_edge[i] += 1
-            for i in translate_o(grid, translate_edge):
-                seen_num_edge[i] += 1
-            for i in translate_p(grid, translate_inside):
-                seen_num_inside[i] += 1
-            for i in translate_o(grid, translate_inside):
-                seen_num_inside[i] += 1
+        for ii in range(2):
+            for grid in grids[ii]:
+                for i in range(pattern_num):
+                    for j in translate_p(grid, translate[i]):
+                        seen_num[ii][i][j] += 1
+                    for j in translate_o(grid, translate[i]):
+                        seen_num[ii][i][j] += 1
     for i in range(2):
         ai[i].kill()
 
 def output():
     with open('param_pattern.txt', 'w') as f:
-        for i in range(3 ** 6):
-            f.write(str(win_num_corner[i] / max(1, seen_num_corner[i]) / len(seen_num_corner)) + '\n')
-        for i in range(3 ** 6):
-            f.write(str(win_num_cross[i] / max(1, seen_num_cross[i]) / len(seen_num_cross)) + '\n')
-        for i in range(3 ** 6):
-            f.write(str(win_num_edge[i] / max(1, seen_num_edge[i]) / len(seen_num_edge)) + '\n')
-        for i in range(3 ** 6):
-            f.write(str(win_num_inside[i] / max(1, seen_num_inside[i]) / len(seen_num_inside)) + '\n')
+        for ii in range(2):
+            for i in range(pattern_num):
+                for j in range(len(seen_num[ii][i])):
+                    f.write(str(win_num[ii][i][j] / max(1, seen_num[ii][i][j])) + '\n')
 
 with open('param_base.txt', 'r') as f:
     for i in range(param_num):
         param_base[i] = float(f.readline())
-for _ in trange(100):
+for _ in trange(1000):
     collect()
 output()

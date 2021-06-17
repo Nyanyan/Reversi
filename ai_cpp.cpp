@@ -27,7 +27,7 @@ using namespace std;
 #define window 0.00001
 #define simple_threshold 3
 #define inf 100000000.0
-#define pattern_num 6
+#define pattern_num 3
 #define param_num 36
 
 struct HashPair {
@@ -50,7 +50,7 @@ struct eval_param{
     double weight_s[hw2], weight_m[hw2], weight_e[hw2];
     double weight[hw2];
     double cnt_weight, weight_weight, canput_weight, pot_canput_weight, confirm_weight, pattern_weight, center_weight;
-    double pattern_bias[4] = {1.0, 1.0, 1.0, 1.0};
+    double pattern_bias[pattern_num];
     double cnt_bias;
     double shift_bias;
     double weight_sme[param_num];
@@ -67,8 +67,11 @@ struct eval_param{
         3.39, 3.11, 2.66, 2.30, 1.98, 1.53, 1.78, 0.67
     };
     */
-    int translate_arr[4][8][6];
-    double pattern_data[4][729];
+    int pattern_each_num[pattern_num], pattern_variation[pattern_num];
+    int translate_arr[pattern_num][8][8];
+    double pattern_data[pattern_num][6561];
+    double pattern_data_s[pattern_num][6561], pattern_data_e[pattern_num][6561];
+    unsigned long long in6 = 0b0000000001111110011111100111111001111110011111100111111000000000;
 };
 
 struct confirm_param{
@@ -270,9 +273,23 @@ void init(int argc, char* argv[]){
         }
         eval_param.avg_canput[i] = atof(cbuf);
     }
-    for (i = 0; i < 4; i++){
-        for (j = 0; j < 8; j++){
-            for (k = 0; k < 6; k++){
+    for (i = 0; i < pattern_num; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("const.txt broken");
+            exit(1);
+        }
+        eval_param.pattern_each_num[i] = atoi(cbuf);
+    }
+    for (i = 0; i < pattern_num; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("const.txt broken");
+            exit(1);
+        }
+        eval_param.pattern_variation[i] = atoi(cbuf);
+    }
+    for (i = 0; i < pattern_num; i++){
+        for (j = 0; j < eval_param.pattern_each_num[i]; j++){
+            for (k = 0; k < eval_param.pattern_variation[i]; k++){
                 if (!fgets(cbuf, 1024, fp)){
                     printf("const.txt broken");
                     exit(1);
@@ -286,13 +303,22 @@ void init(int argc, char* argv[]){
         printf("param_pattern.txt not exist");
         exit(1);
     }
-    for (i = 0; i < 4; ++i){
-        for (j = 0; j < 729; ++j){
+    for (i = 0; i < pattern_num; ++i){
+        for (j = 0; j < (int)pow(3, eval_param.pattern_each_num[i]); ++j){
             if (!fgets(cbuf, 1024, fp)){
                 printf("param_pattern.txt broken");
                 exit(1);
             }
-            eval_param.pattern_data[i][j] = atof(cbuf);
+            eval_param.pattern_data_s[i][j] = atof(cbuf);
+        }
+    }
+    for (i = 0; i < pattern_num; ++i){
+        for (j = 0; j < (int)pow(3, eval_param.pattern_each_num[i]); ++j){
+            if (!fgets(cbuf, 1024, fp)){
+                printf("param_pattern.txt broken");
+                exit(1);
+            }
+            eval_param.pattern_data_e[i][j] = atof(cbuf);
         }
     }
     fclose(fp);
@@ -367,11 +393,11 @@ inline int check_confirm(const unsigned long long& grid, const int& idx){
 inline double pattern_eval(const unsigned long long p, const unsigned long long o){
     int i, j, k, num;
     double res = 0.0, tmp_res;
-    for (i = 0; i < 4; ++i){
+    for (i = 0; i < pattern_num; ++i){
         tmp_res = 0.0;
-        for (j = 0; j < 8; ++j){
+        for (j = 0; j < eval_param.pattern_each_num[i]; ++j){
             num = 0;
-            for (k = 0; k < 6; ++k){
+            for (k = 0; k < eval_param.pattern_variation[i]; ++k){
                 num *= 3;
                 if (1 & (p >> eval_param.translate_arr[i][j][k]))
                     ++num;
@@ -387,6 +413,7 @@ inline double pattern_eval(const unsigned long long p, const unsigned long long 
 
 inline double evaluate(const unsigned long long p, const unsigned long long o){
     int p_cnt = pop_count_ull(p), o_cnt = pop_count_ull(o);
+    int p_in_cnt = pop_count_ull(p & eval_param.in6), o_in_cnt = pop_count_ull(o & eval_param.in6);
     int canput = 0;
     int pot_canput_p = 0, pot_canput_o = 0;
     double weight_me = 0.0, weight_op = 0.0;
@@ -483,7 +510,7 @@ inline double evaluate(const unsigned long long p, const unsigned long long o){
             center_o += abs(gy - (i >> 3)) + abs(gx - (i & 0b111));
     }
     double cnt_proc, weight_proc, canput_proc, pot_canput_proc, confirm_proc, pattern_proc, center_proc;
-    cnt_proc = ((double)p_cnt * eval_param.cnt_bias - (double)o_cnt) / max(1.0, (double)p_cnt * eval_param.cnt_bias + (double)o_cnt);
+    cnt_proc = ((double)p_in_cnt * eval_param.cnt_bias - (double)o_in_cnt) / max(1.0, (double)p_in_cnt * eval_param.cnt_bias + (double)o_in_cnt);
     weight_proc = weight_me / max(1, p_cnt) - weight_op / max(1, o_cnt);
     canput_proc = ((double)canput - eval_param.avg_canput[p_cnt + o_cnt]) / max(1.0, (double)canput + eval_param.avg_canput[p_cnt + o_cnt]);
     pot_canput_proc = (double)(pot_canput_p - pot_canput_o) / max(1, pot_canput_p + pot_canput_o);
@@ -661,12 +688,16 @@ double map_double(double y1, double y2, double y3, double x){
     return a * x * x + b * x + c;
 }
 
+double map_linar(double s, double e, double x){
+    return s + (e - s) * x;
+}
+
 int cmp_main(grid_priority_main p, grid_priority_main q){
     return p.priority > q.priority;
 }
 
 int main(int argc, char* argv[]){
-    int ansy, ansx, outy, outx, i, canput, former_depth = 7, former_vacant = hw2 - 4;
+    int ansy, ansx, outy, outx, i, j, canput, former_depth = 7, former_vacant = hw2 - 4;
     double score, max_score;
     unsigned long long in_mobility;
     unsigned long long p, o, np, no;
@@ -743,13 +774,15 @@ int main(int argc, char* argv[]){
             eval_param.confirm_weight = map_double(eval_param.weight_sme[12], eval_param.weight_sme[13], eval_param.weight_sme[14], game_ratio);
             eval_param.pattern_weight = map_double(eval_param.weight_sme[15], eval_param.weight_sme[16], eval_param.weight_sme[17], game_ratio);
             eval_param.center_weight = map_double(eval_param.weight_sme[18], eval_param.weight_sme[19], eval_param.weight_sme[20], game_ratio);
-            eval_param.pattern_bias[1] = map_double(eval_param.weight_sme[21], eval_param.weight_sme[22], eval_param.weight_sme[23], game_ratio);
-            eval_param.pattern_bias[2] = map_double(eval_param.weight_sme[24], eval_param.weight_sme[25], eval_param.weight_sme[26], game_ratio);
-            eval_param.pattern_bias[3] = map_double(eval_param.weight_sme[27], eval_param.weight_sme[28], eval_param.weight_sme[29], game_ratio);
+            for (i = 0; i < pattern_num; i++)
+                eval_param.pattern_bias[i] = map_double(eval_param.weight_sme[21 + i * 3], eval_param.weight_sme[22 + i * 3], eval_param.weight_sme[23 + i * 3], game_ratio);
             eval_param.cnt_bias = map_double(eval_param.weight_sme[30], eval_param.weight_sme[31], eval_param.weight_sme[32], game_ratio);
             eval_param.shift_bias = map_double(eval_param.weight_sme[33], eval_param.weight_sme[34], eval_param.weight_sme[35], game_ratio);
             for (i = 0; i < hw2; i++)
                 eval_param.weight[i] = map_double(eval_param.weight_s[i], eval_param.weight_m[i], eval_param.weight_e[i], game_ratio);
+            for (i = 0; i < pattern_num; ++i)
+                for (j = 0; j < (int)pow(3, eval_param.pattern_each_num[i]); ++j)
+                    eval_param.pattern_data[i][j] = map_linar(eval_param.pattern_data_s[i][j], eval_param.pattern_data_e[i][j], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].o, lst[i].p, search_param.max_depth - 1, -65000.0, -max_score, 0, true);
