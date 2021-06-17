@@ -150,7 +150,6 @@ def match():
                 for x in range(hw):
                     stdin += str(rv.grid[y][x]) + ' '
                 stdin += '\n'
-            print(stdin)
             ai.stdin.write(stdin.encode('utf-8'))
             ai.stdin.flush()
             y, x = [int(i) for i in ai.stdout.readline().decode().strip().split()]

@@ -3,7 +3,7 @@ import subprocess
 from time import time
 from tqdm import trange
 
-param_num = 66
+param_num = 42
 pattern_num = 20
 index_num = 38
 
