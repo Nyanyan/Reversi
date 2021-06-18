@@ -3,22 +3,11 @@ import subprocess
 from time import time
 from tqdm import trange
 
-param_num = 42
 pattern_num = 10
+ad_pattern_num = 2
+all_pattern_num = pattern_num + ad_pattern_num
 index_num = 38
 
-'''
-    [
-        [63, 62, 61, 60, 59, 58, 57, 54],
-        [56, 57, 58, 59, 60, 61, 62, 49],
-        [56, 48, 40, 32, 24, 16, 8, 49],
-        [0, 8, 16, 24, 32, 40, 48, 9],
-        [0, 1, 2, 3, 4, 5, 6, 9],
-        [7, 6, 5, 4, 3, 2, 1, 14],
-        [7, 15, 23, 31, 39, 47, 55, 14],
-        [63, 55, 47, 39, 31, 23, 15, 54]
-    ],
-'''
 
 translate_raw = [
     [0, 1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14, 15], [16, 17, 18, 19, 20, 21, 22, 23], [24, 25, 26, 27, 28, 29, 30, 31], [32, 33, 34, 35, 36, 37, 38, 39], [40, 41, 42, 43, 44, 45, 46, 47], [48, 49, 50, 51, 52, 53, 54, 55], [56, 57, 58, 59, 60, 61, 62, 63], 
@@ -34,10 +23,37 @@ for i in range(index_num):
     translate[same_param[i]].append(list(reversed(translate_raw[i])))
     each_param_num[same_param[i]] = 3 ** len(translate_raw[i])
 
-param_base = [-1 for _ in range(param_num)]
+edge = [
+    [63, 62, 61, 60, 59, 58, 57, 54],
+    [56, 57, 58, 59, 60, 61, 62, 49],
+    [56, 48, 40, 32, 24, 16, 8, 49],
+    [0, 8, 16, 24, 32, 40, 48, 9],
+    [0, 1, 2, 3, 4, 5, 6, 9],
+    [7, 6, 5, 4, 3, 2, 1, 14],
+    [7, 15, 23, 31, 39, 47, 55, 14],
+    [63, 55, 47, 39, 31, 23, 15, 54]
+]
+translate.append(edge)
+each_param_num.append(3 ** 8)
 
-win_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
-seen_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
+corner = [
+    [3, 2, 1, 0, 9, 8, 16, 24],
+    [24, 16, 8, 0, 9, 1, 2, 3],
+    [4, 5, 6, 7, 14, 15, 23, 31],
+    [31, 23, 15, 7, 14, 6, 5, 4],
+    [60, 61, 62, 63, 54, 55, 47, 39],
+    [39, 47, 55, 63, 54, 62, 61, 60],
+    [59, 58, 57, 56, 49, 48, 40, 32],
+    [32, 40, 48, 56, 49, 57, 58, 59]
+]
+translate.append(corner)
+each_param_num.append(3 ** 8)
+for i in corner:
+    for j in i:
+        print(j)
+
+win_num = [[0 for _ in range(each_param_num[i])] for i in range(all_pattern_num)]
+seen_num = [[0 for _ in range(each_param_num[i])] for i in range(all_pattern_num)]
 
 
 hw = 8
@@ -221,7 +237,7 @@ def collect(s):
     winner = rv.judge()
     if winner == 0:
         for grid in grids:
-            for i in range(pattern_num):
+            for i in range(all_pattern_num):
                 for j in translate_p(grid, translate[i]):
                     seen_num[i][j] += 1
                     win_num[i][j] += 1
@@ -230,7 +246,7 @@ def collect(s):
                     win_num[i][j] -= 1
     elif winner == 1:
         for grid in grids:
-            for i in range(pattern_num):
+            for i in range(all_pattern_num):
                 for j in translate_p(grid, translate[i]):
                     seen_num[i][j] += 1
                     win_num[i][j] -= 1
@@ -239,7 +255,7 @@ def collect(s):
                     win_num[i][j] += 1
     else:
         for grid in grids:
-            for i in range(pattern_num):
+            for i in range(all_pattern_num):
                 for j in translate_p(grid, translate[i]):
                     seen_num[i][j] += 1
                 for j in translate_o(grid, translate[i]):
@@ -247,24 +263,13 @@ def collect(s):
 
 def output():
     with open('param_pattern.txt', 'w') as f:
-        for i in range(pattern_num):
+        for i in range(all_pattern_num):
             for j in range(each_param_num[i]):
                 f.write('{:f}'.format(win_num[i][j] / max(1, seen_num[i][j]) / len(translate[i]) * 2 / pattern_num) + '\n')
-
-'''
-with open('param_base.txt', 'r') as f:
-    for i in range(param_num):
-        param_base[i] = float(f.readline())
-for _ in trange(100):
-    collect()
-output()
-'''
-
-import codecs
 
 with open('third_party/xxx.gam', 'rb') as f:
     raw_data = f.read()
 games = [i for i in raw_data.splitlines()]
-for i in trange(1000):
+for i in trange(100):
     collect(str(games[i]))
 output()

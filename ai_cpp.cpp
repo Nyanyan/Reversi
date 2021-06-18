@@ -31,6 +31,7 @@ using namespace std;
 #define param_num 12
 #define board_index_num 38
 #define pattern_num 10
+#define ad_pattern_num 2
 
 struct hash_arr{
     //static size_t m_hash_arr_random;
@@ -61,6 +62,7 @@ struct board_param{
     int reverse[6561];
     int pow3[10];
     int rev_bit3[6561][8];
+    int pop_digit[6561][8];
 };
 
 struct eval_param{
@@ -86,6 +88,8 @@ struct eval_param{
     int pattern_same[board_index_num];
     int canput[6561];
     int cnt_p[6561], cnt_o[6561];
+    int ad_pattern_space[ad_pattern_num], ad_pattern_variation[ad_pattern_num], ad_pattern_translate[ad_pattern_num][8][8][2];
+    double ad_pattern_data[ad_pattern_num][6561];
 };
 
 struct search_param{
@@ -228,6 +232,8 @@ int board_reverse(int idx){
 void init(int argc, char* argv[]){
     FILE *fp;
     const char* file;
+    char cbuf[1024];
+    int i, j, k, l;
     if (argc > 1)
         file = argv[1];
     else
@@ -236,46 +242,6 @@ void init(int argc, char* argv[]){
         printf("param.txt not exist");
         exit(1);
     }
-    char cbuf[1024];
-    int translate[hw2] = {
-        0, 1, 2, 3, 3, 2, 1, 0,
-        1, 4, 5, 6, 6, 5, 4, 1,
-        2, 5, 7, 8, 8, 7, 5, 2,
-        3, 6, 8, 9, 9, 8, 6, 3,
-        3, 6, 8, 9, 9, 8, 6, 3,
-        2, 5, 7, 8, 8, 7, 5, 2,
-        1, 4, 5, 6, 6, 5, 4, 1,
-        0, 1, 2, 3, 3, 2, 1, 0
-    };
-    double weight_buf[10];
-    int i, j, k, l;
-    for (i = 0; i < 10; ++i){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("param file broken");
-            exit(1);
-        }
-        weight_buf[i] = atof(cbuf);
-    }
-    for (i = 0; i < hw2; ++i)
-        eval_param.weight_s[i] = weight_buf[translate[i]];
-    for (i = 0; i < 10; ++i){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("param file broken");
-            exit(1);
-        }
-        weight_buf[i] = atof(cbuf);
-    }
-    for (i = 0; i < hw2; ++i)
-        eval_param.weight_m[i] = weight_buf[translate[i]];
-    for (i = 0; i < 10; ++i){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("param file broken");
-            exit(1);
-        }
-        weight_buf[i] = atof(cbuf);
-    }
-    for (i = 0; i < hw2; ++i)
-        eval_param.weight_e[i] = weight_buf[translate[i]];
     for (i = 0; i < param_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
@@ -302,6 +268,22 @@ void init(int argc, char* argv[]){
         }
         board_param.pattern_space[i] = atoi(cbuf);
     }
+    for (i = 0; i < board_index_num; ++i)
+        eval_param.pattern_space[eval_param.pattern_same[i]] = board_param.pattern_space[i];
+    for (i = 0; i < ad_pattern_num; ++i){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("const.txt broken");
+            exit(1);
+        }
+        eval_param.ad_pattern_space[i] = atoi(cbuf);
+    }
+    for (i = 0; i < ad_pattern_num; ++i){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("const.txt broken");
+            exit(1);
+        }
+        eval_param.ad_pattern_variation[i] = atoi(cbuf);
+    }
     for (i = 0; i < board_index_num; ++i){
         for (j = 0; j < board_param.pattern_space[i]; ++j){
             if (!fgets(cbuf, 1024, fp)){
@@ -317,6 +299,18 @@ void init(int argc, char* argv[]){
             exit(1);
         }
         eval_param.pattern_same[i] = atoi(cbuf);
+    }
+    for (i = 0; i < ad_pattern_num; ++i){
+        for (j = 0; j < eval_param.ad_pattern_variation[i]; ++j){
+            for (k = 0; k < eval_param.ad_pattern_space[i]; ++k){
+                if (!fgets(cbuf, 1024, fp)){
+                    printf("const.txt broken");
+                    exit(1);
+                }
+                eval_param.ad_pattern_translate[i][j][k][0] = atoi(cbuf) / hw;
+                eval_param.ad_pattern_translate[i][j][k][1] = atoi(cbuf) % hw;
+            }
+        }
     }
     fclose(fp);
     int idx;
@@ -342,9 +336,6 @@ void init(int argc, char* argv[]){
             }
         }
     }
-    for (i = 0; i < board_index_num; ++i)
-        eval_param.pattern_space[eval_param.pattern_same[i]] = board_param.pattern_space[i];
-    eval_param.pattern_space[10] = 8;
     if ((fp = fopen("param_pattern.txt", "r")) == NULL){
         printf("param_pattern.txt not exist");
         exit(1);
@@ -356,6 +347,15 @@ void init(int argc, char* argv[]){
                 exit(1);
             }
             eval_param.pattern_data[i][j] = atof(cbuf);
+        }
+    }
+    for (i = 0; i < ad_pattern_num; ++i){
+        for (j = 0; j < (int)pow(3, eval_param.ad_pattern_space[i]); ++j){
+            if (!fgets(cbuf, 1024, fp)){
+                printf("param_pattern.txt broken");
+                exit(1);
+            }
+            eval_param.ad_pattern_data[i][j] = atof(cbuf);
         }
     }
     fclose(fp);
@@ -390,16 +390,26 @@ void init(int argc, char* argv[]){
     for (i = 0; i < 10; ++i)
         board_param.pow3[i] = (int)pow(3, i);
     for (i = 0; i < 6561; ++i){
-        for (j = 0; j < 8; ++j)
+        for (j = 0; j < 8; ++j){
             board_param.rev_bit3[i][j] = board_param.pow3[j] * (2 - (i / board_param.pow3[j]) % 3);
+            board_param.pop_digit[i][j] = (i / board_param.pow3[j] * board_param.pow3[j]) % board_param.pow3[j + 1];
+        }
     }
 }
 
 inline double pattern_eval(const int *board){
-    int i;
-    double res = 0.0, tmp_res;
+    int i, j, k, tmp;
+    double res = 0.0;
     for (i = 0; i < board_index_num; ++i)
         res += eval_param.pattern_data[eval_param.pattern_same[i]][board[i]];
+    for (i = 0; i < 1; ++i){
+        for (j = 0; j < eval_param.ad_pattern_variation[i]; ++j){
+            tmp = 0;
+            for (k = 0; k < eval_param.ad_pattern_space[i]; ++k)
+                tmp += board_param.pop_digit[board[eval_param.ad_pattern_translate[i][j][k][0]]][eval_param.ad_pattern_translate[i][j][k][1]];
+            res += eval_param.ad_pattern_data[i][tmp];
+        }
+    }
     return res;
 }
 
