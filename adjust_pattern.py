@@ -1,7 +1,23 @@
 from random import random
 import subprocess
 from time import time
+from random import randint, random
 from tqdm import trange
+from math import exp
+
+start_temp = 20
+end_temp = 0.01
+
+def tempera(strt, now, tl):
+    x = (now - strt) / tl
+    return pow(start_temp, 1 - x) * pow(end_temp, x)
+    #return start_temp + (end_tmp - start_temp) * (now - strt) / tl
+
+def prob(p_score, n_score, strt, now, tl):
+    dis = p_score - n_score
+    if dis >= 0:
+        return 1.0
+    return exp(dis / tempera(strt, now, tl))
 
 pattern_num = 10
 ad_pattern_num = 2
@@ -17,10 +33,12 @@ translate_raw = [
 ]
 same_param = [0, 1, 2, 3, 3, 2, 1, 0, 0, 1, 2, 3, 3, 2, 1, 0, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4]
 translate = [[] for _ in range(pattern_num)]
+eval_translate = [[] for _ in range(pattern_num)]
 each_param_num = [0 for _ in range(pattern_num)]
 for i in range(index_num):
     translate[same_param[i]].append(translate_raw[i])
     translate[same_param[i]].append(list(reversed(translate_raw[i])))
+    eval_translate[same_param[i]].append(translate_raw[i])
     each_param_num[same_param[i]] = 3 ** len(translate_raw[i])
 
 edge = [
@@ -34,9 +52,17 @@ edge = [
     [63, 55, 47, 39, 31, 23, 15, 54]
 ]
 translate.append(edge)
+eval_translate.append(edge)
 each_param_num.append(3 ** 8)
 
-corner = [
+corner1= [
+    [3, 2, 1, 0, 9, 8, 16, 24],
+    [4, 5, 6, 7, 14, 15, 23, 31],
+    [60, 61, 62, 63, 54, 55, 47, 39],
+    [59, 58, 57, 56, 49, 48, 40, 32]
+]
+
+corner2 = [
     [3, 2, 1, 0, 9, 8, 16, 24],
     [24, 16, 8, 0, 9, 1, 2, 3],
     [4, 5, 6, 7, 14, 15, 23, 31],
@@ -46,14 +72,15 @@ corner = [
     [59, 58, 57, 56, 49, 48, 40, 32],
     [32, 40, 48, 56, 49, 57, 58, 59]
 ]
-translate.append(corner)
+translate.append(corner2)
+eval_translate.append(corner1)
 each_param_num.append(3 ** 8)
-for i in corner:
-    for j in i:
-        print(j)
 
 win_num = [[0 for _ in range(each_param_num[i])] for i in range(all_pattern_num)]
 seen_num = [[0 for _ in range(each_param_num[i])] for i in range(all_pattern_num)]
+ans = [[0 for _ in range(each_param_num[i])] for i in range(all_pattern_num)]
+
+seen_grid = []
 
 
 hw = 8
@@ -190,7 +217,7 @@ def translate_p(grid, arr):
     res = []
     for i in range(len(arr)):
         tmp = 0
-        for j in range(len(arr[i])):
+        for j in reversed(range(len(arr[i]))):
             tmp *= 3
             tmp2 = grid[arr[i][j] // hw][arr[i][j] % hw]
             if tmp2 == 0:
@@ -204,7 +231,7 @@ def translate_o(grid, arr):
     res = []
     for i in range(len(arr)):
         tmp = 0
-        for j in range(len(arr[i])):
+        for j in reversed(range(len(arr[i]))):
             tmp *= 3
             tmp2 = grid[arr[i][j] // hw][arr[i][j] % hw]
             if tmp2 == 1:
@@ -215,6 +242,7 @@ def translate_o(grid, arr):
     return res
 
 def collect(s):
+    global seen_grid
     grids = []
     rv = reversi()
     idx = 2
@@ -236,7 +264,8 @@ def collect(s):
     #print(rv.nums[0], rv.nums[1])
     winner = rv.judge()
     if winner == 0:
-        for grid in grids:
+        for turn, grid in enumerate(grids):
+            seen_grid.append([grid, 1 * turn / len(grids)])
             for i in range(all_pattern_num):
                 for j in translate_p(grid, translate[i]):
                     seen_num[i][j] += 1
@@ -245,7 +274,8 @@ def collect(s):
                     seen_num[i][j] += 1
                     win_num[i][j] -= 1
     elif winner == 1:
-        for grid in grids:
+        for turn, grid in enumerate(grids):
+            seen_grid.append([grid, -1 * turn / len(grids)])
             for i in range(all_pattern_num):
                 for j in translate_p(grid, translate[i]):
                     seen_num[i][j] += 1
@@ -255,21 +285,134 @@ def collect(s):
                     win_num[i][j] += 1
     else:
         for grid in grids:
+            seen_grid.append([grid, 0])
             for i in range(all_pattern_num):
                 for j in translate_p(grid, translate[i]):
                     seen_num[i][j] += 1
                 for j in translate_o(grid, translate[i]):
                     seen_num[i][j] += 1
 
+def evaluate_p(grid):
+    res = 0
+    for i in range(len(eval_translate)):
+        for j in translate_p(grid, eval_translate[i]):
+            res += ans[i][j]
+    return res
+
+def evaluate_o(grid):
+    res = 0
+    for i in range(len(eval_translate)):
+        for j in translate_o(grid, eval_translate[i]):
+            res += ans[i][j]
+    return res
+
+def scoring():
+    res = 0
+    num = 100
+    lst = [randint(0, len(seen_grid) - 1) for _ in range(num)]
+    for i in lst:
+        grid, result = seen_grid[i]
+        val = evaluate_p(grid)
+        res += abs(result - val)
+        val = evaluate_o(grid)
+        res += abs(-result - val)
+    return res / num / 2
+
+def anneal1(tl):
+    global ans, start_temp, end_temp
+    start_temp = 0.1
+    end_temp = 0.000001
+    score = scoring()
+    min_score = score
+    print('anneal1')
+    print(score)
+    strt = time()
+    while time() - strt < tl:
+        idx = randint(0, all_pattern_num - 1)
+        ratio = random() + 0.5
+        for i in range(len(ans[idx])):
+            ans[idx][i] *= ratio
+        n_score = scoring()
+        if prob(score, n_score, strt, time(), tl) > random():
+            score = n_score
+            if score < min_score:
+                min_score = score
+                print(score)
+                output()
+            else:
+                print('\t', score)
+        else:
+            for i in range(len(ans[idx])):
+                ans[idx][i] /= ratio
+
+def anneal2(tl):
+    global ans, start_temp, end_temp
+    start_temp = 0.01
+    end_temp = 0.000001
+    score = scoring()
+    min_score = score
+    print('anneal2')
+    print(score)
+    strt = time()
+    while time() - strt < tl:
+        idx1 = randint(0, all_pattern_num - 1)
+        idx2 = randint(0, each_param_num[idx1] - 1)
+        f_val = ans[idx1][idx2]
+        ans[idx1][idx2] += random() * 0.2 - 0.1
+        n_score = scoring()
+        if prob(score, n_score, strt, time(), tl) > random():
+            score = n_score
+            if score < min_score:
+                min_score = score
+                print(score)
+                output()
+            else:
+                print('\t', score)
+        else:
+            ans[idx1][idx2] = f_val
+
+
 def output():
     with open('param_pattern.txt', 'w') as f:
         for i in range(all_pattern_num):
             for j in range(each_param_num[i]):
-                f.write('{:f}'.format(win_num[i][j] / max(1, seen_num[i][j]) / len(translate[i]) * 2 / pattern_num) + '\n')
+                f.write('{:f}'.format(ans[i][j]) + '\n')
 
 with open('third_party/xxx.gam', 'rb') as f:
     raw_data = f.read()
 games = [i for i in raw_data.splitlines()]
+
 for i in trange(100):
     collect(str(games[i]))
+
+for i in range(all_pattern_num):
+    for j in range(each_param_num[i]):
+        ans[i][j] = win_num[i][j] / max(1, seen_num[i][j]) / len(translate[i]) * 2 / pattern_num
+output()
+'''
+g = [
+    [-1, -1, -1, -1, 1, 0, 0, 0],
+    [-1, -1, -1, 0, 0, 1, 0, 0],
+    [1, 0, -1, -1, 0, 0, 1, 1],
+    [0, 1, 0, 1, 1, 1, 1, 1],
+    [-1, -1, -1, -1, -1, -1, -1, 1],
+    [0, 1, 1, 0, -1, -1, -1, -1],
+    [1, 1, 1, 0, 0, 1, 0, -1],
+    [0, -1, 1, -1, 0, -1, 1, 1]
+]
+stdin = ''
+for y in range(hw):
+    for x in range(hw):
+        stdin += str(g[y][x]) + ' '
+    stdin += '\n'
+print(0)
+print(10)
+print(stdin)
+print('')
+print(translate_p(g, edge))
+print(translate_p(g, corner1))
+exit()
+'''
+anneal1(10.0)
+anneal2(100.0)
 output()

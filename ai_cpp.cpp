@@ -85,7 +85,7 @@ struct eval_param{
     */
     double pattern_space[pattern_num];
     double pattern_data[pattern_num][6561];
-    int pattern_same[board_index_num];
+    int pattern_group[board_index_num];
     int canput[6561];
     int cnt_p[6561], cnt_o[6561];
     int ad_pattern_space[ad_pattern_num], ad_pattern_variation[ad_pattern_num], ad_pattern_translate[ad_pattern_num][8][8][2];
@@ -126,6 +126,20 @@ inline int pop_count_ull(unsigned long long x){
 
 int tim(){
     return static_cast<int>(chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch()).count());
+}
+
+void print_board_line(int tmp){
+    int j;
+    for (j = 0; j < hw; ++j){
+        if (tmp % 3 == 0){
+            cerr << ". ";
+        }else if (tmp % 3 == 1){
+            cerr << "P ";
+        }else{
+            cerr << "O ";
+        }
+        tmp /= 3;
+    }
 }
 
 void print_board(int* board){
@@ -268,8 +282,6 @@ void init(int argc, char* argv[]){
         }
         board_param.pattern_space[i] = atoi(cbuf);
     }
-    for (i = 0; i < board_index_num; ++i)
-        eval_param.pattern_space[eval_param.pattern_same[i]] = board_param.pattern_space[i];
     for (i = 0; i < ad_pattern_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("const.txt broken");
@@ -298,8 +310,10 @@ void init(int argc, char* argv[]){
             printf("const.txt broken");
             exit(1);
         }
-        eval_param.pattern_same[i] = atoi(cbuf);
+        eval_param.pattern_group[i] = atoi(cbuf);
     }
+    for (i = 0; i < board_index_num; ++i)
+        eval_param.pattern_space[eval_param.pattern_group[i]] = board_param.pattern_space[i];
     for (i = 0; i < ad_pattern_num; ++i){
         for (j = 0; j < eval_param.ad_pattern_variation[i]; ++j){
             for (k = 0; k < eval_param.ad_pattern_space[i]; ++k){
@@ -347,6 +361,7 @@ void init(int argc, char* argv[]){
                 exit(1);
             }
             eval_param.pattern_data[i][j] = atof(cbuf);
+            //cerr << eval_param.pattern_data[i][j] << " ";
         }
     }
     for (i = 0; i < ad_pattern_num; ++i){
@@ -392,7 +407,7 @@ void init(int argc, char* argv[]){
     for (i = 0; i < 6561; ++i){
         for (j = 0; j < 8; ++j){
             board_param.rev_bit3[i][j] = board_param.pow3[j] * (2 - (i / board_param.pow3[j]) % 3);
-            board_param.pop_digit[i][j] = (i / board_param.pow3[j] * board_param.pow3[j]) % board_param.pow3[j + 1];
+            board_param.pop_digit[i][j] = i / board_param.pow3[j] % 3;
         }
     }
 }
@@ -401,12 +416,12 @@ inline double pattern_eval(const int *board){
     int i, j, k, tmp;
     double res = 0.0;
     for (i = 0; i < board_index_num; ++i)
-        res += eval_param.pattern_data[eval_param.pattern_same[i]][board[i]];
-    for (i = 0; i < 1; ++i){
+        res += eval_param.pattern_data[eval_param.pattern_group[i]][board[i]];
+    for (i = 0; i < ad_pattern_num; ++i){
         for (j = 0; j < eval_param.ad_pattern_variation[i]; ++j){
             tmp = 0;
             for (k = 0; k < eval_param.ad_pattern_space[i]; ++k)
-                tmp += board_param.pop_digit[board[eval_param.ad_pattern_translate[i][j][k][0]]][eval_param.ad_pattern_translate[i][j][k][1]];
+                tmp += board_param.pop_digit[board[eval_param.ad_pattern_translate[i][j][k][0]]][eval_param.ad_pattern_translate[i][j][k][1]] * board_param.pow3[k];
             res += eval_param.ad_pattern_data[i][tmp];
         }
     }
@@ -418,7 +433,7 @@ inline double canput_eval(const int *board){
     int res = 0;
     for (i = 0; i < board_index_num; ++i)
         res += eval_param.canput[board[i]];
-    return ((double)res - eval_param.avg_canput[search_param.turn]) / ((double)res + eval_param.avg_canput[search_param.turn]);
+    return ((double)res - eval_param.avg_canput[search_param.turn]) / max(1.0, (double)res + eval_param.avg_canput[search_param.turn]);
 }
 
 inline double cnt_eval(const int *board){
@@ -428,13 +443,13 @@ inline double cnt_eval(const int *board){
         res_p += eval_param.cnt_p[board[i]];
         res_o += eval_param.cnt_o[board[i]];
     }
-    return (double)(res_p * eval_param.cnt_bias - res_o) / (res_p * eval_param.cnt_bias + res_o);
+    return ((double)res_p * eval_param.cnt_bias - res_o) / max(1.0, (double)res_p * eval_param.cnt_bias + res_o);
 }
 
 inline double evaluate(const int *board){
     double pattern = pattern_eval(board);
-    double cnt = cnt_eval(board);
-    double canput = canput_eval(board);
+    double cnt = 0.0; //cnt_eval(board);
+    double canput = 0.0; //canput_eval(board);
     return 
         pattern * eval_param.pattern_weight + 
         cnt * eval_param.cnt_weight + 
@@ -464,26 +479,24 @@ void move(int *board, int (&res)[board_index_num], int coord){
                 if (board_param.board_rev_translate[i][j][0] == -1)
                     break;
                 res[board_param.board_rev_translate[i][j][0]] += board_param.rev_bit3[res[board_param.board_rev_translate[i][j][0]]][board_param.board_rev_translate[i][j][1]];
-                //res[board_param.board_rev_translate[i][j][0]] += board_param.pow3[board_param.board_rev_translate[i][j][1]] * (2 - (res[board_param.board_rev_translate[i][j][0]] / board_param.pow3[board_param.board_rev_translate[i][j][1]]) % 3);
             }
         }
     }
 }
 
 int cmp(board_priority p, board_priority q){
-    return p.priority > q.priority;
+    return p.priority < q.priority;
 }
 
 double nega_alpha(int *board, const int& depth, double alpha, double beta, const int& skip_cnt){
     ++search_param.searched_nodes;
     if (skip_cnt == 2)
         return end_game(board);
-    else if (depth == 0){
+    else if (depth == 0)
         return evaluate(board);
-    }
     bool is_pass = true;
     int i, j, k, put;
-    double val = -inf, v;
+    double val = -65000.0, v;
     int n_board[board_index_num];
     for (j = 0; j < hw2; ++j){
         for (i = 0; i < board_index_num; ++i){
@@ -493,8 +506,6 @@ double nega_alpha(int *board, const int& depth, double alpha, double beta, const
                     put = i * hw + j;
                     move(board, n_board, j);
                     v = -nega_alpha(n_board, depth - 1, -beta, -alpha, 0);
-                    if (fabs(v) == inf)
-                        return -inf;
                     if (beta <= v)
                         return v;
                     alpha = max(alpha, v);
@@ -508,7 +519,7 @@ double nega_alpha(int *board, const int& depth, double alpha, double beta, const
     if (is_pass){
         for (i = 0; i < board_index_num; ++i)
             n_board[i] = board_param.reverse[board[i]];
-        return -nega_alpha(n_board, depth - 1, -beta, -alpha, skip_cnt + 1);
+        return -nega_alpha(n_board, depth, -beta, -alpha, skip_cnt + 1);
     }
     return val;
 }
@@ -535,14 +546,13 @@ double nega_scout(int *board, const int& depth, double alpha, double beta, const
     if (alpha >= beta)
         return alpha;
     int i, j, k, canput = 0;
-    double val = -inf, v;
+    double val = -65000.0, v;
     vector<board_priority> lst;
     for (j = 0; j < hw2; ++j){
         for (i = 0; i < board_index_num; ++i){
             if (board_param.put[j][i] != -1){
                 if (board_param.legal[board[i]][board_param.put[j][i]]){
                     ++canput;
-                    int n_board[board_index_num];
                     board_priority tmp;
                     move(board, tmp.b, j);
                     tmp.priority = evaluate(tmp.b);
@@ -556,7 +566,7 @@ double nega_scout(int *board, const int& depth, double alpha, double beta, const
         int n_board[board_index_num];
         for (i = 0; i < board_index_num; ++i)
             n_board[i] = board_param.reverse[board[i]];
-        return -nega_scout(n_board, depth - 1, -beta, -alpha, skip_cnt + 1);
+        return -nega_scout(n_board, depth, -beta, -alpha, skip_cnt + 1);
     }
     if (canput > 1)
         sort(lst.begin(), lst.end(), cmp);
@@ -680,7 +690,7 @@ int main(int argc, char* argv[]){
                     ++canput;
                     board_priority_move tmp;
                     move(board, tmp.b, board_param.board_translate[i][j]);
-                    tmp.priority = evaluate(tmp.b);
+                    tmp.priority = -evaluate(tmp.b);
                     tmp.move = board_param.board_translate[i][j];
                     lst.push_back(tmp);
                 }
@@ -729,7 +739,7 @@ int main(int argc, char* argv[]){
                 cerr << "  " << (lst[i].move / hw) << (lst[i].move % hw) << " " << lst[i].priority;
             }
             cerr << " time " << tim() - search_param.strt << endl;
-            if (vacant_cnt < search_param.max_depth || fabs(max_score) >= 1000.0){
+            if (fabs(max_score) >= 1000.0){
                 cerr << "game end" << endl;
                 break;
             }
