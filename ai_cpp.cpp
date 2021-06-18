@@ -28,10 +28,9 @@ using namespace std;
 #define window 0.00001
 #define simple_threshold 3
 #define inf 100000000.0
-#define param_num 12
+#define param_num 18
 #define board_index_num 38
-#define pattern_num 10
-#define ad_pattern_num 2
+#define pattern_num 2
 
 struct hash_arr{
     //static size_t m_hash_arr_random;
@@ -60,15 +59,14 @@ struct board_param{
     int board_rev_translate[hw2][4][2];
     int pattern_space[board_index_num];
     int reverse[6561];
-    int pow3[10];
+    int pow3[15];
     int rev_bit3[6561][8];
     int pop_digit[6561][8];
 };
 
 struct eval_param{
-    double weight_s[hw2], weight_m[hw2], weight_e[hw2];
     double weight[hw2];
-    double pattern_weight, cnt_weight, canput_weight;
+    double pattern_weight, cnt_weight, canput_weight, weight_weight, confirm_weight;
     double cnt_bias;
     double weight_sme[param_num];
     double avg_canput[hw2];
@@ -83,13 +81,13 @@ struct eval_param{
         3.39, 3.11, 2.66, 2.30, 1.98, 1.53, 1.78, 0.67
     };
     */
-    double pattern_space[pattern_num];
-    double pattern_data[pattern_num][6561];
-    int pattern_group[board_index_num];
     int canput[6561];
     int cnt_p[6561], cnt_o[6561];
-    int ad_pattern_space[ad_pattern_num], ad_pattern_variation[ad_pattern_num], ad_pattern_translate[ad_pattern_num][8][8][2];
-    double ad_pattern_data[ad_pattern_num][6561];
+    double weight_data_p[hw][6561], weight_data_o[hw][6561];
+    int pattern_variation[pattern_num], pattern_space[pattern_num];
+    int pattern_translate[pattern_num][8][10][2];
+    double pattern_data[pattern_num][59049];
+    int confirm_data_p[6561], confirm_data_o[6561];
 };
 
 struct search_param{
@@ -248,6 +246,17 @@ void init(int argc, char* argv[]){
     const char* file;
     char cbuf[1024];
     int i, j, k, l;
+    int translate[hw2] = {
+        0, 1, 2, 3, 3, 2, 1, 0,
+        1, 4, 5, 6, 6, 5, 4, 1,
+        2, 5, 7, 8, 8, 7, 5, 2,
+        3, 6, 8, 9, 9, 8, 6, 3,
+        3, 6, 8, 9, 9, 8, 6, 3,
+        2, 5, 7, 8, 8, 7, 5, 2,
+        1, 4, 5, 6, 6, 5, 4, 1,
+        0, 1, 2, 3, 3, 2, 1, 0
+    };
+    double weight_buf[10];
     if (argc > 1)
         file = argv[1];
     else
@@ -256,6 +265,15 @@ void init(int argc, char* argv[]){
         printf("param.txt not exist");
         exit(1);
     }
+    for (i = 0; i < 10; i++){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("param file broken");
+            exit(1);
+        }
+        weight_buf[i] = atof(cbuf);
+    }
+    for (i = 0; i < hw2; i++)
+        eval_param.weight[i] = weight_buf[translate[i]];
     for (i = 0; i < param_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
@@ -273,7 +291,7 @@ void init(int argc, char* argv[]){
             printf("const.txt broken");
             exit(1);
         }
-        eval_param.avg_canput[i] = atof(cbuf) * 1.2;
+        eval_param.avg_canput[i] = atof(cbuf);
     }
     for (i = 0; i < board_index_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
@@ -281,20 +299,6 @@ void init(int argc, char* argv[]){
             exit(1);
         }
         board_param.pattern_space[i] = atoi(cbuf);
-    }
-    for (i = 0; i < ad_pattern_num; ++i){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("const.txt broken");
-            exit(1);
-        }
-        eval_param.ad_pattern_space[i] = atoi(cbuf);
-    }
-    for (i = 0; i < ad_pattern_num; ++i){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("const.txt broken");
-            exit(1);
-        }
-        eval_param.ad_pattern_variation[i] = atoi(cbuf);
     }
     for (i = 0; i < board_index_num; ++i){
         for (j = 0; j < board_param.pattern_space[i]; ++j){
@@ -305,24 +309,29 @@ void init(int argc, char* argv[]){
             board_param.board_translate[i][j] = atoi(cbuf);
         }
     }
-    for (i = 0; i < board_index_num; ++i){
+    for (i = 0; i < pattern_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("const.txt broken");
             exit(1);
         }
-        eval_param.pattern_group[i] = atoi(cbuf);
+        eval_param.pattern_space[i] = atoi(cbuf);
     }
-    for (i = 0; i < board_index_num; ++i)
-        eval_param.pattern_space[eval_param.pattern_group[i]] = board_param.pattern_space[i];
-    for (i = 0; i < ad_pattern_num; ++i){
-        for (j = 0; j < eval_param.ad_pattern_variation[i]; ++j){
-            for (k = 0; k < eval_param.ad_pattern_space[i]; ++k){
+    for (i = 0; i < pattern_num; ++i){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("const.txt broken");
+            exit(1);
+        }
+        eval_param.pattern_variation[i] = atoi(cbuf);
+    }
+    for (i = 0; i < pattern_num; ++i){
+        for (j = 0; j < eval_param.pattern_variation[i]; ++j){
+            for (k = 0; k < eval_param.pattern_space[i]; ++k){
                 if (!fgets(cbuf, 1024, fp)){
                     printf("const.txt broken");
                     exit(1);
                 }
-                eval_param.ad_pattern_translate[i][j][k][0] = atoi(cbuf) / hw;
-                eval_param.ad_pattern_translate[i][j][k][1] = atoi(cbuf) % hw;
+                eval_param.pattern_translate[i][j][k][0] = atoi(cbuf) / hw;
+                eval_param.pattern_translate[i][j][k][1] = atoi(cbuf) % hw;
             }
         }
     }
@@ -364,15 +373,6 @@ void init(int argc, char* argv[]){
             //cerr << eval_param.pattern_data[i][j] << " ";
         }
     }
-    for (i = 0; i < ad_pattern_num; ++i){
-        for (j = 0; j < (int)pow(3, eval_param.ad_pattern_space[i]); ++j){
-            if (!fgets(cbuf, 1024, fp)){
-                printf("param_pattern.txt broken");
-                exit(1);
-            }
-            eval_param.ad_pattern_data[i][j] = atof(cbuf);
-        }
-    }
     fclose(fp);
     int p, o, mobility, canput_num, rev;
     for (i = 0; i < 6561; ++i){
@@ -402,7 +402,7 @@ void init(int argc, char* argv[]){
         }
         eval_param.canput[i] = canput_num;
     }
-    for (i = 0; i < 10; ++i)
+    for (i = 0; i < 15; ++i)
         board_param.pow3[i] = (int)pow(3, i);
     for (i = 0; i < 6561; ++i){
         for (j = 0; j < 8; ++j){
@@ -410,19 +410,81 @@ void init(int argc, char* argv[]){
             board_param.pop_digit[i][j] = i / board_param.pow3[j] % 3;
         }
     }
+    for (i = 0; i < hw; ++i){
+        for (j = 0; j < 6561; ++j){
+            eval_param.weight_data_p[i][j] = 0.0;
+            eval_param.weight_data_o[i][j] = 0.0;
+            for (k = 0; k < 8; ++k){
+                if (board_param.pop_digit[j][k] == 1)
+                    eval_param.weight_data_p[i][j] += eval_param.weight[i * hw + k];
+                else if (board_param.pop_digit[j][k] == 2)
+                    eval_param.weight_data_o[i][j] += eval_param.weight[i * hw + k];
+            }
+        }
+    }
+    bool flag;
+    for (i = 0; i < 6561; ++i){
+        eval_param.confirm_data_p[i] = 0;
+        eval_param.confirm_data_o[i] = 0;
+        flag = true;
+        for (j = 0; j < hw; ++j)
+            if (!board_param.pop_digit[i][j])
+                flag = false;
+        if (flag){
+            for (j = 0; j < hw; ++j){
+                if (board_param.pop_digit[i][j] == 1)
+                    ++eval_param.confirm_data_p[i];
+                else
+                    ++eval_param.confirm_data_o[i];
+            }
+        } else {
+            flag = true;
+            for (j = 0; j < hw; ++j){
+                if (board_param.pop_digit[i][j] != 1)
+                    break;
+                ++eval_param.confirm_data_p[i];
+                if (k == hw_m1)
+                    flag = false;
+            }
+            if (flag){
+                for (j = hw_m1; j >= 0; --j){
+                    if (board_param.pop_digit[i][j] != 1)
+                        break;
+                    ++eval_param.confirm_data_p[i];
+                    if (k == hw_m1)
+                        flag = false;
+                }
+            }
+            flag = true;
+            for (j = 0; j < hw; ++j){
+                if (board_param.pop_digit[i][j] != 2)
+                    break;
+                ++eval_param.confirm_data_o[i];
+                if (k == hw_m1)
+                    flag = false;
+            }
+            if (flag){
+                for (j = hw_m1; j >= 0; --j){
+                    if (board_param.pop_digit[i][j] != 2)
+                        break;
+                    eval_param.confirm_data_o[i];
+                    if (k == hw_m1)
+                        flag = false;
+                }
+            }
+        }
+    }
 }
 
 inline double pattern_eval(const int *board){
     int i, j, k, tmp;
     double res = 0.0;
-    for (i = 0; i < board_index_num; ++i)
-        res += eval_param.pattern_data[eval_param.pattern_group[i]][board[i]];
-    for (i = 0; i < ad_pattern_num; ++i){
-        for (j = 0; j < eval_param.ad_pattern_variation[i]; ++j){
+    for (i = 0; i < pattern_num; ++i){
+        for (j = 0; j < eval_param.pattern_variation[i]; ++j){
             tmp = 0;
-            for (k = 0; k < eval_param.ad_pattern_space[i]; ++k)
-                tmp += board_param.pop_digit[board[eval_param.ad_pattern_translate[i][j][k][0]]][eval_param.ad_pattern_translate[i][j][k][1]] * board_param.pow3[k];
-            res += eval_param.ad_pattern_data[i][tmp];
+            for (k = 0; k < eval_param.pattern_space[i]; ++k)
+                tmp += board_param.pop_digit[board[eval_param.pattern_translate[i][j][k][0]]][eval_param.pattern_translate[i][j][k][1]] * board_param.pow3[k];
+            res += eval_param.pattern_data[i][tmp];
         }
     }
     return res;
@@ -446,14 +508,41 @@ inline double cnt_eval(const int *board){
     return ((double)res_p * eval_param.cnt_bias - res_o) / max(1.0, (double)res_p * eval_param.cnt_bias + res_o);
 }
 
+inline double weight_eval(const int *board){
+    int i;
+    double res_p = 0.0, res_o = 0.0;
+    for (i = 0; i < hw; ++i){
+        res_p += eval_param.weight_data_p[i][board[i]];
+        res_o += eval_param.weight_data_o[i][board[i]];
+    }
+    return (res_p - res_o) / max(0.01, res_p + res_o);
+}
+
+inline double confirm_eval(const int *board){
+    int res_p, res_o;
+    res_p = eval_param.confirm_data_p[board[0]];
+    res_p += eval_param.confirm_data_p[board[7]];
+    res_p += eval_param.confirm_data_p[board[8]];
+    res_p += eval_param.confirm_data_p[board[15]];
+    res_o = eval_param.confirm_data_o[board[0]];
+    res_o += eval_param.confirm_data_o[board[7]];
+    res_o += eval_param.confirm_data_o[board[8]];
+    res_o += eval_param.confirm_data_o[board[15]];
+    return (double)(res_p - res_o) / max(1, res_p + res_o);
+}
+
 inline double evaluate(const int *board){
     double pattern = pattern_eval(board);
-    double cnt = 0.0; //cnt_eval(board);
-    double canput = 0.0; //canput_eval(board);
+    double cnt = cnt_eval(board);
+    double canput = canput_eval(board);
+    double weight = weight_eval(board);
+    double confirm = confirm_eval(board);
     return 
         pattern * eval_param.pattern_weight + 
         cnt * eval_param.cnt_weight + 
-        canput * eval_param.canput_weight;
+        canput * eval_param.canput_weight + 
+        weight * eval_param.weight_weight + 
+        confirm * eval_param.confirm_weight;
 }
 
 inline double end_game(const int *board){
@@ -711,6 +800,8 @@ int main(int argc, char* argv[]){
             eval_param.cnt_weight = map_double(eval_param.weight_sme[3], eval_param.weight_sme[4], eval_param.weight_sme[5], game_ratio);
             eval_param.canput_weight = map_double(eval_param.weight_sme[6], eval_param.weight_sme[7], eval_param.weight_sme[8], game_ratio);
             eval_param.cnt_bias = map_double(eval_param.weight_sme[9], eval_param.weight_sme[10], eval_param.weight_sme[11], game_ratio);
+            eval_param.weight_weight = map_double(eval_param.weight_sme[12], eval_param.weight_sme[13], eval_param.weight_sme[14], game_ratio);
+            eval_param.confirm_weight = map_double(eval_param.weight_sme[15], eval_param.weight_sme[16], eval_param.weight_sme[17], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].b, search_param.max_depth - 1, -65000.0, -max_score, 0);
@@ -739,7 +830,7 @@ int main(int argc, char* argv[]){
                 cerr << "  " << (lst[i].move / hw) << (lst[i].move % hw) << " " << lst[i].priority;
             }
             cerr << " time " << tim() - search_param.strt << endl;
-            if (fabs(max_score) >= 1000.0){
+            if (fabs(max_score) >= 1000.0 || search_param.max_depth >= hw2){
                 cerr << "game end" << endl;
                 break;
             }
