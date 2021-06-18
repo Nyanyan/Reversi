@@ -32,8 +32,7 @@ using namespace std;
 #define board_index_num 38
 #define pattern_num 10
 
-const unsigned long long pow6561[4] = {1, 6561, 43046721, 282429536481};
-//const unsigned long long pow6561[4] = {1, 8192, 67108864, };
+//const unsigned long long pow6561[4] = {1, 6561, 43046721, 282429536481};
 
 struct hash_arr{
     //static size_t m_hash_arr_random;
@@ -50,13 +49,13 @@ struct hash_arr{
         seed ^= (size_t)p[7] * pow6561[3];
         */
         seed ^= (size_t)p[0];
-        seed ^= (size_t)p[1] << 5;
-        seed ^= (size_t)p[2] << 13;
-        seed ^= (size_t)p[3] << 18;
-        seed ^= (size_t)p[4] << 26;
-        seed ^= (size_t)p[5] << 31;
-        seed ^= (size_t)p[6] << 39;
-        seed ^= (size_t)p[7] << 44;
+        seed ^= (size_t)p[1] << 7;
+        seed ^= (size_t)p[2] << 14;
+        seed ^= (size_t)p[3] << 21;
+        seed ^= (size_t)p[4] << 28;
+        seed ^= (size_t)p[5] << 35;
+        seed ^= (size_t)p[6] << 42;
+        seed ^= (size_t)p[7] << 49;
         //seed ^= m_hash_arr_random + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         return seed;
     }
