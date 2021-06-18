@@ -302,8 +302,8 @@ def scoring():
         for i in range(pattern_num):
             for j in arr[i + 1]:
                 val += ans[i][j]
-        res += (result - val) ** 2
-    return res / len(seen_grid) / len(seen_grid)
+        res += abs(result - val)
+    return res / len(seen_grid) # / len(seen_grid)
 
 def anneal1(tl):
     global ans, start_temp, end_temp

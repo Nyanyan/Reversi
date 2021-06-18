@@ -10,8 +10,8 @@ dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
 population = 10
-param_num = 66
-change_param = list(set(range(param_num)) - set([65, 64, 63]) - set(range(30))) # list(set(range(51, 78)) | set([45, 46, 47]))
+param_num = 31
+change_param = list(range(param_num))#list(set(range(param_num)) - set([65, 64, 63]) - set(range(30))) # list(set(range(51, 78)) | set([45, 46, 47]))
 tim = 10
 
 def empty(grid, y, x):
@@ -303,7 +303,7 @@ while True:
     '''
     cnt = 0
     max_rating = 0 #env.create_rating()
-    for i in range(tim):
+    for i in trange(tim):
         max_rating = rate_children(param_base, max_rating, i)
     max_param = [i for i in param_base]
     max_float_rating = max_rating
@@ -322,7 +322,7 @@ while True:
         else:
             param_base = [f_param[i] for i in range(param_num)]
         print(cnt, max_float_rating, max_rating, rating)
-        if max_rating > tim * 2 * 0.5:
+        if max_rating > tim * 2 * 0.75:
             break
         cnt += 1
     with open('param_base.txt', 'w') as f:
