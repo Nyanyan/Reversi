@@ -33,15 +33,30 @@ using namespace std;
 #define pattern_num 10
 
 const unsigned long long pow6561[4] = {1, 6561, 43046721, 282429536481};
+//const unsigned long long pow6561[4] = {1, 8192, 67108864, };
 
 struct hash_arr{
     //static size_t m_hash_arr_random;
     size_t operator()(const int *p) const {
         size_t seed = 0;
-        for (int i = 0; i < 4; ++i){
-            seed ^= (size_t)p[2 * i] * pow6561[i];
-            seed ^= (size_t)p[2 * i + 1] * pow6561[i];
-        }
+        /*
+        seed ^= (size_t)p[0] * pow6561[0];
+        seed ^= (size_t)p[1] * pow6561[0];
+        seed ^= (size_t)p[2] * pow6561[1];
+        seed ^= (size_t)p[3] * pow6561[1];
+        seed ^= (size_t)p[4] * pow6561[2];
+        seed ^= (size_t)p[5] * pow6561[2];
+        seed ^= (size_t)p[6] * pow6561[3];
+        seed ^= (size_t)p[7] * pow6561[3];
+        */
+        seed ^= (size_t)p[0];
+        seed ^= (size_t)p[1] << 5;
+        seed ^= (size_t)p[2] << 13;
+        seed ^= (size_t)p[3] << 18;
+        seed ^= (size_t)p[4] << 26;
+        seed ^= (size_t)p[5] << 31;
+        seed ^= (size_t)p[6] << 39;
+        seed ^= (size_t)p[7] << 44;
         //seed ^= m_hash_arr_random + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         return seed;
     }
@@ -92,6 +107,7 @@ struct search_param{
     int min_max_depth;
     int strt, tl;
     int turn;
+    int searched_nodes;
 };
 
 struct board_priority_move{
@@ -461,6 +477,7 @@ int cmp(board_priority p, board_priority q){
 }
 
 double nega_alpha(int *board, const int& depth, double alpha, double beta, const int& skip_cnt){
+    ++search_param.searched_nodes;
     if (skip_cnt == 2)
         return end_game(board);
     else if (depth == 0){
@@ -499,6 +516,7 @@ double nega_alpha(int *board, const int& depth, double alpha, double beta, const
 }
 
 double nega_scout(int *board, const int& depth, double alpha, double beta, const int& skip_cnt){
+    ++search_param.searched_nodes;
     if (search_param.max_depth > search_param.min_max_depth && tim() - search_param.strt > search_param.tl)
         return -inf;
     if (skip_cnt == 2)
@@ -675,6 +693,7 @@ int main(int argc, char* argv[]){
         outy = -1;
         outx = -1;
         search_param.strt = tim();
+        search_param.searched_nodes = 0;
         while (tim() - search_param.strt < search_param.tl / 2){
             search_param.memo_ub.clear();
             search_param.memo_lb.clear();
@@ -707,7 +726,7 @@ int main(int argc, char* argv[]){
             outx = ansx;
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp_main);
-            cerr << "depth " << search_param.max_depth;
+            cerr << "depth " << search_param.max_depth << " nodes " << search_param.searched_nodes << " nps " << ((unsigned long long)search_param.searched_nodes * 1000 / (tim() - search_param.strt));
             for (i = 0; i < 1; ++i){
                 cerr << "  " << (lst[i].move / hw) << (lst[i].move % hw) << " " << lst[i].priority;
             }
