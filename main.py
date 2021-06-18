@@ -124,7 +124,7 @@ ai_player = 1
 tl = 30000
 
 if ai_mode:
-    ai = subprocess.Popen('./b.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    ai = subprocess.Popen('./a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdin = str(ai_player) + '\n' + str(tl) + '\n'
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()

@@ -4,7 +4,7 @@ from time import time
 from tqdm import trange
 
 param_num = 42
-pattern_num = 20
+pattern_num = 10
 index_num = 38
 
 '''
@@ -26,51 +26,13 @@ translate_raw = [
     [5, 14, 23], [4, 13, 22, 31], [3, 12, 21, 30, 39], [2, 11, 20, 29, 38, 47], [1, 10, 19, 28, 37, 46, 55], [0, 9, 18, 27, 36, 45, 54, 63], [8, 17, 26, 35, 44, 53, 62], [16, 25, 34, 43, 52, 61], [24, 33, 42, 51, 60], [32, 41, 50, 59], [40, 49, 58], 
     [2, 9, 16], [3, 10, 17, 24], [4, 11, 18, 25, 32], [5, 12, 19, 26, 33, 40], [6, 13, 20, 27, 34, 41, 48], [7, 14, 21, 28, 35, 42, 49, 56], [15, 22, 29, 36, 43, 50, 57], [23, 30, 37, 44, 51, 58], [31, 38, 45, 52, 59], [39, 46, 53, 60], [47, 54, 61]
 ]
-same_param = [0, 1, 2, 3, 3, 2, 1, 0, 4, 5, 6, 7, 7, 6, 5, 4, 8, 9, 10, 11, 12, 13, 12, 11, 10, 9, 8, 14, 15, 16, 17, 18, 19, 18, 17, 16, 15, 14]
+same_param = [0, 1, 2, 3, 3, 2, 1, 0, 0, 1, 2, 3, 3, 2, 1, 0, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4]
 translate = [[] for _ in range(pattern_num)]
 each_param_num = [0 for _ in range(pattern_num)]
 for i in range(index_num):
     translate[same_param[i]].append(translate_raw[i])
     translate[same_param[i]].append(list(reversed(translate_raw[i])))
     each_param_num[same_param[i]] = 3 ** len(translate_raw[i])
-'''
-translate = []
-each_param_num = []
-with open('a.txt', 'r') as f:
-    for i in range(index_num):
-        each_param_num.append(int(f.readline()))
-    for i in range(index_num):
-        translate.append([])
-        for j in range(each_param_num[i]):
-            translate[i].append(int(f.readline()))
-
-print('translate =', translate)
-print('each_param_num =', each_param_num)
-'''
-'''
-translate = [
-    [
-        [0, 1, 2, 3, 4, 5, 6, 7],
-        [7, 15, 23, 31, 39, 47, 55, 63],
-        [63, 62, 61, 60, 59, 58, 57, 56],
-        [56, 48, 40, 32, 24, 16, 8, 0]
-    ],
-    [
-        [8, 9, 10, 11, 12, 13, 14, 15],
-        [16, 17, 18, 19, 20, 21, 22, 23],
-        [24, 25, 26, 27, 28, 29, 30, 31],
-        [32, 33, 34, 35, 36, 37, 38, 39],
-        [40, 41, 42, 43, 44, 45, 46, 47],
-        [48, 49, 50, 51, 52, 53, 54, 55],
-    ]
-    [
-        [0, 9, 18, 27, 36, 45, 54, 63],
-        [63, 54, 45, 36, 27, 18, 9, 0],
-        [7, 14, 21, 28, 35, 42, 49, 56],
-        [56, 49, 42, 35, 28, 21, 14, 7]
-    ],
-]
-'''
 
 param_base = [-1 for _ in range(param_num)]
 
@@ -236,63 +198,26 @@ def translate_o(grid, arr):
         res.append(tmp)
     return res
 
-def collect():
+def collect(s):
     grids = []
-    param0 = [-1 for _ in range(param_num)]
-    param1 = [-1 for _ in range(param_num)]
-    for i in range(param_num):
-        param0[i] = param_base[i] + random() * 0.5 - 0.25
-    for i in range(param_num):
-        param1[i] = param_base[i] + random() * 0.5 - 0.25
-    while True:
-        try:
-            with open('param0.txt', 'w') as f:
-                for i in range(param_num):
-                    f.write(str(param0[i]) + '\n')
-            break
-        except:
-            continue
-    while True:
-        try:
-            with open('param1.txt', 'w') as f:
-                for i in range(param_num):
-                    f.write(str(param1[i]) + '\n')
-            break
-        except:
-            continue
-    ai = [subprocess.Popen(('./a.exe param' + str(i) + '.txt').split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE) for i in range(2)]
-    for i in range(2):
-        stdin = str(i) + '\n' + str(100) + '\n'
-        ai[i].stdin.write(stdin.encode('utf-8'))
-        ai[i].stdin.flush()
     rv = reversi()
-    turn = 0
+    idx = 2
     while True:
         if rv.check_pass() and rv.check_pass():
             break
-        #rv.output()
-        y = -1
-        x = -1
-        stdin = ''
-        for y in range(hw):
-            for x in range(hw):
-                stdin += str(rv.grid[y][x]) + ' '
-            stdin += '\n'
-        ai[rv.player].stdin.write(stdin.encode('utf-8'))
-        ai[rv.player].stdin.flush()
-        #print(stdin)
-        #print(rv.player)
-        y, x = [int(i) for i in ai[rv.player].stdout.readline().decode().strip().split()]
+        turn = 0 if s[idx] == '+' else 1
+        x = ord(s[idx + 1]) - ord('a')
+        y = int(s[idx + 2]) - 1
+        idx += 3
         if rv.move(y, x):
-            print(stdin)
-            print(rv.player)
-            print(y, x)
+            print('error')
+            break
         grids.append([[i for i in j] for j in rv.grid])
         if rv.end():
             break
-        turn += 1
     rv.check_pass()
     #rv.output()
+    #print(rv.nums[0], rv.nums[1])
     winner = rv.judge()
     if winner == 0:
         for grid in grids:
@@ -319,18 +244,27 @@ def collect():
                     seen_num[i][j] += 1
                 for j in translate_o(grid, translate[i]):
                     seen_num[i][j] += 1
-    for i in range(2):
-        ai[i].kill()
 
 def output():
     with open('param_pattern.txt', 'w') as f:
         for i in range(pattern_num):
-            for j in range(len(seen_num[i])):
-                f.write(str(win_num[i][j] / max(1, seen_num[i][j])) + '\n')
+            for j in range(each_param_num[i]):
+                f.write('{:f}'.format(win_num[i][j] / max(1, seen_num[i][j]) / len(translate[i]) * 2 / pattern_num) + '\n')
 
+'''
 with open('param_base.txt', 'r') as f:
     for i in range(param_num):
         param_base[i] = float(f.readline())
 for _ in trange(100):
     collect()
+output()
+'''
+
+import codecs
+
+with open('third_party/xxx.gam', 'rb') as f:
+    raw_data = f.read()
+games = [i for i in raw_data.splitlines()]
+for i in trange(1000):
+    collect(str(games[i]))
 output()
