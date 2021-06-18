@@ -32,22 +32,10 @@ using namespace std;
 #define board_index_num 38
 #define pattern_num 10
 
-//const unsigned long long pow6561[4] = {1, 6561, 43046721, 282429536481};
-
 struct hash_arr{
     //static size_t m_hash_arr_random;
     size_t operator()(const int *p) const {
         size_t seed = 0;
-        /*
-        seed ^= (size_t)p[0] * pow6561[0];
-        seed ^= (size_t)p[1] * pow6561[0];
-        seed ^= (size_t)p[2] * pow6561[1];
-        seed ^= (size_t)p[3] * pow6561[1];
-        seed ^= (size_t)p[4] * pow6561[2];
-        seed ^= (size_t)p[5] * pow6561[2];
-        seed ^= (size_t)p[6] * pow6561[3];
-        seed ^= (size_t)p[7] * pow6561[3];
-        */
         seed ^= (size_t)p[0];
         seed ^= (size_t)p[1] << 7;
         seed ^= (size_t)p[2] << 14;
@@ -138,9 +126,9 @@ int tim(){
 
 void print_board(int* board){
     int i, j, idx, tmp;
-    for (i = 0; i < hw; i++){
+    for (i = 0; i < hw; ++i){
         tmp = board[i];
-        for (j = 0; j < hw; j++){
+        for (j = 0; j < hw; ++j){
             if (tmp % 3 == 0){
                 cerr << ". ";
             }else if (tmp % 3 == 1){
@@ -157,7 +145,7 @@ void print_board(int* board){
 
 int reverse_line(int a) {
     int res = 0;
-    for (int i = 0; i < hw; i++) {
+    for (int i = 0; i < hw; ++i) {
         res <<= 1;
         res |= 1 & (a >> i);
     }
@@ -186,7 +174,7 @@ int move_line(int p, int o, const int place) {
     int rev = 0;
     int rev2, mask, tmp;
     int pt = 1 << place;
-    for (int k = 0; k < 2; k++) {
+    for (int k = 0; k < 2; ++k) {
         rev2 = 0;
         mask = trans(pt, k);
         while (mask && (mask & o)) {
@@ -261,34 +249,34 @@ void init(int argc, char* argv[]){
     };
     double weight_buf[10];
     int i, j, k, l;
-    for (i = 0; i < 10; i++){
+    for (i = 0; i < 10; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
             exit(1);
         }
         weight_buf[i] = atof(cbuf);
     }
-    for (i = 0; i < hw2; i++)
+    for (i = 0; i < hw2; ++i)
         eval_param.weight_s[i] = weight_buf[translate[i]];
-    for (i = 0; i < 10; i++){
+    for (i = 0; i < 10; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
             exit(1);
         }
         weight_buf[i] = atof(cbuf);
     }
-    for (i = 0; i < hw2; i++)
+    for (i = 0; i < hw2; ++i)
         eval_param.weight_m[i] = weight_buf[translate[i]];
-    for (i = 0; i < 10; i++){
+    for (i = 0; i < 10; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
             exit(1);
         }
         weight_buf[i] = atof(cbuf);
     }
-    for (i = 0; i < hw2; i++)
+    for (i = 0; i < hw2; ++i)
         eval_param.weight_e[i] = weight_buf[translate[i]];
-    for (i = 0; i < param_num; i++){
+    for (i = 0; i < param_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("param file broken");
             exit(1);
@@ -300,22 +288,22 @@ void init(int argc, char* argv[]){
         printf("const.txt not exist");
         exit(1);
     }
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("const.txt broken");
             exit(1);
         }
         eval_param.avg_canput[i] = atof(cbuf) * 1.2;
     }
-    for (i = 0; i < board_index_num; i++){
+    for (i = 0; i < board_index_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("const.txt broken");
             exit(1);
         }
         board_param.pattern_space[i] = atoi(cbuf);
     }
-    for (i = 0; i < board_index_num; i++){
-        for (j = 0; j < board_param.pattern_space[i]; j++){
+    for (i = 0; i < board_index_num; ++i){
+        for (j = 0; j < board_param.pattern_space[i]; ++j){
             if (!fgets(cbuf, 1024, fp)){
                 printf("const.txt broken");
                 exit(1);
@@ -323,7 +311,7 @@ void init(int argc, char* argv[]){
             board_param.board_translate[i][j] = atoi(cbuf);
         }
     }
-    for (i = 0; i < board_index_num; i++){
+    for (i = 0; i < board_index_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
             printf("const.txt broken");
             exit(1);
@@ -332,10 +320,10 @@ void init(int argc, char* argv[]){
     }
     fclose(fp);
     int idx;
-    for (i = 0; i < hw2; i++){
+    for (i = 0; i < hw2; ++i){
         idx = 0;
-        for (j = 0; j < board_index_num; j++){
-            for (k = 0; k < board_param.pattern_space[j]; k++){
+        for (j = 0; j < board_index_num; ++j){
+            for (k = 0; k < board_param.pattern_space[j]; ++k){
                 if (board_param.board_translate[j][k] == i){
                     board_param.board_rev_translate[i][idx][0] = j;
                     board_param.board_rev_translate[i][idx++][1] = k;
@@ -345,17 +333,18 @@ void init(int argc, char* argv[]){
         for (j = idx; j < 4; ++j)
             board_param.board_rev_translate[i][j][0] = -1;
     }
-    for (i = 0; i < hw2; i++){
-        for (j = 0; j < board_index_num; j++){
+    for (i = 0; i < hw2; ++i){
+        for (j = 0; j < board_index_num; ++j){
             board_param.put[i][j] = -1;
-            for (k = 0; k < board_param.pattern_space[j]; k++){
+            for (k = 0; k < board_param.pattern_space[j]; ++k){
                 if (board_param.board_translate[j][k] == i)
                     board_param.put[i][j] = k;
             }
         }
     }
-    for (i = 0; i < board_index_num; i++)
+    for (i = 0; i < board_index_num; ++i)
         eval_param.pattern_space[eval_param.pattern_same[i]] = board_param.pattern_space[i];
+    eval_param.pattern_space[10] = 8;
     if ((fp = fopen("param_pattern.txt", "r")) == NULL){
         printf("param_pattern.txt not exist");
         exit(1);
@@ -725,7 +714,7 @@ int main(int argc, char* argv[]){
             outx = ansx;
             if (canput > 1)
                 sort(lst.begin(), lst.end(), cmp_main);
-            cerr << "depth " << search_param.max_depth << " nodes " << search_param.searched_nodes << " nps " << ((unsigned long long)search_param.searched_nodes * 1000 / (tim() - search_param.strt));
+            cerr << "depth " << search_param.max_depth << " nodes " << search_param.searched_nodes << " nps " << ((unsigned long long)search_param.searched_nodes * 1000 / max(1, tim() - search_param.strt));
             for (i = 0; i < 1; ++i){
                 cerr << "  " << (lst[i].move / hw) << (lst[i].move % hw) << " " << lst[i].priority;
             }
