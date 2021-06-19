@@ -271,7 +271,7 @@ with open('third_party/xxx.gam', 'rb') as f:
     raw_data = f.read()
 games = [i for i in raw_data.splitlines()]
 
-num = 1000
+num = 10
 lst = [randint(0, 100000) for _ in range(num)]
 for i in trange(num):
     collect(str(games[lst[i]]))

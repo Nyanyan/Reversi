@@ -286,10 +286,10 @@ def collect(s):
             tmp.append(translate_p(grid, eval_translate[i]))
             for j in translate_p(grid, translate[i]):
                 seen_num[i][j] += 1
-                win_num[i][j] += score
+                win_num[i][j] += score / 64 * turn / len(grids)
             for j in translate_o(grid, translate[i]):
                 seen_num[i][j] += 1
-                win_num[i][j] -= score
+                win_num[i][j] -= score / 64 * turn / len(grids)
         seen_grid[-1].append(tmp)
 
 def scoring():
@@ -362,20 +362,13 @@ def anneal2(tl):
         idx1 = randint(0, pattern_num - 1)
         idx2 = randint(0, each_param_num[idx1] - 1)
         f_val = ans[idx1][idx2]
-        if f_val == 0.0:
-            continue
-        t_val = f_val + random() * 0.1 - 0.05
-        for i in range(each_param_num[idx1]):
-            if ans[idx1][i] == f_val:
-                ans[idx1][i] = t_val
+        ans[idx1][idx2] += random() * 0.1 - 0.05
         n_score = scoring()
         if n_score < score:
             score = n_score
             print(score)
         else:
-            for i in range(each_param_num[idx1]):
-                if ans[idx1][i] == t_val:
-                    ans[idx1][i] = f_val
+            ans[idx1][idx2] = f_val
         cnt += 1
         if cnt % 10 == 0:
             output()
@@ -421,13 +414,14 @@ num = 1000
 lst = [i * 10 for i in range(num)]
 for i in trange(num):
     collect(str(games[lst[i]]))
-'''
+
 for i in range(pattern_num):
     for j in range(each_param_num[i]):
         ans[i][j] = win_num[i][j] / max(1, seen_num[i][j]) / 8.0
-'''
+
 output()
 #anneal0(10.0)
-anneal1(300.0)
-#anneal2(100.0)
+while True:
+    anneal1(10.0)
+    anneal2(10.0)
 output()

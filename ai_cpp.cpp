@@ -28,7 +28,7 @@ using namespace std;
 #define window 0.00001
 #define simple_threshold 4
 #define inf 100000000.0
-#define param_num 21
+#define param_num 18
 #define board_index_num 38
 #define pattern_num 2
 
@@ -523,18 +523,25 @@ inline double canput_eval(const int *board){
     return ((double)res - eval_param.avg_canput[search_param.turn]) / max(1.0, (double)res + eval_param.avg_canput[search_param.turn]);
 }
 
-inline double weight_cnt_eval(const int *board){
+inline double cnt_eval(const int *board){
+    int i;
+    int cnt_p = 0, cnt_o = 0;
+    for (i = 0; i < hw; ++i){
+        cnt_p += eval_param.cnt_p[board[i]];
+        cnt_o += eval_param.cnt_o[board[i]];
+    }
+    return ((double)cnt_p - cnt_o) / max(1, cnt_p + cnt_o);
+}
+
+inline double weight_eval(const int *board){
     int i;
     double res_p = 0.0, res_o = 0.0;
     int cnt_p = 0, cnt_o = 0;
     for (i = 0; i < hw; ++i){
         res_p += eval_param.weight_p[i][board[i]];
         res_o += eval_param.weight_o[i][board[i]];
-        cnt_p += eval_param.cnt_p[board[i]];
-        cnt_o += eval_param.cnt_o[board[i]];
     }
-    return eval_param.weight_weight * (res_p / cnt_p - res_o / cnt_o) + 
-        eval_param.cnt_weight * ((double)cnt_p * eval_param.cnt_bias - cnt_o) / max(1.0, (double)cnt_p * eval_param.cnt_bias + cnt_o);
+    return (res_p - res_o) / (abs(res_p) + abs(res_o));
 }
 
 inline double confirm_eval(const int *board){
@@ -562,14 +569,16 @@ inline double pot_canput_eval(const int *board){
 
 inline double evaluate(const int *board){
     double pattern = pattern_eval(board);
+    double cnt = cnt_eval(board);
     double canput = canput_eval(board);
-    double weight_cnt = weight_cnt_eval(board);
+    double weight = weight_eval(board);
     double confirm = confirm_eval(board);
     double pot_canput = pot_canput_eval(board);
     return 
-        weight_cnt + 
         pattern * eval_param.pattern_weight + 
+        cnt * eval_param.cnt_weight + 
         canput * eval_param.canput_weight + 
+        weight * eval_param.weight_weight + 
         confirm * eval_param.confirm_weight + 
         pot_canput * eval_param.pot_canput_weight;
 }
@@ -828,10 +837,9 @@ int main(int argc, char* argv[]){
             eval_param.pattern_weight = map_double(eval_param.weight_sme[0], eval_param.weight_sme[1], eval_param.weight_sme[2], game_ratio);
             eval_param.cnt_weight = map_double(eval_param.weight_sme[3], eval_param.weight_sme[4], eval_param.weight_sme[5], game_ratio);
             eval_param.canput_weight = map_double(eval_param.weight_sme[6], eval_param.weight_sme[7], eval_param.weight_sme[8], game_ratio);
-            eval_param.cnt_bias = map_double(eval_param.weight_sme[9], eval_param.weight_sme[10], eval_param.weight_sme[11], game_ratio);
-            eval_param.weight_weight = map_double(eval_param.weight_sme[12], eval_param.weight_sme[13], eval_param.weight_sme[14], game_ratio);
-            eval_param.confirm_weight = map_double(eval_param.weight_sme[15], eval_param.weight_sme[16], eval_param.weight_sme[17], game_ratio);
-            eval_param.pot_canput_weight = map_double(eval_param.weight_sme[18], eval_param.weight_sme[19], eval_param.weight_sme[20], game_ratio);
+            eval_param.weight_weight = map_double(eval_param.weight_sme[9], eval_param.weight_sme[10], eval_param.weight_sme[11], game_ratio);
+            eval_param.confirm_weight = map_double(eval_param.weight_sme[12], eval_param.weight_sme[13], eval_param.weight_sme[14], game_ratio);
+            eval_param.pot_canput_weight = map_double(eval_param.weight_sme[15], eval_param.weight_sme[16], eval_param.weight_sme[17], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].b, search_param.max_depth - 1, -65000.0, -max_score, 0);
