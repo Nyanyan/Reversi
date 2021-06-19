@@ -26,7 +26,7 @@ using namespace std;
 #define hw2_m1 63
 #define hw2_mhw 56
 #define window 0.00001
-#define simple_threshold 3
+#define simple_threshold 4
 #define inf 100000000.0
 #define param_num 21
 #define board_index_num 38
@@ -62,6 +62,7 @@ struct board_param{
     int pow3[15];
     int rev_bit3[6561][8];
     int pop_digit[6561][8];
+    int digit_pow[3][10];
 };
 
 struct eval_param{
@@ -494,6 +495,10 @@ void init(int argc, char* argv[]){
             }
         }
     }
+    for (i = 0; i < 3; ++i){
+        for (j = 0; j < 10; ++j)
+            board_param.digit_pow[i][j] = i * board_param.pow3[j];
+    }
 }
 
 inline double pattern_eval(const int *board){
@@ -503,7 +508,7 @@ inline double pattern_eval(const int *board){
         for (j = 0; j < eval_param.pattern_variation[i]; ++j){
             tmp = 0;
             for (k = 0; k < eval_param.pattern_space[i]; ++k)
-                tmp += board_param.pop_digit[board[eval_param.pattern_translate[i][j][k][0]]][eval_param.pattern_translate[i][j][k][1]] * board_param.pow3[k];
+                tmp += board_param.digit_pow[board_param.pop_digit[board[eval_param.pattern_translate[i][j][k][0]]][eval_param.pattern_translate[i][j][k][1]]][k];
             res += eval_param.pattern[i][tmp];
         }
     }
@@ -518,17 +523,7 @@ inline double canput_eval(const int *board){
     return ((double)res - eval_param.avg_canput[search_param.turn]) / max(1.0, (double)res + eval_param.avg_canput[search_param.turn]);
 }
 
-inline double cnt_eval(const int *board){
-    int i;
-    int res_p = 0, res_o = 0;
-    for (i = 0; i < hw; ++i){
-        res_p += eval_param.cnt_p[board[i]];
-        res_o += eval_param.cnt_o[board[i]];
-    }
-    return ((double)res_p * eval_param.cnt_bias - res_o) / max(1.0, (double)res_p * eval_param.cnt_bias + res_o);
-}
-
-inline double weight_eval(const int *board){
+inline double weight_cnt_eval(const int *board){
     int i;
     double res_p = 0.0, res_o = 0.0;
     int cnt_p = 0, cnt_o = 0;
@@ -538,7 +533,8 @@ inline double weight_eval(const int *board){
         cnt_p += eval_param.cnt_p[board[i]];
         cnt_o += eval_param.cnt_o[board[i]];
     }
-    return res_p / cnt_p - res_o / cnt_o;
+    return eval_param.weight_weight * (res_p / cnt_p - res_o / cnt_o) + 
+        eval_param.cnt_weight * ((double)cnt_p * eval_param.cnt_bias - cnt_o) / max(1.0, (double)cnt_p * eval_param.cnt_bias + cnt_o);
 }
 
 inline double confirm_eval(const int *board){
@@ -566,16 +562,14 @@ inline double pot_canput_eval(const int *board){
 
 inline double evaluate(const int *board){
     double pattern = pattern_eval(board);
-    double cnt = cnt_eval(board);
     double canput = canput_eval(board);
-    double weight = weight_eval(board);
+    double weight_cnt = weight_cnt_eval(board);
     double confirm = confirm_eval(board);
     double pot_canput = pot_canput_eval(board);
     return 
+        weight_cnt + 
         pattern * eval_param.pattern_weight + 
-        cnt * eval_param.cnt_weight + 
         canput * eval_param.canput_weight + 
-        weight * eval_param.weight_weight + 
         confirm * eval_param.confirm_weight + 
         pot_canput * eval_param.pot_canput_weight;
 }

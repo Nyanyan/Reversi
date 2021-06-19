@@ -90,6 +90,11 @@ win_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 seen_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 ans = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 
+with open('param_pattern.txt', 'r') as f:
+    for i in range(pattern_num):
+        for j in range(each_param_num[i]):
+            ans[i][j] = float(f.readline())
+
 seen_grid = []
 
 
@@ -357,13 +362,20 @@ def anneal2(tl):
         idx1 = randint(0, pattern_num - 1)
         idx2 = randint(0, each_param_num[idx1] - 1)
         f_val = ans[idx1][idx2]
-        ans[idx1][idx2] += random() * 0.1 - 0.05
-        ans[idx1][idx2] = max(0.0, min(1.0, ans[idx1][idx2]))
+        if f_val == 0.0:
+            continue
+        t_val = f_val + random() * 0.1 - 0.05
+        for i in range(each_param_num[idx1]):
+            if ans[idx1][i] == f_val:
+                ans[idx1][i] = t_val
         n_score = scoring()
         if n_score < score:
+            score = n_score
             print(score)
         else:
-            ans[idx1][idx2] = f_val
+            for i in range(each_param_num[idx1]):
+                if ans[idx1][i] == t_val:
+                    ans[idx1][i] = f_val
         cnt += 1
         if cnt % 10 == 0:
             output()
@@ -405,17 +417,17 @@ with open('third_party/xxx.gam', 'rb') as f:
 games = [i for i in raw_data.splitlines()]
 
 
-num = 10000
+num = 1000
 lst = [i * 10 for i in range(num)]
 for i in trange(num):
     collect(str(games[lst[i]]))
-
+'''
 for i in range(pattern_num):
     for j in range(each_param_num[i]):
         ans[i][j] = win_num[i][j] / max(1, seen_num[i][j]) / 8.0
+'''
 output()
 #anneal0(10.0)
 anneal1(300.0)
-while True:
-    anneal2(600.0)
+#anneal2(100.0)
 output()

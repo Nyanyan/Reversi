@@ -249,9 +249,9 @@ def collect(s):
         if rv.end():
             break
     rv.check_pass()
+    #if abs(rv.nums[0] - rv.nums[1]) < 10:
+    #    return
     #rv.output()
-    #print(rv.nums[0], rv.nums[1])
-    seen_grid.append([])
     #winner = rv.judge()
     x = range(len(grids))
     y = []
@@ -271,7 +271,7 @@ with open('third_party/xxx.gam', 'rb') as f:
     raw_data = f.read()
 games = [i for i in raw_data.splitlines()]
 
-num = 10
+num = 1000
 lst = [randint(0, 100000) for _ in range(num)]
 for i in trange(num):
     collect(str(games[lst[i]]))
