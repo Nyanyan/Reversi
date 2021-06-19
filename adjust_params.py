@@ -10,7 +10,7 @@ dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
 population = 10
-param_num = 31
+param_num = 95
 change_param = list(range(param_num))#list(set(range(param_num)) - set([65, 64, 63]) - set(range(30))) # list(set(range(51, 78)) | set([45, 46, 47]))
 tim = 10
 

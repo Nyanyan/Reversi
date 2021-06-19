@@ -6,6 +6,8 @@ third_party
 param0.txt
 param1.txt
 param.txt
+param_base.txt
+param_pattern.txt
 state.txt
 create_param_arr.py
 ai_cython_exe.cp38-win_amd64.pyd

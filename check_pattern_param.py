@@ -3,21 +3,7 @@ import subprocess
 from time import time
 from random import randint, random
 from tqdm import trange
-from math import exp, log
-
-start_temp = 20
-end_temp = 0.01
-
-def tempera(strt, now, tl):
-    x = (now - strt) / tl
-    return pow(start_temp, 1 - x) * pow(end_temp, x)
-    #return start_temp + (end_tmp - start_temp) * (now - strt) / tl
-
-def prob(p_score, n_score, strt, now, tl):
-    dis = n_score - p_score
-    if dis >= 0.0:
-        return 1.0
-    return exp(dis / tempera(strt, now, tl))
+import matplotlib.pyplot as plt
 
 pattern_num = 2
 index_num = 38
@@ -72,25 +58,18 @@ translate.append(corner2)
 eval_translate.append(corner1)
 each_param_num.append(3 ** 8)
 
-'''
-diagonal1 = [
-    [0, 9, 18, 27, 36, 45, 54, 63],
-    [7, 14, 21, 28, 35, 42, 49, 56]
-]
-diagonal2 = []
-for arr in diagonal1:
-    diagonal2.append(arr)
-    diagonal2.append(list(reversed(arr)))
-translate.append(diagonal2)
-eval_translate.append(diagonal1)
-each_param_num.append(3 ** 8)
-'''
+pattern_param = [[] for _ in range(pattern_num)]
+with open('param_pattern.txt', 'r') as f:
+    for i in range(pattern_num):
+        for j in range(each_param_num[i]):
+            pattern_param[i].append(float(f.readline()))
 
 win_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 seen_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 ans = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 
 seen_grid = []
+prospect = []
 
 
 hw = 8
@@ -252,7 +231,7 @@ def translate_o(grid, arr):
     return res
 
 def collect(s):
-    global seen_grid
+    global seen_grid, prospect
     grids = []
     rv = reversi()
     idx = 2
@@ -274,148 +253,25 @@ def collect(s):
     #print(rv.nums[0], rv.nums[1])
     seen_grid.append([])
     #winner = rv.judge()
-    score = rv.nums[0] - rv.nums[1]
+    x = range(len(grids))
+    y = []
+    result = [(rv.nums[0] - rv.nums[1]) / 64 for _ in range(len(grids))]
     for turn, grid in enumerate(grids):
-        tmp = [score / 64 * turn / len(grids)]
+        val = 0.0
         for i in range(pattern_num):
-            tmp.append(translate_p(grid, eval_translate[i]))
-            for j in translate_p(grid, translate[i]):
-                seen_num[i][j] += 1
-                win_num[i][j] += score
-            for j in translate_o(grid, translate[i]):
-                seen_num[i][j] += 1
-                win_num[i][j] -= score
-        seen_grid[-1].append(tmp)
-
-def scoring():
-    res = 0.0
-    cnt = 0
-    for game in range(len(seen_grid)):
-        for turn, arr in enumerate(seen_grid[game]):
-            cnt += 1
-            result = arr[0]
-            val = 0.0
-            for i in range(pattern_num):
-                for j in arr[i + 1]:
-                    val += ans[i][j]
-            res += abs(val - result)
-            '''
-            if val * result < 0.0:
-                res += abs(val - result)
-            else:
-                res += abs(val - result) * 0.5
-            '''
-            '''
-            #res *= pow(val, result) * pow(1 - val, 1 - result) # * 0.01 + 0.99
-            if val != 0.0:
-                res += result * log(val)
-            if 1.0 - val != 0.0:
-                res += (1.0 - result) * log(1.0 - val)
-            '''
-    return res / cnt
-
-def anneal1(tl):
-    global ans, start_temp, end_temp
-    score = scoring()
-    print('anneal1')
-    print(score)
-    strt = time()
-    cnt = 0
-    while time() - strt < tl:
-        idx1 = randint(0, pattern_num - 1)
-        idx2 = randint(0, pattern_num - 1)
-        if idx1 == idx2:
-            continue
-        ratio = random() * 0.5 + 0.5
-        for i in range(len(ans[idx1])):
-            ans[idx1][i] *= ratio
-        for i in range(len(ans[idx2])):
-            ans[idx2][i] /= ratio
-        n_score = scoring()
-        if n_score < score:
-            score = n_score
-            print(score)
-            output()
-        else:
-            for i in range(len(ans[idx1])):
-                ans[idx1][i] /= ratio
-            for i in range(len(ans[idx2])):
-                ans[idx2][i] *= ratio
-        cnt += 1
-        if cnt % 10 == 0:
-            output()
-
-def anneal2(tl):
-    global ans, start_temp, end_temp
-    score = scoring()
-    min_score = score
-    print('anneal2')
-    print(score)
-    strt = time()
-    cnt = 0
-    while time() - strt < tl:
-        idx1 = randint(0, pattern_num - 1)
-        idx2 = randint(0, each_param_num[idx1] - 1)
-        f_val = ans[idx1][idx2]
-        ans[idx1][idx2] += random() * 0.1 - 0.05
-        ans[idx1][idx2] = max(0.0, min(1.0, ans[idx1][idx2]))
-        n_score = scoring()
-        if n_score < score:
-            print(score)
-        else:
-            ans[idx1][idx2] = f_val
-        cnt += 1
-        if cnt % 10 == 0:
-            output()
-
-
-def output():
-    with open('param_pattern.txt', 'w') as f:
-        for i in range(pattern_num):
-            for j in range(each_param_num[i]):
-                f.write('{:f}'.format(ans[i][j]) + '\n')
-
-'''
-g = [
-    [-1, -1, -1, -1, 1, 0, 0, 0],
-    [-1, -1, -1, 0, 0, 1, 0, 0],
-    [1, 0, -1, -1, 0, 0, 1, 1],
-    [0, 1, 0, 1, 1, 1, 1, 1],
-    [-1, -1, -1, -1, -1, -1, -1, 1],
-    [0, 1, 1, 0, -1, -1, -1, -1],
-    [1, 1, 1, 0, 0, 1, 0, -1],
-    [0, -1, 1, -1, 0, -1, 1, 1]
-]
-stdin = ''
-for y in range(hw):
-    for x in range(hw):
-        stdin += str(g[y][x]) + ' '
-    stdin += '\n'
-print(0)
-print(10)
-print(stdin)
-print('')
-print(translate_p(g, edge1))
-print(translate_p(g, corner1))
-exit()
-'''
+            for j in translate_p(grid, eval_translate[i]):
+                val += pattern_param[i][j]
+        y.append(val)
+    plt.plot(x, y)
+    plt.plot(x, result)
+    plt.ylim(-1.25, 1.25)
+    plt.show()
 
 with open('third_party/xxx.gam', 'rb') as f:
     raw_data = f.read()
 games = [i for i in raw_data.splitlines()]
 
-
-num = 10000
-lst = [i * 10 for i in range(num)]
+num = 10
+lst = [randint(0, 100000) for _ in range(num)]
 for i in trange(num):
     collect(str(games[lst[i]]))
-
-for i in range(pattern_num):
-    for j in range(each_param_num[i]):
-        ans[i][j] = win_num[i][j] / max(1, seen_num[i][j]) / 8.0
-output()
-#anneal0(10.0)
-anneal1(300.0)
-while True:
-    anneal2(600.0)
-output()

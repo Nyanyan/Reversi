@@ -263,8 +263,15 @@ void init(int argc, char* argv[]){
     else
         file = "param.txt";
     if ((fp = fopen(file, "r")) == NULL){
-        printf("param.txt not exist");
+        printf("param file not exist");
         exit(1);
+    }
+    for (i = 0; i < hw2; ++i){
+        if (!fgets(cbuf, 1024, fp)){
+            printf("param file broken");
+            exit(1);
+        }
+        eval_param.avg_canput[i] = atof(cbuf);
     }
     for (i = 0; i < 10; i++){
         if (!fgets(cbuf, 1024, fp)){
@@ -286,13 +293,6 @@ void init(int argc, char* argv[]){
     if ((fp = fopen("const.txt", "r")) == NULL){
         printf("const.txt not exist");
         exit(1);
-    }
-    for (i = 0; i < hw2; ++i){
-        if (!fgets(cbuf, 1024, fp)){
-            printf("const.txt broken");
-            exit(1);
-        }
-        eval_param.avg_canput[i] = atof(cbuf);
     }
     for (i = 0; i < board_index_num; ++i){
         if (!fgets(cbuf, 1024, fp)){
@@ -520,7 +520,7 @@ inline double canput_eval(const int *board){
 
 inline double cnt_eval(const int *board){
     int i;
-    int res_p = 0.0, res_o = 0.0;
+    int res_p = 0, res_o = 0;
     for (i = 0; i < hw; ++i){
         res_p += eval_param.cnt_p[board[i]];
         res_o += eval_param.cnt_o[board[i]];
@@ -531,11 +531,14 @@ inline double cnt_eval(const int *board){
 inline double weight_eval(const int *board){
     int i;
     double res_p = 0.0, res_o = 0.0;
+    int cnt_p = 0, cnt_o = 0;
     for (i = 0; i < hw; ++i){
         res_p += eval_param.weight_p[i][board[i]];
         res_o += eval_param.weight_o[i][board[i]];
+        cnt_p += eval_param.cnt_p[board[i]];
+        cnt_o += eval_param.cnt_o[board[i]];
     }
-    return (res_p - res_o) / max(0.01, res_p + res_o);
+    return res_p / cnt_p - res_o / cnt_o;
 }
 
 inline double confirm_eval(const int *board){
@@ -834,6 +837,7 @@ int main(int argc, char* argv[]){
             eval_param.cnt_bias = map_double(eval_param.weight_sme[9], eval_param.weight_sme[10], eval_param.weight_sme[11], game_ratio);
             eval_param.weight_weight = map_double(eval_param.weight_sme[12], eval_param.weight_sme[13], eval_param.weight_sme[14], game_ratio);
             eval_param.confirm_weight = map_double(eval_param.weight_sme[15], eval_param.weight_sme[16], eval_param.weight_sme[17], game_ratio);
+            eval_param.pot_canput_weight = map_double(eval_param.weight_sme[18], eval_param.weight_sme[19], eval_param.weight_sme[20], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].b, search_param.max_depth - 1, -65000.0, -max_score, 0);
@@ -866,7 +870,6 @@ int main(int argc, char* argv[]){
                 cerr << "game end" << endl;
                 break;
             }
-            //break;
             ++search_param.max_depth;
         }
         cout << outy << " " << outx << endl;

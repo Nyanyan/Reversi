@@ -157,7 +157,7 @@ def match():
             with open('state.txt', 'w') as f:
                 f.write(rv.output_file())
             place = r'C:\Program Files\MasterReversiPro'
-            value = r'MRSolver.exe -m 5 -f C:\home\Reversi\state.txt'
+            value = r'MRSolver.exe -m 7 -f C:\home\Reversi\state.txt'
             all_data = subprocess.Popen(value.split(), cwd=place, stdout=subprocess.PIPE, shell=True).communicate()[0]
             for data in all_data.decode().strip().split():
                 if data[:2] == '->':
