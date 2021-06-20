@@ -28,7 +28,7 @@ using namespace std;
 #define window 0.00001
 #define simple_threshold 4
 #define inf 100000000.0
-#define param_num 18
+#define param_num 21
 #define board_index_num 38
 #define pattern_num 3
 
@@ -53,6 +53,7 @@ struct hash_arr{
 
 struct board_param{
     unsigned long long trans[board_index_num][6561][hw];
+    unsigned long long neighbor8[board_index_num][6561][hw];
     bool legal[6561][hw];
     int put[hw2][board_index_num];
     int board_translate[board_index_num][8];
@@ -67,7 +68,7 @@ struct board_param{
 
 struct eval_param{
     double weight[hw2];
-    double pattern_weight, cnt_weight, canput_weight, weight_weight, confirm_weight, pot_canput_weight;
+    double pattern_weight, cnt_weight, canput_weight, weight_weight, confirm_weight, pot_canput_weight, open_weight;
     double cnt_bias;
     double weight_sme[param_num];
     double avg_canput[hw2];
@@ -110,7 +111,7 @@ struct board_priority_move{
 
 struct board_priority{
     int b[board_index_num];
-    double priority;
+    int priority;
 };
 
 board_param board_param;
@@ -403,6 +404,16 @@ void init(int argc, char* argv[]){
                     board_param.trans[k][i][j] = 0;
                     for (l = 0; l < board_param.pattern_space[k]; ++l)
                         board_param.trans[k][i][j] |= (unsigned long long)(1 & (rev >> (7 - l))) << board_param.board_translate[k][l];
+                    board_param.neighbor8[k][i][j] = 0;
+                    board_param.neighbor8[k][i][j] |= (0b0111111001111110011111100111111001111110011111100111111001111110 & board_param.trans[k][i][j]) << 1;
+                    board_param.neighbor8[k][i][j] |= (0b0111111001111110011111100111111001111110011111100111111001111110 & board_param.trans[k][i][j]) >> 1;
+                    board_param.neighbor8[k][i][j] |= (0b0000000011111111111111111111111111111111111111111111111100000000 & board_param.trans[k][i][j]) << hw;
+                    board_param.neighbor8[k][i][j] |= (0b0000000011111111111111111111111111111111111111111111111100000000 & board_param.trans[k][i][j]) >> hw;
+                    board_param.neighbor8[k][i][j] |= (0b0000000001111110011111100111111001111110011111100111111000000000 & board_param.trans[k][i][j]) << hw_m1;
+                    board_param.neighbor8[k][i][j] |= (0b0000000001111110011111100111111001111110011111100111111000000000 & board_param.trans[k][i][j]) >> hw_m1;
+                    board_param.neighbor8[k][i][j] |= (0b0000000001111110011111100111111001111110011111100111111000000000 & board_param.trans[k][i][j]) << hw_p1;
+                    board_param.neighbor8[k][i][j] |= (0b0000000001111110011111100111111001111110011111100111111000000000 & board_param.trans[k][i][j]) >> hw_p1;
+                    board_param.neighbor8[k][i][j] &= ~board_param.trans[k][i][j];
                 }
             } else
                 board_param.legal[i][j] = false;
@@ -506,7 +517,7 @@ void init(int argc, char* argv[]){
             board_param.digit_pow[i][j] = i * board_param.pow3[j];
     }
     for (i = 0; i < 30; ++i)
-        search_param.prob_cut[i] = 1.0; //pow(1.05, -i);
+        search_param.prob_cut[i] = pow(1.05, -i);
 }
 
 inline double pattern_eval(const int *board){
@@ -575,20 +586,26 @@ inline double pot_canput_eval(const int *board){
     return (double)(res_p - res_o) / max(1, res_p + res_o);
 }
 
-inline double evaluate(const int *board){
+inline double open_eval(const int open_val){
+    return 2.0 / max(1, open_val) - 1.0;
+}
+
+inline double evaluate(const int *board, const int open_val){
     double pattern = pattern_eval(board);
     double cnt = cnt_eval(board);
     double canput = canput_eval(board);
     double weight = weight_eval(board);
     double confirm = confirm_eval(board);
     double pot_canput = pot_canput_eval(board);
+    double open = open_eval(open_val);
     return 
         pattern * eval_param.pattern_weight + 
         cnt * eval_param.cnt_weight + 
         canput * eval_param.canput_weight + 
         weight * eval_param.weight_weight + 
         confirm * eval_param.confirm_weight + 
-        pot_canput * eval_param.pot_canput_weight;
+        pot_canput * eval_param.pot_canput_weight + 
+        open * eval_param.open_weight;
 }
 
 inline double light_evaluate(const int *board){
@@ -614,7 +631,34 @@ inline double end_game(const int *board){
     return (double)res * 1000.0;
 }
 
-void move(int *board, int (&res)[board_index_num], int coord){
+inline int move_open(int *board, int (&res)[board_index_num], int coord){
+    int i, j, tmp;
+    unsigned long long rev = 0, neighbor = 0;
+    for (i = 0; i < board_index_num; ++i){
+        res[i] = board_param.reverse[board[i]];
+        if (board_param.put[coord][i] != -1){
+            rev |= board_param.trans[i][board[i]][board_param.put[coord][i]];
+            neighbor |= board_param.neighbor8[i][board[i]][board_param.put[coord][i]];
+        }
+    }
+    for (i = 0; i < hw2; ++i){
+        if (1 & (rev >> i)){
+            for (j = 0; j < 4; ++j){
+                if (board_param.board_rev_translate[i][j][0] == -1)
+                    break;
+                res[board_param.board_rev_translate[i][j][0]] += board_param.rev_bit3[res[board_param.board_rev_translate[i][j][0]]][board_param.board_rev_translate[i][j][1]];
+            }
+        }
+    }
+    int open_val = 0;
+    for (i = 0; i < hw2; ++i){
+        if(1 & (neighbor >> i))
+            open_val += (int)(board_param.pop_digit[board[i >> 3]][i & 0b111] == 0);
+    }
+    return open_val;
+}
+
+inline void move(int *board, int (&res)[board_index_num], int coord){
     int i, j, tmp;
     unsigned long long rev = 0;
     for (i = 0; i < board_index_num; ++i){
@@ -637,12 +681,12 @@ int cmp(board_priority p, board_priority q){
     return p.priority < q.priority;
 }
 
-double nega_alpha(int *board, const int& depth, double alpha, double beta, const int& skip_cnt){
+double nega_alpha(int *board, const int& depth, double alpha, double beta, const int& skip_cnt, int open_val){
     ++search_param.searched_nodes;
     if (skip_cnt == 2)
         return end_game(board);
     else if (depth == 0)
-        return evaluate(board);
+        return evaluate(board, open_val);
     bool is_pass = true;
     int i, j, k, put;
     double val = -65000.0, v;
@@ -653,8 +697,7 @@ double nega_alpha(int *board, const int& depth, double alpha, double beta, const
                 if (board_param.legal[board[i]][board_param.put[j][i]]){
                     is_pass = false;
                     put = i * hw + j;
-                    move(board, n_board, j);
-                    v = -nega_alpha(n_board, depth - 1, -beta, -alpha, 0);
+                    v = -nega_alpha(n_board, depth - 1, -beta, -alpha, 0, move_open(board, n_board, j));
                     if (beta <= v)
                         return v;
                     alpha = max(alpha, v);
@@ -668,7 +711,7 @@ double nega_alpha(int *board, const int& depth, double alpha, double beta, const
     if (is_pass){
         for (i = 0; i < board_index_num; ++i)
             n_board[i] = board_param.reverse[board[i]];
-        return -nega_alpha(n_board, depth, -beta, -alpha, skip_cnt + 1);
+        return -nega_alpha(n_board, depth, -beta, -alpha, skip_cnt + 1, 0);
     }
     return val;
 }
@@ -703,8 +746,7 @@ double nega_scout(int *board, const int& depth, double alpha, double beta, const
                 if (board_param.legal[board[i]][board_param.put[j][i]]){
                     ++canput;
                     board_priority tmp;
-                    move(board, tmp.b, j);
-                    tmp.priority = evaluate(tmp.b);
+                    tmp.priority = move_open(board, tmp.b, j);
                     lst.push_back(tmp);
                     break;
                 }
@@ -722,7 +764,7 @@ double nega_scout(int *board, const int& depth, double alpha, double beta, const
     if (depth > simple_threshold)
         v = -nega_scout(lst[0].b, depth - 1, -beta, -alpha, 0);
     else
-        v = -nega_alpha(lst[0].b, depth - 1, -beta, -alpha, 0);
+        v = -nega_alpha(lst[0].b, depth - 1, -beta, -alpha, 0, lst[0].priority);
     val = v;
     if (fabs(v) == inf)
         return -inf;
@@ -730,12 +772,12 @@ double nega_scout(int *board, const int& depth, double alpha, double beta, const
         return v;
     alpha = max(alpha, v);
     for (i = 1; i < canput; ++i){
-        if (search_param.prob_cut[i] < myrandom())
-            continue;
+        //if (search_param.prob_cut[i] < myrandom())
+        //    continue;
         if (depth > simple_threshold)
             v = -nega_scout(lst[i].b, depth - 1, -alpha - window, -alpha, 0);
         else
-            v = -nega_alpha(lst[i].b, depth - 1, -alpha - window, -alpha, 0);
+            v = -nega_alpha(lst[i].b, depth - 1, -alpha - window, -alpha, 0, lst[i].priority);
         if (fabs(v) == inf)
             return -inf;
         if (beta <= v)
@@ -745,7 +787,7 @@ double nega_scout(int *board, const int& depth, double alpha, double beta, const
             if (depth > simple_threshold)
                 v = -nega_scout(lst[i].b, depth - 1, -beta, -alpha, 0);
             else
-                v = -nega_alpha(lst[i].b, depth - 1, -beta, -alpha, 0);
+                v = -nega_alpha(lst[i].b, depth - 1, -beta, -alpha, 0, lst[i].priority);
             if (fabs(v) == inf)
                 return -inf;
             if (beta <= v)
@@ -840,8 +882,7 @@ int main(int argc, char* argv[]){
                 if (board_param.legal[board[i]][j]){
                     ++canput;
                     board_priority_move tmp;
-                    move(board, tmp.b, board_param.board_translate[i][j]);
-                    tmp.priority = -evaluate(tmp.b);
+                    tmp.priority = -evaluate(tmp.b, move_open(board, tmp.b, board_param.board_translate[i][j]));
                     tmp.move = board_param.board_translate[i][j];
                     lst.push_back(tmp);
                 }
@@ -864,6 +905,7 @@ int main(int argc, char* argv[]){
             eval_param.weight_weight = map_double(eval_param.weight_sme[9], eval_param.weight_sme[10], eval_param.weight_sme[11], game_ratio);
             eval_param.confirm_weight = map_double(eval_param.weight_sme[12], eval_param.weight_sme[13], eval_param.weight_sme[14], game_ratio);
             eval_param.pot_canput_weight = map_double(eval_param.weight_sme[15], eval_param.weight_sme[16], eval_param.weight_sme[17], game_ratio);
+            eval_param.open_weight = map_double(eval_param.weight_sme[18], eval_param.weight_sme[19], eval_param.weight_sme[20], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].b, search_param.max_depth - 1, -65000.0, -max_score, 0);
