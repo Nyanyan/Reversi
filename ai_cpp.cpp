@@ -30,7 +30,7 @@ using namespace std;
 #define inf 100000000.0
 #define param_num 18
 #define board_index_num 38
-#define pattern_num 2
+#define pattern_num 3
 
 struct hash_arr{
     //static size_t m_hash_arr_random;
@@ -99,6 +99,7 @@ struct search_param{
     int strt, tl;
     int turn;
     int searched_nodes;
+    double prob_cut[30];
 };
 
 struct board_priority_move{
@@ -116,15 +117,20 @@ board_param board_param;
 eval_param eval_param;
 search_param search_param;
 
-inline int pop_count_ull(unsigned long long x){
-    x = x - ((x >> 1) & 0x5555555555555555);
-	x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
-	x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
-	x = (x * 0x0101010101010101) >> 56;
-    return (int)x;
+int xorx=123456789, xory=362436069, xorz=521288629, xorw=88675123;
+inline double myrandom(){
+    int t = (xorx^(xorx<<11));
+    xorx = xory;
+    xory = xorz;
+    xorz = xorw;
+    xorw = xorw=(xorw^(xorw>>19))^(t^(t>>8));
+    return (double)(xorw) / 2147483648.0;
+}
+inline int randint(int fr, int to){
+    return fr + (int)(myrandom() * (to - fr + 1));
 }
 
-int tim(){
+inline int tim(){
     return static_cast<int>(chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch()).count());
 }
 
@@ -499,6 +505,8 @@ void init(int argc, char* argv[]){
         for (j = 0; j < 10; ++j)
             board_param.digit_pow[i][j] = i * board_param.pow3[j];
     }
+    for (i = 0; i < 30; ++i)
+        search_param.prob_cut[i] = 1.0; //pow(1.05, -i);
 }
 
 inline double pattern_eval(const int *board){
@@ -576,6 +584,20 @@ inline double evaluate(const int *board){
     double pot_canput = pot_canput_eval(board);
     return 
         pattern * eval_param.pattern_weight + 
+        cnt * eval_param.cnt_weight + 
+        canput * eval_param.canput_weight + 
+        weight * eval_param.weight_weight + 
+        confirm * eval_param.confirm_weight + 
+        pot_canput * eval_param.pot_canput_weight;
+}
+
+inline double light_evaluate(const int *board){
+    double cnt = cnt_eval(board);
+    double canput = canput_eval(board);
+    double weight = weight_eval(board);
+    double confirm = confirm_eval(board);
+    double pot_canput = pot_canput_eval(board);
+    return 
         cnt * eval_param.cnt_weight + 
         canput * eval_param.canput_weight + 
         weight * eval_param.weight_weight + 
@@ -708,6 +730,8 @@ double nega_scout(int *board, const int& depth, double alpha, double beta, const
         return v;
     alpha = max(alpha, v);
     for (i = 1; i < canput; ++i){
+        if (search_param.prob_cut[i] < myrandom())
+            continue;
         if (depth > simple_threshold)
             v = -nega_scout(lst[i].b, depth - 1, -alpha - window, -alpha, 0);
         else
@@ -778,9 +802,9 @@ int main(int argc, char* argv[]){
     cin >> search_param.tl;
     
     if (ai_player == 0){
-        cerr << "AI initialized AI is Black" << endl;
+        cerr << "AI initialized AI is Black timeout in " << search_param.tl << " ms" << endl;
     }else{
-        cerr << "AI initialized AI is White" << endl;
+        cerr << "AI initialized AI is White timeout in " << search_param.tl << " ms" << endl;
     }
     while (true){
         outy = -1;
@@ -872,9 +896,11 @@ int main(int argc, char* argv[]){
                 cerr << "game end" << endl;
                 break;
             }
+            //break;
             ++search_param.max_depth;
         }
         cout << outy << " " << outx << endl;
+        //cout << outy << " " << outx << " " << evaluate(board) << endl;
     }
     return 0;
 }

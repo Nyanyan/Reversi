@@ -4,8 +4,9 @@ from time import time
 from random import randint, random
 from tqdm import trange
 import matplotlib.pyplot as plt
+from math import sqrt, exp
 
-pattern_num = 2
+pattern_num = 3
 index_num = 38
 
 '''
@@ -56,6 +57,21 @@ corner2 = [
 
 translate.append(corner2)
 eval_translate.append(corner1)
+each_param_num.append(3 ** 8)
+
+corner24 = [
+    [0, 1, 2, 3, 8, 9, 10, 11],
+    [0, 8, 16, 24, 1, 9, 17, 25],
+    [7, 6, 5, 4, 15, 14, 13, 12],
+    [7, 15, 23, 31, 6, 14, 22, 30],
+    [63, 62, 61, 60, 55, 54, 53, 52],
+    [63, 55, 47, 39, 62, 54, 46, 38],
+    [56, 57, 58, 59, 48, 49, 50, 51],
+    [56, 48, 40, 32, 57, 49, 41, 33]
+]
+
+translate.append(corner24)
+eval_translate.append(corner24)
 each_param_num.append(3 ** 8)
 
 pattern_param = [[] for _ in range(pattern_num)]
@@ -249,13 +265,13 @@ def collect(s):
         if rv.end():
             break
     rv.check_pass()
-    #if abs(rv.nums[0] - rv.nums[1]) < 10:
+    #if abs(rv.nums[0] - rv.nums[1]) < 20:
     #    return
-    #rv.output()
+    rv.output()
     #winner = rv.judge()
     x = range(len(grids))
     y = []
-    result = [(rv.nums[0] - rv.nums[1]) / 64 for _ in range(len(grids))]
+    result = [2.0 / (1.0 + exp(-(rv.nums[0] - rv.nums[1]) / 5)) - 1.0 for _ in range(len(grids))]
     for turn, grid in enumerate(grids):
         val = 0.0
         for i in range(pattern_num):
@@ -271,7 +287,7 @@ with open('third_party/xxx.gam', 'rb') as f:
     raw_data = f.read()
 games = [i for i in raw_data.splitlines()]
 
-num = 10
-lst = [randint(0, 100000) for _ in range(num)]
+num = 1000
+#lst = [randint(0, 100000) for _ in range(num)]
 for i in trange(num):
-    collect(str(games[lst[i]]))
+    collect(str(games[i]))
