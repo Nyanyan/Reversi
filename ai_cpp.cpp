@@ -33,7 +33,7 @@ using namespace std;
 #define pattern_num 3
 
 struct hash_arr{
-    //static size_t m_hash_arr_random;
+    static size_t m_hash_arr_random;
     size_t operator()(const int *p) const {
         size_t seed = 0;
         seed ^= (size_t)p[0];
@@ -44,12 +44,12 @@ struct hash_arr{
         seed ^= (size_t)p[5] << 35;
         seed ^= (size_t)p[6] << 42;
         seed ^= (size_t)p[7] << 49;
-        //seed ^= m_hash_arr_random + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= m_hash_arr_random + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         return seed;
     }
 };
 
-//size_t hash_arr::m_hash_arr_random = (size_t) random_device()();
+size_t hash_arr::m_hash_arr_random = (size_t) random_device()();
 
 struct board_param{
     unsigned long long trans[board_index_num][6561][hw];
@@ -91,6 +91,7 @@ struct eval_param{
     double pattern[pattern_num][59049];
     int confirm_p[6561], confirm_o[6561];
     int pot_canput_p[6561], pot_canput_o[6561];
+    double open_eval[40];
 };
 
 struct search_param{
@@ -518,6 +519,8 @@ void init(int argc, char* argv[]){
     }
     for (i = 0; i < 30; ++i)
         search_param.prob_cut[i] = pow(1.05, -i);
+    for (i = 0; i < 40; ++i)
+        eval_param.open_eval[i] = min(1.0, pow(2.0, 2.0 - 0.667 * i) - 1.0);
 }
 
 inline double pattern_eval(const int *board){
@@ -586,10 +589,6 @@ inline double pot_canput_eval(const int *board){
     return (double)(res_p - res_o) / max(1, res_p + res_o);
 }
 
-inline double open_eval(const int open_val){
-    return 2.0 / max(1, open_val) - 1.0;
-}
-
 inline double evaluate(const int *board, const int open_val){
     double pattern = pattern_eval(board);
     double cnt = cnt_eval(board);
@@ -597,7 +596,7 @@ inline double evaluate(const int *board, const int open_val){
     double weight = weight_eval(board);
     double confirm = confirm_eval(board);
     double pot_canput = pot_canput_eval(board);
-    double open = open_eval(open_val);
+    double open = eval_param.open_eval[open_val];
     return 
         pattern * eval_param.pattern_weight + 
         cnt * eval_param.cnt_weight + 
@@ -606,20 +605,6 @@ inline double evaluate(const int *board, const int open_val){
         confirm * eval_param.confirm_weight + 
         pot_canput * eval_param.pot_canput_weight + 
         open * eval_param.open_weight;
-}
-
-inline double light_evaluate(const int *board){
-    double cnt = cnt_eval(board);
-    double canput = canput_eval(board);
-    double weight = weight_eval(board);
-    double confirm = confirm_eval(board);
-    double pot_canput = pot_canput_eval(board);
-    return 
-        cnt * eval_param.cnt_weight + 
-        canput * eval_param.canput_weight + 
-        weight * eval_param.weight_weight + 
-        confirm * eval_param.confirm_weight + 
-        pot_canput * eval_param.pot_canput_weight;
 }
 
 inline double end_game(const int *board){
@@ -656,25 +641,6 @@ inline int move_open(int *board, int (&res)[board_index_num], int coord){
             open_val += (int)(board_param.pop_digit[board[i >> 3]][i & 0b111] == 0);
     }
     return open_val;
-}
-
-inline void move(int *board, int (&res)[board_index_num], int coord){
-    int i, j, tmp;
-    unsigned long long rev = 0;
-    for (i = 0; i < board_index_num; ++i){
-        res[i] = board_param.reverse[board[i]];
-        if (board_param.put[coord][i] != -1)
-            rev |= board_param.trans[i][board[i]][board_param.put[coord][i]];
-    }
-    for (i = 0; i < hw2; ++i){
-        if (1 & (rev >> i)){
-            for (j = 0; j < 4; ++j){
-                if (board_param.board_rev_translate[i][j][0] == -1)
-                    break;
-                res[board_param.board_rev_translate[i][j][0]] += board_param.rev_bit3[res[board_param.board_rev_translate[i][j][0]]][board_param.board_rev_translate[i][j][1]];
-            }
-        }
-    }
 }
 
 int cmp(board_priority p, board_priority q){
