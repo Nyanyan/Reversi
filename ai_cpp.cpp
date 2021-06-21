@@ -5,16 +5,10 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
-#include <cstdio>
 #include <chrono>
-#include <utility>
 #include <string>
-#include <cmath>
-#include <map>
 #include <unordered_map>
 #include <random>
-#include <time.h>
-#include <immintrin.h>
 //#include <bitset>
 
 using namespace std;
@@ -28,9 +22,9 @@ using namespace std;
 #define window 0.00001
 #define simple_threshold 4
 #define inf 100000000.0
-#define param_num 21
+#define param_num 36
 #define board_index_num 38
-#define pattern_num 3
+#define pattern_num 5
 
 struct hash_arr{
     static size_t m_hash_arr_random;
@@ -72,22 +66,12 @@ struct eval_param{
     double cnt_bias;
     double weight_sme[param_num];
     double avg_canput[hw2];
-    /*= {
-        0.00, 0.00, 0.00, 0.00, 4.00, 3.00, 4.00, 2.00,
-        9.00, 5.00, 6.00, 6.00, 5.00, 8.38, 5.69, 9.13,
-        5.45, 6.98, 6.66, 9.38, 6.98, 9.29, 7.29, 9.32, 
-        7.37, 9.94, 7.14, 9.78, 7.31, 10.95, 7.18, 9.78, 
-        7.76, 9.21, 7.33, 8.81, 7.20, 8.48, 7.23, 8.00, 
-        6.92, 7.57, 6.62, 7.13, 6.38, 6.54, 5.96, 6.18, 
-        5.62, 5.64, 5.18, 5.18, 4.60, 4.48, 4.06, 3.67, 
-        3.39, 3.11, 2.66, 2.30, 1.98, 1.53, 1.78, 0.67
-    };
-    */
     int canput[6561];
     int cnt_p[6561], cnt_o[6561];
     double weight_p[hw][6561], weight_o[hw][6561];
     int pattern_variation[pattern_num], pattern_space[pattern_num];
     int pattern_translate[pattern_num][8][10][2];
+    double pattern_each_weight[pattern_num];
     double pattern[pattern_num][59049];
     int confirm_p[6561], confirm_o[6561];
     int pot_canput_p[6561], pot_canput_o[6561];
@@ -178,7 +162,7 @@ int reverse_line(int a) {
     return res;
 }
 
-inline unsigned long long check_mobility(const int p, const int o){
+inline int check_mobility(const int p, const int o){
 	int p1 = p << 1;
     int res = ~(p1 | o) & (p1 + o);
     int p_rev = reverse_line(p), o_rev = reverse_line(o);
@@ -526,14 +510,20 @@ void init(int argc, char* argv[]){
 inline double pattern_eval(const int *board){
     int i, j, k, tmp;
     double res = 0.0;
-    for (i = 0; i < pattern_num; ++i){
+    for (i = 0; i < 3; ++i){
         for (j = 0; j < eval_param.pattern_variation[i]; ++j){
             tmp = 0;
             for (k = 0; k < eval_param.pattern_space[i]; ++k)
                 tmp += board_param.digit_pow[board_param.pop_digit[board[eval_param.pattern_translate[i][j][k][0]]][eval_param.pattern_translate[i][j][k][1]]][k];
-            res += eval_param.pattern[i][tmp];
+            res += eval_param.pattern[i][tmp] * eval_param.pattern_each_weight[i];
         }
     }
+    res += eval_param.pattern[3][board[21]] * eval_param.pattern_each_weight[3];
+    res += eval_param.pattern[3][board[32]] * eval_param.pattern_each_weight[3];
+    res += eval_param.pattern[4][board[0]] * eval_param.pattern_each_weight[4];
+    res += eval_param.pattern[4][board[7]] * eval_param.pattern_each_weight[4];
+    res += eval_param.pattern[4][board[8]] * eval_param.pattern_each_weight[4];
+    res += eval_param.pattern[4][board[15]] * eval_param.pattern_each_weight[4];
     return res;
 }
 
@@ -596,7 +586,7 @@ inline double evaluate(const int *board, const int open_val){
     double weight = weight_eval(board);
     double confirm = confirm_eval(board);
     double pot_canput = pot_canput_eval(board);
-    double open = eval_param.open_eval[open_val];
+    double open = eval_param.open_eval[min(39, open_val)];
     return 
         pattern * eval_param.pattern_weight + 
         cnt * eval_param.cnt_weight + 
@@ -776,7 +766,7 @@ double nega_scout(int *board, const int& depth, double alpha, double beta, const
 
 double map_double(double y1, double y2, double y3, double x){
     double a, b, c;
-    double x1 = 4.0, x2 = 32.0, x3 = 64.0;
+    double x1 = 4.0 / hw2, x2 = 32.0 / hw2, x3 = 64.0 / hw2;
     a = ((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) / ((x1 - x2) * (x1 - x3) * (x2 - x3));
     b = (y1 - y2) / (x1 - x2) - a * (x1 + x2);
     c = y1 - a * x1 * x1 - b * x1;
@@ -872,6 +862,8 @@ int main(int argc, char* argv[]){
             eval_param.confirm_weight = map_double(eval_param.weight_sme[12], eval_param.weight_sme[13], eval_param.weight_sme[14], game_ratio);
             eval_param.pot_canput_weight = map_double(eval_param.weight_sme[15], eval_param.weight_sme[16], eval_param.weight_sme[17], game_ratio);
             eval_param.open_weight = map_double(eval_param.weight_sme[18], eval_param.weight_sme[19], eval_param.weight_sme[20], game_ratio);
+            for (i = 0; i < pattern_num; ++i)
+                eval_param.pattern_each_weight[i] = map_double(eval_param.weight_sme[21 + i * 3], eval_param.weight_sme[22 + i * 3], eval_param.weight_sme[23 + i * 3], game_ratio);
             max_score = -65000.0;
             for (i = 0; i < canput; ++i){
                 score = -nega_scout(lst[i].b, search_param.max_depth - 1, -65000.0, -max_score, 0);

@@ -6,7 +6,7 @@ from tqdm import trange
 import matplotlib.pyplot as plt
 from math import sqrt, exp
 
-pattern_num = 3
+pattern_num = 5
 index_num = 38
 
 '''
@@ -74,11 +74,45 @@ translate.append(corner24)
 eval_translate.append(corner24)
 each_param_num.append(3 ** 8)
 
+diagonal1 = [
+    [0, 9, 18, 27, 36, 45, 54, 63],
+    [7, 14, 21, 28, 35, 42, 49, 56]
+]
+
+diagonal2 = []
+for arr in diagonal1:
+    diagonal2.append(arr)
+    diagonal2.append(list(reversed(arr)))
+translate.append(diagonal2)
+eval_translate.append(diagonal1)
+each_param_num.append(3 ** 8)
+
+edge1 = [
+    [0, 1, 2, 3, 4, 5, 6, 7],
+    [7, 15, 23, 31, 39, 47, 55, 63],
+    [63, 62, 61, 60, 59, 58, 57, 56],
+    [56, 48, 40, 32, 24, 26, 8, 0]
+]
+
+edge2 = []
+for arr in edge1:
+    edge2.append(arr)
+    edge2.append(list(reversed(arr)))
+translate.append(edge2)
+eval_translate.append(edge1)
+each_param_num.append(3 ** 8)
+
+
 pattern_param = [[] for _ in range(pattern_num)]
 with open('param_pattern.txt', 'r') as f:
     for i in range(pattern_num):
         for j in range(each_param_num[i]):
             pattern_param[i].append(float(f.readline()))
+weight = [[] for _ in range(pattern_num)]
+with open('patttern_weight.txt', 'r') as f:
+    for i in range(pattern_num):
+        for j in range(3):
+            weight[i].append(float(f.readline()))
 
 win_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 seen_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
@@ -246,6 +280,16 @@ def translate_o(grid, arr):
         res.append(tmp)
     return res
 
+def calc_weight(idx, x):
+    x1 = 4.0 / 64
+    x2 = 32.0 / 64
+    x3 = 64.0 / 64
+    y1, y2, y3 = weight[idx]
+    a = ((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) / ((x1 - x2) * (x1 - x3) * (x2 - x3))
+    b = (y1 - y2) / (x1 - x2) - a * (x1 + x2)
+    c = y1 - a * x1 * x1 - b * x1
+    return a * x * x + b * x + c
+
 def collect(s):
     global seen_grid, prospect
     grids = []
@@ -275,8 +319,10 @@ def collect(s):
     for turn, grid in enumerate(grids):
         val = 0.0
         for i in range(pattern_num):
+            tmp = 0.0
             for j in translate_p(grid, eval_translate[i]):
-                val += pattern_param[i][j]
+                tmp += pattern_param[i][j]
+            val += tmp * calc_weight(i, (turn + 4) / hw2)
         y.append(val)
     plt.plot(x, y)
     plt.plot(x, result)

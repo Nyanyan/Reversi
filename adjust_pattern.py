@@ -19,7 +19,7 @@ def prob(p_score, n_score, strt, now, tl):
         return 1.0
     return exp(dis / tempera(strt, now, tl))
 
-pattern_num = 3
+pattern_num = 5
 index_num = 38
 param_num = 92
 
@@ -41,19 +41,19 @@ translate = []
 eval_translate = []
 each_param_num = []
 
-edge1 = [
+edgex1 = [
     [54, 63, 62, 61, 60, 59, 58, 57, 56, 49],
     [49, 56, 48, 40, 32, 24, 16, 8, 0, 9],
     [9, 0, 1, 2, 3, 4, 5, 6, 7, 14],
     [14, 7, 15, 23, 31, 39, 47, 55, 63, 54]
 ]
 
-edge2 = []
-for arr in edge1:
-    edge2.append(arr)
-    edge2.append(list(reversed(arr)))
-translate.append(edge2)
-eval_translate.append(edge1)
+edgex2 = []
+for arr in edgex1:
+    edgex2.append(arr)
+    edgex2.append(list(reversed(arr)))
+translate.append(edgex2)
+eval_translate.append(edgex1)
 each_param_num.append(3 ** 10)
 
 corner1= [
@@ -93,6 +93,34 @@ translate.append(corner24)
 eval_translate.append(corner24)
 each_param_num.append(3 ** 8)
 
+diagonal1 = [
+    [0, 9, 18, 27, 36, 45, 54, 63],
+    [7, 14, 21, 28, 35, 42, 49, 56]
+]
+
+diagonal2 = []
+for arr in diagonal1:
+    diagonal2.append(arr)
+    diagonal2.append(list(reversed(arr)))
+translate.append(diagonal2)
+eval_translate.append(diagonal1)
+each_param_num.append(3 ** 8)
+
+edge1 = [
+    [0, 1, 2, 3, 4, 5, 6, 7],
+    [7, 15, 23, 31, 39, 47, 55, 63],
+    [63, 62, 61, 60, 59, 58, 57, 56],
+    [56, 48, 40, 32, 24, 26, 8, 0]
+]
+
+edge2 = []
+for arr in edge1:
+    edge2.append(arr)
+    edge2.append(list(reversed(arr)))
+translate.append(edge2)
+eval_translate.append(edge1)
+each_param_num.append(3 ** 8)
+
 '''
 diagonal1 = [
     [0, 9, 18, 27, 36, 45, 54, 63],
@@ -110,6 +138,7 @@ each_param_num.append(3 ** 8)
 win_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 seen_num = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
 ans = [[0 for _ in range(each_param_num[i])] for i in range(pattern_num)]
+weight = [[1.0 for _ in range(3)] for _ in range(pattern_num)]
 '''
 with open('param_pattern.txt', 'r') as f:
     for i in range(pattern_num):
@@ -277,7 +306,6 @@ def translate_o(grid, arr):
         res.append(tmp)
     return res
 
-'''
 def collect(s):
     global seen_grid
     grids = []
@@ -301,17 +329,17 @@ def collect(s):
     #print(rv.nums[0], rv.nums[1])
     seen_grid.append([])
     #winner = rv.judge()
-    score = rv.nums[0] - rv.nums[1]
+    score = 2.0 / (1.0 + exp(-(rv.nums[0] - rv.nums[1]) / 5)) - 1.0
     for turn, grid in enumerate(grids):
-        tmp = [score / 64 * turn / len(grids)]
+        tmp = [score * (1 / (1 + pow(2, 22 - turn))), (turn + 4) / 64]
         for i in range(pattern_num):
             tmp.append(translate_p(grid, eval_translate[i]))
             for j in translate_p(grid, translate[i]):
                 seen_num[i][j] += 1
-                win_num[i][j] += score / 64 * turn / len(grids)
+                win_num[i][j] += tmp[0]
             for j in translate_o(grid, translate[i]):
                 seen_num[i][j] += 1
-                win_num[i][j] -= score / 64 * turn / len(grids)
+                win_num[i][j] -= tmp[0]
         seen_grid[-1].append(tmp)
 '''
 
@@ -375,6 +403,17 @@ def collect():
                 seen_num[i][j] += 1
                 win_num[i][j] -= val
         seen_grid[-1].append(tmp)
+'''
+
+def calc_weight(idx, x):
+    x1 = 4.0 / 64
+    x2 = 32.0 / 64
+    x3 = 64.0 / 64
+    y1, y2, y3 = weight[idx]
+    a = ((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) / ((x1 - x2) * (x1 - x3) * (x2 - x3))
+    b = (y1 - y2) / (x1 - x2) - a * (x1 + x2)
+    c = y1 - a * x1 * x1 - b * x1
+    return a * x * x + b * x + c
 
 def scoring():
     res = 0.0
@@ -385,8 +424,10 @@ def scoring():
             result = arr[0]
             val = 0.0
             for i in range(pattern_num):
-                for j in arr[i + 1]:
-                    val += ans[i][j]
+                tmp = 0.0
+                for j in arr[i + 2]:
+                    tmp += ans[i][j]
+                val += tmp * calc_weight(i, arr[1])
             res += (val - result) ** 2
             '''
             if val * result < 0.0:
@@ -412,24 +453,16 @@ def anneal1(tl):
     cnt = 0
     while time() - strt < tl:
         idx1 = randint(0, pattern_num - 1)
-        idx2 = randint(0, pattern_num - 1)
-        if idx1 == idx2:
-            continue
-        ratio = random() * 0.5 + 0.5
-        for i in range(len(ans[idx1])):
-            ans[idx1][i] *= ratio
-        for i in range(len(ans[idx2])):
-            ans[idx2][i] /= ratio
+        idx2 = randint(0, 2)
+        f_weight = weight[idx1][idx2]
+        weight[idx1][idx2] += random() - 0.5
         n_score = scoring()
         if n_score < score:
             score = n_score
             print(score)
             cnt += 1
         else:
-            for i in range(len(ans[idx1])):
-                ans[idx1][i] /= ratio
-            for i in range(len(ans[idx2])):
-                ans[idx2][i] *= ratio
+            weight[idx1][idx2] = f_weight
         if cnt % 10 == 0:
             output()
 
@@ -445,7 +478,7 @@ def anneal2(tl):
         idx1 = randint(0, pattern_num - 1)
         idx2 = randint(0, each_param_num[idx1] - 1)
         f_val = ans[idx1][idx2]
-        ans[idx1][idx2] += random() * 0.1 - 0.05
+        ans[idx1][idx2] += random() * 0.01 - 0.005
         n_score = scoring()
         if n_score < score:
             score = n_score
@@ -462,6 +495,10 @@ def output():
         for i in range(pattern_num):
             for j in range(each_param_num[i]):
                 f.write('{:f}'.format(ans[i][j]) + '\n')
+    with open('patttern_weight.txt', 'w') as f:
+        for i in range(pattern_num):
+            for j in range(3):
+                f.write('{:f}'.format(weight[i][j]) + '\n')
 
 '''
 g = [
@@ -487,28 +524,29 @@ print(translate_p(g, edge1))
 print(translate_p(g, corner1))
 exit()
 '''
-'''
+
 with open('third_party/xxx.gam', 'rb') as f:
     raw_data = f.read()
 games = [i for i in raw_data.splitlines()]
 
 
 num = 1000
-lst = [i * 10 for i in range(num)]
+lst = [randint(0, 100000) for i in range(num)]
 for i in trange(num):
     collect(str(games[lst[i]]))
 '''
-
 for _ in trange(100):
     collect()
-
+'''
 for i in range(pattern_num):
     for j in range(each_param_num[i]):
-        ans[i][j] = win_num[i][j] / max(1, seen_num[i][j]) / 16.0
+        ans[i][j] = win_num[i][j] / max(1, seen_num[i][j])
 
 output()
 #anneal0(10.0)
 while True:
     anneal1(10.0)
+    output()
     anneal2(10.0)
+    output()
 output()
