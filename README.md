@@ -9,30 +9,6 @@ $ python main.py
 
 ## How to start (person vs AI)
 
-### Create parameters
-
-#### Create your own parameters
-
-To compile ```ai_fast.cpp```, type
-
-```
-$ python compile.py ai_fast.cpp
-```
-
-Then create parameters with executing
-
-```
-python adjust_params.py
-```
-
-This program runs forever. To stop it, please use ```CTRL+C```.
-
-```param.txt``` is made.
-
-#### Use default parameters
-
-Rename ```param_base.txt``` to ```param.txt```.
-
 ### Compile
 
 To compile `ai_cpp.cpp`, type
