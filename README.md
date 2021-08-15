@@ -19,12 +19,17 @@ $ python compile.py ai_cpp.cpp
 
 ### Execute
 
-open ```main.py``` and check that ```ai_mode``` is True.
-```ai_player``` is ```1``` when AI is white, ```0``` when AI is black.
-Then type
+Type
 
 ```
 $ python main.py
+```
+then, the following description appears:
+```
+PERSON: person vs person
+BLACK: person(black) vs AI(white)
+WHITE: AI(black) vs person(white)
+choose: # type your choice
 ```
 
 ## How to play
