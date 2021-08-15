@@ -6,11 +6,14 @@ hw = 8
 dy = [0, 1, 0, -1, 1, 1, -1, -1]
 dx = [1, 0, -1, 0, 1, -1, 1, -1]
 
+
 def empty(grid, y, x):
     return grid[y][x] == -1 or grid[y][x] == 2
 
+
 def inside(y, x):
     return 0 <= y < hw and 0 <= x < hw
+
 
 def check(grid, player, y, x):
     res_grid = [[False for _ in range(hw)] for _ in range(hw)]
@@ -47,6 +50,7 @@ def check(grid, player, y, x):
                 res_grid[nny][nnx] = True
     return res, res_grid
 
+
 class reversi:
     def __init__(self):
         self.grid = [[-1 for _ in range(hw)] for _ in range(hw)]
@@ -54,7 +58,7 @@ class reversi:
         self.grid[3][4] = 0
         self.grid[4][3] = 0
         self.grid[4][4] = 1
-        self.player = 0 # 0: 黒 1: 白
+        self.player = 0  # 0: 黒 1: 白
         self.nums = [2, 2]
 
     def move(self, y, x):
@@ -70,7 +74,7 @@ class reversi:
         self.nums[self.player] += 1 + plus
         self.nums[1 - self.player] -= plus
         self.player = 1 - self.player
-    
+
     def check_pass(self):
         for y in range(hw):
             for x in range(hw):
@@ -98,9 +102,10 @@ class reversi:
         for y in range(hw):
             print(str(y + 1) + ' ', end='')
             for x in range(hw):
-                print('O ' if self.grid[y][x] == 0 else 'X ' if self.grid[y][x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
+                print('O ' if self.grid[y][x] == 0 else 'X ' if self.grid[y]
+                      [x] == 1 else '* ' if self.grid[y][x] == 2 else '. ', end='')
             print('')
-    
+
     def end(self):
         if min(self.nums) == 0:
             return True
@@ -110,7 +115,7 @@ class reversi:
                 if self.grid[y][x] == -1 or self.grid[y][x] == 2:
                     res = False
         return res
-    
+
     def judge(self):
         if self.nums[0] > self.nums[1]:
             print('Black won!', self.nums[0], '-', self.nums[1])
@@ -119,12 +124,28 @@ class reversi:
         else:
             print('Draw!', self.nums[0], '-', self.nums[1])
 
+
+tl = 2000
 ai_mode = True
 ai_player = 1
-tl = 2000
+while True:
+    print('Choose game style:', 'PERSON: person vs person',
+          'BLACK: person(black) vs AI(white)', 'WHITE: AI(black) vs person(white)', sep='\n')
+    style = input('choose: ')
+    if(style == 'PERSON'):
+        ai_mode = False
+    elif(style == 'BLACK'):
+        ai_player = 1
+    elif(style == 'WHITE'):
+        ai_player = 0
+    else:
+        print('The input is invalid')
+        continue
+    break
 
 if ai_mode:
-    ai = subprocess.Popen('./a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    ai = subprocess.Popen(
+        './a.exe'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdin = str(ai_player) + '\n' + str(tl) + '\n'
     ai.stdin.write(stdin.encode('utf-8'))
     ai.stdin.flush()
@@ -150,7 +171,7 @@ while True:
             for x in range(hw):
                 stdin += str(rv.grid[y][x]) + ' '
             stdin += '\n'
-        #print(stdin)
+        # print(stdin)
         ai.stdin.write(stdin.encode('utf-8'))
         ai.stdin.flush()
         y, x = [int(i) for i in ai.stdout.readline().decode().strip().split()]
