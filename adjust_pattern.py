@@ -331,7 +331,7 @@ def collect(s):
     #winner = rv.judge()
     score = 2.0 / (1.0 + exp(-(rv.nums[0] - rv.nums[1]) / 5)) - 1.0
     for turn, grid in enumerate(grids):
-        tmp = [score * (1 / (1 + pow(2, 22 - turn))), (turn + 4) / 64]
+        tmp = [score, (turn + 4) / 64]
         for i in range(pattern_num):
             tmp.append(translate_p(grid, eval_translate[i]))
             for j in translate_p(grid, translate[i]):
