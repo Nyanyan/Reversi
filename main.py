@@ -139,7 +139,7 @@ while True:
     elif(style == 'WHITE'):
         ai_player = 0
     else:
-        print('The input is invalid')
+        print('The input is invalid\n')
         continue
     break
 
