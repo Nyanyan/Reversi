@@ -195,4 +195,5 @@ while True:
 rv.check_pass()
 rv.output()
 rv.judge()
-ai.kill()
+if ai_mode:
+    ai.kill()
